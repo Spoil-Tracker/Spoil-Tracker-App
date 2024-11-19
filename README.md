@@ -1,0 +1,1 @@
+This is Kevin's portion of the Spoil Tracker application.
