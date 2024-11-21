@@ -10,6 +10,10 @@
 
 yes, i know this is in vite + react but this is just for the demo and nothing more
 
+i dont think you need to do this, but in case something goes wrong, try reinstalling some dependencies on the app dir: 
+`npm install` and `npm install firebase`
+
 i made sure to have .gitignore not push .env files, but in case you opt for another way to provide keys and you push something for some reason... ***DO NOT PUSH OUR API KEYS ONTO THE REPOSITORY*** 
 
 i trust you all know what you are doing
+
