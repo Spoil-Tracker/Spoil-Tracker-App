@@ -2,7 +2,7 @@
 
 After cloning the repository to your computer, open the cloned folder in VS Code. Once you're in VS Code, open it's terminal and type in the command: `cd spoil-tracker-alpha`
 
-Once this has been completed, you’ll need to install the dependancies needed for the program to function correctly. With the terminal still open, type: `npm install`
+Once this has been completed, you’ll need to install the dependencies needed for the program to function correctly. With the terminal still open, type: `npm install`
 
 Next, in order for the backend to work, the next command you’ll need to type is: `npm install graphql graphql-scalars type-graphql` then after that’s done: `npm install reflect-metadata` 
 
