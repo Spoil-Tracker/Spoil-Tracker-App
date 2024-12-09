@@ -1,16 +1,21 @@
-import { Text, View } from "react-native";
-import "reflect-metadata";
+import React from "react";
+import ReactDOM from "react-dom/client"; // Import from 'react-dom/client' in React 18
+import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
+import App2 from "../src/App2"; // Your main app component
 
-export default function Index() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
-    </View>
-  );
-}
+const client = new ApolloClient({
+  uri: "http://localhost:4000/graphql", // Replace with your backend URL
+  cache: new InMemoryCache(),
+});
+
+const root = ReactDOM.createRoot(
+  document.getElementById("root") as HTMLElement
+); // Use createRoot for React 18
+
+root.render(
+  <React.StrictMode>
+    <ApolloProvider client={client}>
+      <App2 />
+    </ApolloProvider>
+  </React.StrictMode>
+);

@@ -11,6 +11,9 @@ export class User {
   @Field()
   email!: string;
 
-  @Field({ nullable: true }) // Optional field
-  age?: number;
+  @Field()
+  fav_color!: string;
+
+  @Field()
+  age!: number;
 }

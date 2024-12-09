@@ -1,0 +1,35 @@
+//Installs npm, used to obtain other packages
+npm install
+
+//Obtains TypeScript and necessary build tools
+npm install --save-dev typescript ts-node @types/node
+
+//Obtains firestore and firebase admin
+npm install firebase-admin
+
+//Initializes Typescript
+npx tsc --init
+
+//Installs TypegraphQL and dependencies
+//	type-graphql: For schema creation using TypeScript decorators.
+//	graphql: The GraphQL runtime.
+//	reflect-metadata: Required for TypeGraphQL to work with decorators.
+//	class-validator: For validation of input types.
+//	apollo-server: To create the GraphQL API server.
+npm install type-graphql graphql reflect-metadata class-validator apollo-server
+
+//Frontend
+npm install @apollo/client graphql
+
+//Codegen
+npm install @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/typescript-react-apollo -D
+
+
+Start webapp
+npx expo start
+
+Start codegen
+npm run codegen
+
+Start Backend
+npx ts-node src/app.ts

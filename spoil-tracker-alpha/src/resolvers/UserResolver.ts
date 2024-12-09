@@ -16,9 +16,10 @@ export class UserResolver {
   async createUser(
     @Arg("name") name: string,
     @Arg("email") email: string,
-    @Arg("age", { nullable: true }) age?: number
+    @Arg("fav_color") fav_color: string,
+    @Arg("age") age: number
   ): Promise<User> {
-    const newUser = { name, email, age };
+    const newUser = { name, email, fav_color, age };
     const docRef = await this.collection.add(newUser);
     return { id: docRef.id, ...newUser };
   }

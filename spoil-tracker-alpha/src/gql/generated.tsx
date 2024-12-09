@@ -24,7 +24,7 @@ export type Mutation = {
 
 
 export type MutationCreateUserArgs = {
-  age?: InputMaybe<Scalars['Float']['input']>;
+  age: Scalars['Float']['input'];
   email: Scalars['String']['input'];
   fav_color: Scalars['String']['input'];
   name: Scalars['String']['input'];
@@ -37,17 +37,17 @@ export type Query = {
 
 export type User = {
   __typename?: 'User';
-  age?: Maybe<Scalars['Float']['output']>;
+  age: Scalars['Float']['output'];
   email: Scalars['String']['output'];
   fav_color: Scalars['String']['output'];
   id: Scalars['ID']['output'];
-  name?: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
 };
 
 export type GetUsersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetUsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'User', id: string, name?: string | null, email: string }> };
+export type GetUsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'User', id: string, name: string, email: string }> };
 
 
 export const GetUsersDocument = gql`
