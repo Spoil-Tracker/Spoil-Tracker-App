@@ -93,6 +93,13 @@ export type GetAllUsersQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type GetAllUsersQuery = { __typename?: 'Query', getAllUsers: Array<{ __typename?: 'User', id: string, name: string, email: string }> };
 
+export type GetPantriesForUserQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type GetPantriesForUserQuery = { __typename?: 'Query', getPantryForUser?: Array<{ __typename?: 'Pantry', id: string, name: string, foodItems: Array<{ __typename?: 'FoodItem', id: string, name: string, quantity: number, expiration?: string | null }> }> | null };
+
 
 export const GetAllUsersDocument = gql`
     query GetAllUsers {
@@ -135,3 +142,50 @@ export type GetAllUsersQueryHookResult = ReturnType<typeof useGetAllUsersQuery>;
 export type GetAllUsersLazyQueryHookResult = ReturnType<typeof useGetAllUsersLazyQuery>;
 export type GetAllUsersSuspenseQueryHookResult = ReturnType<typeof useGetAllUsersSuspenseQuery>;
 export type GetAllUsersQueryResult = Apollo.QueryResult<GetAllUsersQuery, GetAllUsersQueryVariables>;
+export const GetPantriesForUserDocument = gql`
+    query GetPantriesForUser($name: String!) {
+  getPantryForUser(name: $name) {
+    id
+    name
+    foodItems {
+      id
+      name
+      quantity
+      expiration
+    }
+  }
+}
+    `;
+
+/**
+ * __useGetPantriesForUserQuery__
+ *
+ * To run a query within a React component, call `useGetPantriesForUserQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetPantriesForUserQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetPantriesForUserQuery({
+ *   variables: {
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useGetPantriesForUserQuery(baseOptions: Apollo.QueryHookOptions<GetPantriesForUserQuery, GetPantriesForUserQueryVariables> & ({ variables: GetPantriesForUserQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetPantriesForUserQuery, GetPantriesForUserQueryVariables>(GetPantriesForUserDocument, options);
+      }
+export function useGetPantriesForUserLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetPantriesForUserQuery, GetPantriesForUserQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetPantriesForUserQuery, GetPantriesForUserQueryVariables>(GetPantriesForUserDocument, options);
+        }
+export function useGetPantriesForUserSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetPantriesForUserQuery, GetPantriesForUserQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetPantriesForUserQuery, GetPantriesForUserQueryVariables>(GetPantriesForUserDocument, options);
+        }
+export type GetPantriesForUserQueryHookResult = ReturnType<typeof useGetPantriesForUserQuery>;
+export type GetPantriesForUserLazyQueryHookResult = ReturnType<typeof useGetPantriesForUserLazyQuery>;
+export type GetPantriesForUserSuspenseQueryHookResult = ReturnType<typeof useGetPantriesForUserSuspenseQuery>;
+export type GetPantriesForUserQueryResult = Apollo.QueryResult<GetPantriesForUserQuery, GetPantriesForUserQueryVariables>;

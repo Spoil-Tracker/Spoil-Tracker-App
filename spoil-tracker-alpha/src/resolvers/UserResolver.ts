@@ -7,7 +7,7 @@ export class UserResolver {
 
     @Query(() => [User])
     async getAllUsers(): Promise<User[]> {
-        console.log("Fetching users...");
+        //console.log("Fetching users...");
         const snapshot = await db.collection("users").get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
     }

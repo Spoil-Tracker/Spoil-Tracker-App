@@ -61,9 +61,23 @@ export class PantryResolver {
         return [];
       }
 
-      const pantries = pantriesSnapshot.docs.map((doc) => {
-        return { id: doc.id, ...doc.data() } as Pantry;
-      });
+      const pantries = pantriesSnapshot.docs.map(doc => {
+        const pantryData = doc.data();
+
+        // Log the pantry data for debugging
+        //console.log("Pantry Data:", pantryData);
+
+        // Ensure the foodItems field is typed correctly
+        const foodItems: FoodItem[] = pantryData.foodItems || [];
+
+        // Log each food item for debugging
+        //foodItems.forEach((item: FoodItem) => {
+        //    console.log("Food Item:", item);  // Check each food item's data
+        //});
+
+        // Return the pantry with the mapped foodItems
+        return { id: doc.id, ...pantryData, foodItems } as Pantry;
+    });
 
       return pantries;
     }
