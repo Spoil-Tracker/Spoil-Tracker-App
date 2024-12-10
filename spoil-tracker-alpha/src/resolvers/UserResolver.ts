@@ -4,23 +4,52 @@ import db from "../firestore"; // Import Firestore instance
 
 @Resolver(User)
 export class UserResolver {
-  private collection = db.collection("users");
 
-  @Query(() => [User])
-  async users(): Promise<User[]> {
-    const snapshot = await this.collection.get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
-  }
+    @Query(() => [User])
+    async getAllUsers(): Promise<User[]> {
+        console.log("Fetching users...");
+        const snapshot = await db.collection("users").get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as User[];
+    }
 
-  @Mutation(() => User)
-  async createUser(
-    @Arg("name") name: string,
-    @Arg("email") email: string,
-    @Arg("fav_color") fav_color: string,
-    @Arg("age") age: number
-  ): Promise<User> {
-    const newUser = { name, email, fav_color, age };
-    const docRef = await this.collection.add(newUser);
-    return { id: docRef.id, ...newUser };
-  }
+    @Query(() => User, {nullable: true})
+    async getUserByName(
+      @Arg("name") name: string
+    ): Promise<User | null> {
+      const userSnapshot = await db.collection("users")
+        .where("name", "==", name)
+        .limit(1)
+        .get();
+      
+      if (userSnapshot.empty) {
+        return null; //Return null if no user matches the given name
+      }
+
+      const userDoc = userSnapshot.docs[0];
+      return {
+        id: userDoc.id,
+        ...userDoc.data(),
+      } as User;
+    }
+
+    @Mutation(() => User)
+    async createUser(
+        @Arg("name") name: string,
+        @Arg("email") email: string,
+        @Arg("password") password: string
+    ): Promise<User> {
+      //Check if a user with the same name exists
+      const existingUserSnapshot = await db.collection("users")
+        .where("name", "==", name)
+        .limit(1)
+        .get();
+
+      if (!existingUserSnapshot.empty) {
+        throw new Error(`A user with the name "${name}" already exists.`)
+      }
+      
+        const newUser = { name, email, password };
+        const docRef = await db.collection("users").add(newUser);
+        return { id: docRef.id, ...newUser };
+    }
 }

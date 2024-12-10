@@ -1,15 +1,15 @@
 import React from "react";
-import { useGetUsersQuery } from "../gql/generated"; // Adjust the path to your generated file
+import { useGetAllUsersQuery } from "../gql/generated"; // Adjust the path to your generated file
 
 const UsersList: React.FC = () => {
-  const { data, loading, error } = useGetUsersQuery();
+  const { data, loading, error } = useGetAllUsersQuery();
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
   return (
     <ul>
-      {data?.users.map((user) => (
+      {data?.getAllUsers.map((user) => (
         <li key={user.id}>
           {user.name} - {user.email}
         </li>

@@ -17,42 +17,86 @@ export type Scalars = {
   Float: { input: number; output: number; }
 };
 
+export type FoodItem = {
+  __typename?: 'FoodItem';
+  expiration?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  quantity: Scalars['Float']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
+  addFoodItem: Pantry;
+  createPantry: Pantry;
   createUser: User;
 };
 
 
-export type MutationCreateUserArgs = {
-  age: Scalars['Float']['input'];
-  email: Scalars['String']['input'];
-  fav_color: Scalars['String']['input'];
+export type MutationAddFoodItemArgs = {
+  foodExpiry: Scalars['String']['input'];
+  foodName: Scalars['String']['input'];
+  foodQuantity: Scalars['Float']['input'];
+  pantryName: Scalars['String']['input'];
+  userName: Scalars['String']['input'];
+};
+
+
+export type MutationCreatePantryArgs = {
   name: Scalars['String']['input'];
+  ownerName: Scalars['String']['input'];
+};
+
+
+export type MutationCreateUserArgs = {
+  email: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+};
+
+export type Pantry = {
+  __typename?: 'Pantry';
+  foodItems: Array<FoodItem>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  owner_id: Scalars['String']['output'];
 };
 
 export type Query = {
   __typename?: 'Query';
-  users: Array<User>;
+  getAllPantries: Array<Pantry>;
+  getAllUsers: Array<User>;
+  getPantryForUser?: Maybe<Array<Pantry>>;
+  getUserByName?: Maybe<User>;
+};
+
+
+export type QueryGetPantryForUserArgs = {
+  name: Scalars['String']['input'];
+};
+
+
+export type QueryGetUserByNameArgs = {
+  name: Scalars['String']['input'];
 };
 
 export type User = {
   __typename?: 'User';
-  age: Scalars['Float']['output'];
   email: Scalars['String']['output'];
-  fav_color: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  password: Scalars['String']['output'];
 };
 
-export type GetUsersQueryVariables = Exact<{ [key: string]: never; }>;
+export type GetAllUsersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetUsersQuery = { __typename?: 'Query', users: Array<{ __typename?: 'User', id: string, name: string, email: string }> };
+export type GetAllUsersQuery = { __typename?: 'Query', getAllUsers: Array<{ __typename?: 'User', id: string, name: string, email: string }> };
 
 
-export const GetUsersDocument = gql`
-    query GetUsers {
-  users {
+export const GetAllUsersDocument = gql`
+    query GetAllUsers {
+  getAllUsers {
     id
     name
     email
@@ -61,33 +105,33 @@ export const GetUsersDocument = gql`
     `;
 
 /**
- * __useGetUsersQuery__
+ * __useGetAllUsersQuery__
  *
- * To run a query within a React component, call `useGetUsersQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetUsersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useGetAllUsersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetAllUsersQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGetUsersQuery({
+ * const { data, loading, error } = useGetAllUsersQuery({
  *   variables: {
  *   },
  * });
  */
-export function useGetUsersQuery(baseOptions?: Apollo.QueryHookOptions<GetUsersQuery, GetUsersQueryVariables>) {
+export function useGetAllUsersQuery(baseOptions?: Apollo.QueryHookOptions<GetAllUsersQuery, GetAllUsersQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetUsersQuery, GetUsersQueryVariables>(GetUsersDocument, options);
+        return Apollo.useQuery<GetAllUsersQuery, GetAllUsersQueryVariables>(GetAllUsersDocument, options);
       }
-export function useGetUsersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetUsersQuery, GetUsersQueryVariables>) {
+export function useGetAllUsersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetAllUsersQuery, GetAllUsersQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetUsersQuery, GetUsersQueryVariables>(GetUsersDocument, options);
+          return Apollo.useLazyQuery<GetAllUsersQuery, GetAllUsersQueryVariables>(GetAllUsersDocument, options);
         }
-export function useGetUsersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetUsersQuery, GetUsersQueryVariables>) {
+export function useGetAllUsersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetAllUsersQuery, GetAllUsersQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetUsersQuery, GetUsersQueryVariables>(GetUsersDocument, options);
+          return Apollo.useSuspenseQuery<GetAllUsersQuery, GetAllUsersQueryVariables>(GetAllUsersDocument, options);
         }
-export type GetUsersQueryHookResult = ReturnType<typeof useGetUsersQuery>;
-export type GetUsersLazyQueryHookResult = ReturnType<typeof useGetUsersLazyQuery>;
-export type GetUsersSuspenseQueryHookResult = ReturnType<typeof useGetUsersSuspenseQuery>;
-export type GetUsersQueryResult = Apollo.QueryResult<GetUsersQuery, GetUsersQueryVariables>;
+export type GetAllUsersQueryHookResult = ReturnType<typeof useGetAllUsersQuery>;
+export type GetAllUsersLazyQueryHookResult = ReturnType<typeof useGetAllUsersLazyQuery>;
+export type GetAllUsersSuspenseQueryHookResult = ReturnType<typeof useGetAllUsersSuspenseQuery>;
+export type GetAllUsersQueryResult = Apollo.QueryResult<GetAllUsersQuery, GetAllUsersQueryVariables>;

@@ -1,19 +1,16 @@
-import { ObjectType, Field, ID } from "type-graphql";
+import { Field, ObjectType, ID } from "type-graphql";
 
-@ObjectType() // Marks this class as a GraphQL Object Type
+@ObjectType()
 export class User {
   @Field(() => ID)
-  id!: string;
+  id!: string;      //PK
 
   @Field()
-  name!: string;
+  name!: string;    //Unique Key
 
   @Field()
   email!: string;
 
   @Field()
-  fav_color!: string;
-
-  @Field()
-  age!: number;
+  password!: string; // Storing plaintext password (NOT recommended for production)
 }
