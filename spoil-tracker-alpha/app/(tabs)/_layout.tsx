@@ -52,6 +52,13 @@ export default function TabLayout() {
           title: 'Profile'
         }}
       />
+
+      <Tabs.Screen
+      name="GraphQLDemo"
+        options={{
+          title: 'GraphQLDemo'
+        }}
+      />
     </Tabs>
   );
 }
