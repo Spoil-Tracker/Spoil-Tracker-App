@@ -1,3 +1,5 @@
+This is Cong's part of the project
+
 # Getting Started
 
 After cloning the repository to your computer, open the cloned folder in VS Code. Once you're in VS Code, open it's terminal and type in the command: `cd spoil-tracker-alpha`
