@@ -9,7 +9,7 @@ import {
   Text,
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth'; // Import Firebase function
-import { auth } from '../services/firebaseConfig'; // Import Firebase auth configuration
+import { auth } from '@/services/firebaseConfig'; // Import Firebase auth configuration
 
 const Registration = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);

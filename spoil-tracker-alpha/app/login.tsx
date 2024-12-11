@@ -33,7 +33,7 @@ const Login = () => {
     try {
       // Call the login function from context, passing the email and password
       await login(email, password);
-      router.push('/home'); // Navigate to the home page after successful login
+      router.push('./home'); // Navigate to the home page after successful login
     } catch (error: any) {
       console.error('Login error:', error);
       // Show an alert if login fails

@@ -16,7 +16,7 @@ export default function Registration() {
   useEffect(() => {
     const loadFonts = async () => {
       await Font.loadAsync({
-        'inter-bold': require('../assets/fonts/Inter_800ExtraBold.ttf'),
+        'inter-bold': require('@/assets/fonts/Inter_800ExtraBold.ttf'),
       });
       setFontsLoaded(true);
     };
@@ -35,8 +35,16 @@ export default function Registration() {
     <View style={styles.container}>
       <Text style={styles.spoilTrackerText}>WELCOME TO THE HOME PAGE!!!</Text>
 
-      <TouchableOpacity onPress={() => router.push('./login')}>
+      <TouchableOpacity onPress={() => router.push('../login')}>
         <Text style={styles.btnLogin}>Back to Login Button</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push('../Pantry')}>
+        <Text style={styles.btnLogin}>Pantries</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push('../GroceryList')}>
+        <Text style={styles.btnLogin}>Grocery Lists</Text>
       </TouchableOpacity>
     </View>
   );
