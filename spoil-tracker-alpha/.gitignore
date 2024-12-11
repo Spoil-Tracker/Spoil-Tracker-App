@@ -40,4 +40,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+serviceAccountKey.json
+
 app-example
