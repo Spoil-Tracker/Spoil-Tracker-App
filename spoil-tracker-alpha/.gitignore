@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Environment and config files
+services/firebaseConfig.ts
+
 # Native
 *.orig.*
 *.jks
