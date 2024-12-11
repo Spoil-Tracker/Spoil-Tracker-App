@@ -17,7 +17,7 @@ export default function HomeScreen() {
 
     const fetchOrCreateUserData = async () => {
       try {
-        const userDocRef = doc(db, "users", userID);
+        const userDocRef = doc(db, "user_profiles", userID);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
@@ -64,7 +64,7 @@ export default function HomeScreen() {
     
     try {
       // Reference to the user document by userID
-      const userRef = doc(db, "users", userID);
+      const userRef = doc(db, "user_profiles", userID);
 
        //Delete the user document from Firestore
       await deleteDoc(userRef);

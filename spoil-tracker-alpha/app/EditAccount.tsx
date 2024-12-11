@@ -27,7 +27,7 @@ export default function EditAccount() {
 
   const updateUserData = async () => {
     try {
-      const userRef = doc(db, "users", userID); // Reference to the user document
+      const userRef = doc(db, "user_profiles", userID); // Reference to the user document
       await updateDoc(userRef, {
         name: `${firstName} ${lastName}`,
       });
