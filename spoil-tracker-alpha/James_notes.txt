@@ -18,18 +18,18 @@ npx tsc --init
 //	apollo-server: To create the GraphQL API server.
 npm install type-graphql graphql reflect-metadata class-validator apollo-server
 
-//Frontend
+//Frontend to backend install
 npm install @apollo/client graphql
 
-//Codegen
+//Codegen install
 npm install @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/typescript-react-apollo -D
 
 
+Start codegen   //Not usually needed
+npm run codegen
+
 Start webapp
 npx expo start
-
-Start codegen
-npm run codegen
 
 Start Backend
 npx ts-node src/app.ts
