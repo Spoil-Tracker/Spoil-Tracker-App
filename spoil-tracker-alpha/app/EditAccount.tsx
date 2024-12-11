@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useRoute } from "@react-navigation/native";
 import { doc, updateDoc } from "firebase/firestore";
-import db from "./firebase";
+import { db } from "./firebase";
 
 interface EditAccountRouteParams {
   userID: string;

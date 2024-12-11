@@ -1,16 +1,6 @@
 {
+  "compilerOptions": {},
   "extends": "expo/tsconfig.base",
-  "compilerOptions": {
-    "strict": true,
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
-    },
-    "target": "es2021",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
-  },
   "include": [
     "**/*.ts",
     "**/*.tsx",

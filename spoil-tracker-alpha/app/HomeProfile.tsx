@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Text, View, Button, Modal, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import db from "./firebase";
+import { db }from "./firebase";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 
 export default function HomeScreen() {
@@ -10,7 +10,7 @@ export default function HomeScreen() {
   const [userData, setUserData] = useState({ email: "", firstName: "", lastName: "" });
 
   //Hardcoded userID
-  const userID = "Sd9NPSaLfYtRkZZwmpaG"; // Replace with actual dynamic userID
+  const userID = "teqWOc3lbHMFR7fmYYbq"; // Replace with actual dynamic userID
 
   useEffect(() => {
     const fetchUserData = async () => {
