@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useRoute } from "@react-navigation/native";
 import { doc, updateDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import { db } from "../services/firebaseConfig";
 
 interface EditAccountRouteParams {
   userID: string;
@@ -34,7 +34,7 @@ export default function EditAccount() {
       console.log("User account updated successfully!");
 
       // Go back to the home screen after update
-      router.push("/"); // You can navigate back or to a different screen after the update
+      router.push("/HomeProfile"); // You can navigate back or to a different screen after the update
     } catch (error) {
       console.error("Error updating user data: ", error);
     }

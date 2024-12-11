@@ -1,10 +1,18 @@
 {
-  "compilerOptions": {},
+  "compilerOptions": {
+    "allowJs": true,  // Allow JavaScript files to be included in the project
+    "moduleResolution": "node",  // Use Node's module resolution
+    "esModuleInterop": true,  // Ensure compatibility with ES modules
+    "allowSyntheticDefaultImports": true,  // For smoother imports
+    "strict": true  // Enable strict type-checking options
+  },
   "extends": "expo/tsconfig.base",
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "**/*.ts",  // Include TypeScript files
+    "**/*.tsx",  // Include TypeScript JSX files
+    ".expo/types/**/*.ts",  // Expo-specific types
+    "expo-env.d.ts",  // Expo environment types
+    "src/services/**/*.js"  // Include JavaScript files in the services folder
   ]
 }
+

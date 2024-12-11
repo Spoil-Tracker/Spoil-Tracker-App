@@ -1,22 +1,27 @@
 import React, { useEffect, useState } from "react";
 import { Text, View, Button, Modal, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
-import { db }from "./firebase";
+import { useRouter, router } from "expo-router";
+import { db }from "../services/firebaseConfig";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
+import { useAuth } from "../services/authContext";
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const userID = user?.uid;
   const router = useRouter();
   const [isModalVisible, setModalVisible] = useState(false); // State to control modal visibility
   const [userData, setUserData] = useState({ email: "", firstName: "", lastName: "" });
 
   //Hardcoded userID
-  const userID = "teqWOc3lbHMFR7fmYYbq"; // Replace with actual dynamic userID
+  //const userID = "teqWOc3lbHMFR7fmYYbq"; // Replace with actual dynamic userID
+  
+
 
   useEffect(() => {
+    if (!userID) return;
+
     const fetchUserData = async () => {
       try {
-        //const userID = "AMrBBLo4ncmDHe2rPOJc";
-        console.log("Starting fetchUserData...");
         const userDoc = await getDoc(doc(db, "users", userID));
         console.log("Firestore query complete:", userDoc);
 
@@ -39,7 +44,7 @@ export default function HomeScreen() {
     };
 
     fetchUserData();
-  }, []);
+  }, [userID]);
 
 
   const toggleModal = () => {
@@ -47,6 +52,8 @@ export default function HomeScreen() {
   };
 
   const handleDeleteAccount = async () => {
+    if (!userID) return;
+    
     try {
       // Reference to the user document by userID
       const userRef = doc(db, "users", userID);
@@ -57,7 +64,7 @@ export default function HomeScreen() {
       //console.log("User account deleted successfully.");
 
       // Optionally, navigate to a different screen (e.g., home page)
-      router.push("/"); // Redirect to the Home screen
+      router.push("/HomeProfile"); // Redirect to the Home screen
 
       // Close the modal after deletion
       setModalVisible(false);
