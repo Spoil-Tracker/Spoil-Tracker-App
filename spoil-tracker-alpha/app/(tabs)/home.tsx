@@ -46,6 +46,14 @@ export default function Registration() {
       <TouchableOpacity onPress={() => router.push('../GroceryList')}>
         <Text style={styles.btnLogin}>Grocery Lists</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push('../Profile')}>
+        <Text style={styles.btnLogin}>My Profile</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push('../Settings')}>
+        <Text style={styles.btnLogin}>Settings</Text>
+      </TouchableOpacity>
     </View>
   );
 }
