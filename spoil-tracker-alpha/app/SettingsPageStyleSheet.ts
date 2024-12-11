@@ -5,16 +5,17 @@ const styles = StyleSheet.create
     container: 
     {
         flex: 1,
-        padding: 20,
-        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#FEF9F2',
     },
 
     title: 
     {
-        fontSize: 24,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 20,
+        fontSize: 60,
+        fontFamily: 'inter-bold',
+        color: '#4CAE4F',
+        marginBottom: 10,
     },
 
     formGroup: 
@@ -40,10 +41,13 @@ const styles = StyleSheet.create
       
     button: 
     {
-        backgroundColor: '#007bff',
-        padding: 10,
-        borderRadius: 5,
-        alignItems: 'center',
+        backgroundColor: '#4CAE4F',
+        color: 'white',
+        textAlign: 'center',
+        fontWeight: 'bold',
+        borderRadius: 10,
+        padding: 15,
+        marginTop: 20,
     },
       
     disabledButton: 
