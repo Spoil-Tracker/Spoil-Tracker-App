@@ -1,13 +1,9 @@
-//
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
+import { Tabs } from 'expo-router';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
@@ -21,42 +17,60 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2f95dc',
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        tabBarActiveTintColor: colorScheme === 'dark' ? '#fff' : '#2f95dc',
+        tabBarStyle: {
+          backgroundColor: colorScheme === 'dark' ? '#000' : '#fff',
+        },
+        // headerShown: useClientOnlyValue(false, true), // Prevent web hydration errors COMMENTING THIS OUT FOR DEMO
+        headerShown: false,
+      }}
+    >
       <Tabs.Screen
         name="Home"
         options={{
-          title: 'home',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
         }}
       />
       <Tabs.Screen
         name="GroceryList"
         options={{
-          title: 'Grocery Lists',
+          tabBarLabel: 'Grocery',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="shopping-cart" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-      name="Pantry"
+        name="Pantry"
         options={{
-          title: 'Pantries'
+          tabBarLabel: 'Pantry',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="archive" color={color} />
+          ),
         }}
       />
-
       <Tabs.Screen
-      name="Profile"
+        name="Profile"
         options={{
-          title: 'Profile'
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
-
       <Tabs.Screen
-      name="GraphQLDemo"
+        name="Settings"
         options={{
-          title: 'GraphQLDemo'
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="GraphQLDemo"
+        options={{
+          tabBarLabel: 'GraphQL',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="database" color={color} />
+          ),
         }}
       />
     </Tabs>
