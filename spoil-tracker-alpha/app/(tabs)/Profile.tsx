@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View, Button, Modal, StyleSheet } from 'react-native';
 import { useRouter, router } from 'expo-router';
-import { db } from '@/services/firebaseConfig';
+import { db, auth } from '@/services/firebaseConfig';
+import { deleteUser } from "firebase/auth";
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '@/services/authContext';
 
@@ -64,19 +65,29 @@ export default function HomeScreen() {
 
   const handleDeleteAccount = async () => {
     if (!userID) return;
-
+  
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("No authenticated user found");
+      return;
+    }
+  
     try {
       // Reference to the user document by userID
       const userRef = doc(db, 'user_profiles', userID);
-
-      //Delete the user document from Firestore
+  
+      // Delete the user document from Firestore
       await deleteDoc(userRef);
-
-      //console.log("User account deleted successfully.");
-
-      // Optionally, navigate to a different screen (e.g., home page)
-      router.push('/home'); // Redirect to the Home screen
-
+  
+      // Delete the user's authentication account
+      await deleteUser(user);
+  
+      console.log("User account and authentication deleted successfully.");
+  
+      // Redirect to the login screen
+      router.push('/login');
+  
       // Close the modal after deletion
       setModalVisible(false);
     } catch (error) {

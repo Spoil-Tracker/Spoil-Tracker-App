@@ -5,6 +5,7 @@ import { getBackgroundColorAsync } from 'expo-system-ui';
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
 
 
@@ -45,6 +46,7 @@ const GroceryList = () => {
   const [scaleAnim] = useState(new Animated.Value(1));
   const local = useLocalSearchParams();
   const docRef = doc(db, 'grocery_lists', local.id as string);
+  const router = useRouter();
 
   useEffect(() => {
     const onChange = () => {
@@ -328,6 +330,9 @@ const GroceryList = () => {
               </Pressable>
               <Pressable style={styles.exportButton} onPress={() => alert('Export clicked!')}>
               <Text style={styles.buttonText}>Export</Text>
+              </Pressable>
+              <Pressable style={styles.exportButton} onPress={() => router.push('./GroceryList')}>
+              <Text style={styles.buttonText}>Back</Text>
               </Pressable>
             </View>
           </View>

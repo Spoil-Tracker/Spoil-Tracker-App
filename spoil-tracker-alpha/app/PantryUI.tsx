@@ -6,6 +6,7 @@ import { Dimensions } from 'react-native';
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
+import { useRouter } from 'expo-router';
 import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
 
 
@@ -28,6 +29,7 @@ const Pantry = () => {
   const [listToDelete, setListToDelete] = useState(null); // State for the list to be deleted
   const [alertVisible, setAlertVisible] = useState(false); // State to control alert visibility
   const [alertMessage, setAlertMessage] = useState(''); // State to hold the alert message
+  const router = useRouter();
   
   const [items, setItems] = useState<ListItem[]>([]);
   const [pantryTitle, setPantryTitle] = useState('');
@@ -427,9 +429,11 @@ const Pantry = () => {
           <View style={styles.fixedLeftColumn}>
             <Text style={styles.textBoxTitle}>Grocery List Example</Text>
             
-            {/* Add New List Button in Left Column */}
             <Pressable style={styles.addListButton} onPress={addNewList}>
               <Text style={styles.addListButtonText}>Add New List</Text>
+            </Pressable>
+            <Pressable style={styles.addListButton} onPress={() => router.push('./Pantry')}>
+              <Text style={styles.addListButtonText}>Back</Text>
             </Pressable>
           </View>
   
