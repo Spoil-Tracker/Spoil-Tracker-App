@@ -46,7 +46,7 @@ export default function HomeScreen() {
           console.log('New user document created');
 
           setUserData({
-            email: newUserData.email,
+            email: newUserData.email || 'Unknown',
             firstName: newUserData.name.split(' ')[0],
             lastName: newUserData.name.split(' ')[1] || '',
           });
