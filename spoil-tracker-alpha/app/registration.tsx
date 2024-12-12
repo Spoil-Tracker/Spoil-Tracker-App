@@ -5,6 +5,7 @@ import {
   TextInput,
   View,
   StyleSheet,
+  Platform,
   TouchableOpacity,
   Text,
 } from 'react-native';
@@ -110,11 +111,14 @@ const styles = StyleSheet.create({
   },
   TextInput: {
     backgroundColor: 'white',
+    alignContent: 'center',
     borderWidth: 2,
     padding: 10,
     borderRadius: 25,
     marginTop: 10,
-    width: '80%',
+    ...(Platform.OS === 'ios' && {
+      width: '55%',
+    }),
   },
   btnLogin: {
     backgroundColor: 'blue',
