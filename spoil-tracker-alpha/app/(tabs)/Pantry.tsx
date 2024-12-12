@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, ScrollView, Pressable, Modal, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  Dimensions,
+  ScrollView,
+  Pressable,
+  Modal,
+  TextInput,
+} from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
@@ -7,25 +18,26 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Link } from 'expo-router';
 import { v4 as uuidv4 } from 'uuid';
 
-
 const ButtonListScreen = () => {
   const [pantries, setPantries] = useState<string[]>([]);
-  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [screenWidth, setScreenWidth] = useState(
+    Dimensions.get('window').width
+  );
   const [modalVisible, setModalVisible] = useState(false);
   const [newPantryName, setnewPantryName] = useState('');
 
   // Fetch lists from Firestore
   const fetchPantries = async () => {
     try {
-        const querySnapshot = await getDocs(collection(db, 'pantries_t'));
-        const pant = [];
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data && data.name) {
-                pant.push({ id: doc.id, name: String(data.name) })
-            }
-          });
-        setPantries(pant);
+      const querySnapshot = await getDocs(collection(db, 'pantries_t'));
+      const pant = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data && data.name) {
+          pant.push({ id: doc.id, name: String(data.name) });
+        }
+      });
+      setPantries(pant);
     } catch (error) {
       console.error('Error fetching grocery lists: ', error);
     }
@@ -45,7 +57,7 @@ const ButtonListScreen = () => {
         created: new Date().toISOString(),
         description: 'Edit the pantry description!',
         item_amount: 0,
-        sections: { 'unordered' : {"name" : "Unordered", "items": []}},
+        sections: { unordered: { name: 'Unordered', items: [] } },
       });
 
       console.log('New pantry created with ID: ', newListRef.id);
@@ -67,8 +79,7 @@ const ButtonListScreen = () => {
 
     Dimensions.addEventListener('change', onChange);
 
-    return () => {
-    };
+    return () => {};
   }, []);
 
   const isSmallScreen = screenWidth < 800;
@@ -85,18 +96,17 @@ const ButtonListScreen = () => {
           isSmallScreen ? styles.columnLayout : styles.rowLayout,
         ]}
       >
-
         <View style={styles.listSection}>
           <Text style={styles.sectionTitle}>Pantries</Text>
           <ScrollView style={styles.scrollView}>
-          {pantries.map((pantry) => (
-            <Link
+            {pantries.map((pantry) => (
+              <Link
                 key={pantry.id}
                 href={`../PantryUI?id=${pantry.id}`}
                 style={styles.button}
-            >
+              >
                 <Text style={styles.buttonText}>{String(pantry.name)}</Text>
-            </Link>
+              </Link>
             ))}
           </ScrollView>
         </View>

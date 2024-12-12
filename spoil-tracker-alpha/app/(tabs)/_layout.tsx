@@ -58,6 +58,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="Settings"
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="GraphQLDemo"
         options={{
           tabBarLabel: 'GraphQL',

@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { TextInput, TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import {
+  TextInput,
+  TouchableOpacity,
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
 import { auth } from '@/services/firebaseConfig'; // Import your auth from the Firebase config
 import { verifyBeforeUpdateEmail } from 'firebase/auth';
-import { updateProfile, sendEmailVerification, updatePassword, updateEmail, reauthenticateWithCredential, EmailAuthProvider, User } from 'firebase/auth';
+import {
+  updateProfile,
+  sendEmailVerification,
+  updatePassword,
+  updateEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  User,
+} from 'firebase/auth';
 import Banner from '@/components/Banner'; // Import the Banner component
-import styles from './SettingsPageStyleSheet'; // Import your existing styles
+import styles from '../SettingsPageStyleSheet'; // Import your existing styles
 
 const SettingsPage = (): JSX.Element => {
   const [username, setUsername] = useState(''); // Username will be used for email address
@@ -28,22 +42,23 @@ const SettingsPage = (): JSX.Element => {
       setBannerType('error');
       return;
     }
-  
+
     if (username.trim() === '') {
       setBannerMessage('Email cannot be empty.');
       setBannerType('error');
       return;
     }
-  
+
     const credential = EmailAuthProvider.credential(user.email || '', password);
     try {
       await reauthenticateWithCredential(user, credential);
-  
+
       // Use verifyBeforeUpdateEmail with the username string
       await verifyBeforeUpdateEmail(user, username);
-      setBannerMessage('Verification email sent. Please check your inbox to confirm the new email address.');
+      setBannerMessage(
+        'Verification email sent. Please check your inbox to confirm the new email address.'
+      );
       setBannerType('success');
-  
     } catch (error) {
       if (error.code === 'auth/wrong-password') {
         setBannerMessage('Incorrect password.');
@@ -54,7 +69,6 @@ const SettingsPage = (): JSX.Element => {
       }
     }
   };
-  
 
   const handlePasswordChange = async () => {
     if (!user) {
