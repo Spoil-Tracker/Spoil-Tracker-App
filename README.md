@@ -1,54 +1,59 @@
 # Getting Started
 
-After cloning the repository to your computer, open the cloned folder in VS Code. Once you're in VS Code, open it's terminal and type in the command: `cd spoil-tracker-alpha`
+The following build is a demo build for the Initial Programming segment of our project. A lot of it does not represent what we think should be the final product of our application. With that said, the build was made with the purpose of demonstrating our idea, how it works, and showing it works as an application through pre-existing frameworks.
 
-Once this has been completed, you’ll need to install the dependencies needed for the program to function correctly. With the terminal still open, type: `npm install`
+<div style="text-align: center;">
+  <img src="https://i.imgur.com/JlA6lgq.png" width="500"/>
+  <img src="https://i.imgur.com/QUBqs5A.png" width="445"/>
+</div>
 
-Next, in order for the backend to work, the next command you’ll need to type is: `npm install graphql graphql-scalars type-graphql` then after that’s done: `npm install reflect-metadata` 
+## Requirements
 
-In order to test if the project is up and running on your machine, make sure you're still in the `spoil-tracker-alpha` folder in the terminal and type: `npx expo start` 
-which will show you a QR code along with with a few options to open the application.
+1. Verify that you have NodeJS installed on your desktop
+2. Requires a firebase config file with valid keys, placed in the services folder with a name of "firebaseConfig.ts"
+3. (Only applicable if you want to run the GraphQL Backend) Requires valid service account keys from Firebase, placed into the spoil-tracker-alpha directory
 
-Press w to open the web version of the app. You should see a white page that says `Edit app/index.tsx to edit this screen.` If you see this message, you’re all set!
+After cloning the repository to your computer, open the cloned folder in VS Code. Once you're in VS Code, open it's terminal and type in the command: 
 
-**** NOTES ADDED BY JAMES TO RUN BACKEND ****
-Some things may be redundant. 
-All commands should be run in /spoil-tracker-alpha
+```
+cd spoil-tracker-alpha
+./setup.sh
+```
 
-//Installs npm, used to obtain other packages
+This downloads all of the required dependencies needed to run the application locally. Alternatively, if you do not want to / cannot run ./setup.sh, then paste the following onto a terminal that is open on the spoil-tracker-alpha directory:
+
+```
+cd spoil-tracker-alpha
 npm install
-
-//Obtains TypeScript and necessary build tools
+npm install graphql graphql-scalars type-graphql
+npm install reflect-metadata
 npm install --save-dev typescript ts-node @types/node
-
-//Obtains firestore and firebase admin
 npm install firebase-admin
-
-//Initializes Typescript
 npx tsc --init
-
-//Installs TypegraphQL and dependencies
-//    type-graphql: For schema creation using TypeScript decorators.
-//    graphql: The GraphQL runtime.
-//    reflect-metadata: Required for TypeGraphQL to work with decorators.
-//    class-validator: For validation of input types.
-//    apollo-server: To create the GraphQL API server.
 npm install type-graphql graphql reflect-metadata class-validator apollo-server
-
-//Frontend install
 npm install @apollo/client graphql
-
-
-Start webapp
-npx expo start
-
-Start codegen
 npm run codegen
+```
 
-Start Backend   (Requires serviceAccountKey.json)
+To run the application, we use Expo:
+
+```
+npx expo start
+```
+
+To run GraphQL:
+```
 npx ts-node src/backendServerStart.ts
+```
 
-**** END NOTES BY JAMES ****
+### Small note:
+The amount of contributors on the repository does not accurately reflect who contributed to the project. To verify this, please look at the various branches stored in the repository; there were some hiccups and merge conflicts during the process of making the application.
 
-## Important
-#### **PLEASE PUSH CHANGES ONLY INTO YOUR OWN BRANCH. DO NOT PUSH ANYTHING TO THE MAIN BRANCH UNLESS WE’VE ALL APPROVED IT!!**
+## Work Report
+
+|Task #|Difficulty|Description|Percentage Done|%Done by Rex|%Done by Kevin|%Done by Tom|%Done by James|%Done by Cong|
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |:-: |
+task | difficulty | description | percentage done | done by other | done by other1 | done by other2 | done by other3 | done by other4 |
+copy paste the above row and replace the text ^
+1 | 30 | Pre-alpha Working Pantry Interface | 90% | 100% | 0% | 0% | 0% | 0% |
+1 | 30 | Pre-alpha Working Grocery List Interface | 90% | 100% | 0% | 0% | 0% | 0% |
