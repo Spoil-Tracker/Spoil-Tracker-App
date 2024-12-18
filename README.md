@@ -63,3 +63,5 @@ copy paste the above row and replace the text ^
 3 | 30 | Login | 90% | 0% | 100% | 0% | 0%| 0% |
 3 | 30 | Settings | 70% | 5% | 0% | 95% | 0% | 0% |
 4 | 30 | Profiles | 90% | 10% | 5% | 0% | 0% | 85% |
+5 | 45 | Schema | 100% | 0% | 0% | 0% | 100%| 0% |
+5 | 15 | minimal db documents (1-2) | 100% | 0% | 0% | 0% | 100%| 0% |
