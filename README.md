@@ -53,12 +53,10 @@ The amount of contributors on the repository does not accurately reflect who con
 
 |Task #|Difficulty|Description|Percentage Done|%Done by Rex|%Done by Kevin|%Done by Tom|%Done by James|%Done by Cong|
 | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |:-: |
-task | difficulty | description | percentage done | done by other | done by other1 | done by other2 | done by other3 | done by other4 |
-copy paste the above row and replace the text ^
 1 | 30 | Pre-alpha Working Pantry Interface | 90% | 100% | 0% | 0% | 0% | 0% |
 1 | 30 | Pre-alpha Working Grocery List Interface | 90% | 100% | 0% | 0% | 0% | 0% |
-2 | 30 | Navigation| 70% | 50% | 50% | 0% | 0%| 0% |
-2 | 30 | User Account | 65% | 0% | 15% | 0% | 0%| 0% |
+1 | 30 | Navigation| 70% | 50% | 50% | 0% | 0%| 0% |
+2 | 30 | User Account | 65% | 0% | 15% | 40% | 0%| 45% |
 2 | 30 | Registration | 90% | 10% | 90% | 0% | 0%| 0% |
 3 | 30 | Login | 90% | 0% | 100% | 0% | 0%| 0% |
 3 | 30 | Settings | 70% | 5% | 0% | 95% | 0% | 0% |
