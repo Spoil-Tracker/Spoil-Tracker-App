@@ -46,9 +46,6 @@ To run GraphQL:
 npx ts-node src/backendServerStart.ts
 ```
 
-### Small note:
-The amount of contributors on the repository does not accurately reflect who contributed to the project. To verify this, please look at the various branches stored in the repository; there were some hiccups during the process of making the application.
-
 ## Work Report
 
 |Task #|Difficulty|Description|Percentage Done|%Done by Rex|%Done by Kevin|%Done by Tom|%Done by James|%Done by Cong|
