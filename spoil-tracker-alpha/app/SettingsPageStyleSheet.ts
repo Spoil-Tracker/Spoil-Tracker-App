@@ -92,6 +92,29 @@ const styles = StyleSheet.create
         fontSize: 16,
         fontWeight: 'bold',
     },
+
+    notificationOption: 
+    {
+        padding: 10,
+        marginVertical: 5,
+        borderWidth: 1,
+        borderColor: '#4CAE4F',
+        borderRadius: 5,
+        alignItems: 'center',
+        width: '90%',
+    },
+      
+    selectedOption: 
+    {
+        backgroundColor: '#4CAE4F',
+    },
+      
+    notificationText: 
+    {
+        fontSize: 16,
+        color: '#000',
+    },
+      
 });
 
 export default styles;

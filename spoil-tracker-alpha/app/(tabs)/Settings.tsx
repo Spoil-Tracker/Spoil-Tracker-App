@@ -24,6 +24,7 @@ const SettingsPage = (): JSX.Element => {
   const [user, setUser] = useState<User | null>(null);
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
+  const [notificationSetting, setNotificationSetting] = useState('Notify Everyday');
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -104,7 +105,14 @@ const SettingsPage = (): JSX.Element => {
       setBannerMessage('Failed to send verification email: ' + errorMessage);
       setBannerType('error');
     }
-  };  
+  };
+
+  const handleNotificationChange = (setting: string) => 
+  {
+    setNotificationSetting(setting);
+    setBannerMessage(`Notification setting changed to: ${setting}`);
+    setBannerType('success');
+  };
 
   return (
     <View style={styles.container}>
@@ -160,7 +168,20 @@ const SettingsPage = (): JSX.Element => {
 
         {/* Placeholder for future content on the right side */}
         <View style={styles.rightSection}>
-          <Text>Additional Settings</Text>
+          <Text style={styles.label}>Notification Settings:</Text>
+
+          {['Notify Everyday', 'Notify Weekly', 'Notify Monthly', 'Notify Never'].map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[
+                styles.notificationOption,
+                notificationSetting === option && styles.selectedOption,
+              ]}
+              onPress={() => handleNotificationChange(option)}
+            >
+              <Text style={styles.notificationText}>{option}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     </View>
