@@ -37,43 +37,53 @@ const SettingsPage = (): JSX.Element =>
     <View style={styles.container}>
       <Text style={styles.title}>Settings</Text>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>New Username:</Text>
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={(text) => setUsername(text)}
-          placeholder="Enter your new username"
-        />
-        <TouchableOpacity style={styles.button} onPress={handleUsernameChange}>
-          <Text style={styles.buttonText}>Change Username</Text>
-        </TouchableOpacity>
-      </View>
+      <View style={styles.contentContainer}>
+        <View style={styles.leftSection}>
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>New Username:</Text>
+            <TextInput
+              style={styles.input}
+              value={username}
+              onChangeText={(text) => setUsername(text)}
+              placeholder="Enter your new username"
+            />
+            <TouchableOpacity style={styles.button} onPress={handleUsernameChange}>
+              <Text style={styles.buttonText}>Change Username</Text>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>New Password:</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={(text) => setPassword(text)}
-          placeholder="Enter your new password"
-          secureTextEntry
-        />
-        <TouchableOpacity style={styles.button} onPress={handlePasswordChange}>
-          <Text style={styles.buttonText}>Change Password</Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>New Password:</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={(text) => setPassword(text)}
+              placeholder="Enter your new password"
+              secureTextEntry
+            />
+            <TouchableOpacity style={styles.button} onPress={handlePasswordChange}>
+              <Text style={styles.buttonText}>Change Password</Text>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.formGroup}>
-        <TouchableOpacity
-          style={[styles.button, emailVerified && styles.disabledButton]}
-          onPress={handleEmailVerification}
-          disabled={emailVerified}
-        >
-          <Text style={styles.buttonText}>
-            {emailVerified ? 'Email Verified' : 'Verify Email'}
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.formGroup}>
+            <TouchableOpacity
+              style={[styles.button, emailVerified && styles.disabledButton]}
+              onPress={handleEmailVerification}
+              disabled={emailVerified}
+            >
+              <Text style={styles.buttonText}>
+                {emailVerified ? 'Email Verified' : 'Verify Email'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.rightSection}>
+          <Text>Placeholder</Text>
+        </View>
       </View>
     </View>
   );
