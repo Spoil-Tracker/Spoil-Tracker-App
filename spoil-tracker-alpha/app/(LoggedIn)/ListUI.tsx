@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView } from 'react-native';
+import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal } from 'react-native';
 import { AntDesign } from '@expo/vector-icons'; // For the plus icon
-import { getBackgroundColorAsync } from 'expo-system-ui';
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
@@ -34,15 +33,14 @@ type ListItem = {
 
 const GroceryList = () => {
   const [items, setItems] = useState<ListItem[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
   const [searchText, setSearchText] = useState(''); // Search text state
   const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state
-  const [groceryListText, setGroceryListText] = useState('');
   const [groceryListTitle, setGroceryListTitle] = useState('');
   const [groceryListDate, setGroceryListDate] = useState('');
   const [groceryListDescription, setGroceryListDescription] = useState('');
   const [groceryListCompletion, setGroceryListCompletion] = useState<boolean>(false);
-  const [groceryListItems, setGroceryListItems] = useState<ListItem[]>([]);
   const [scaleAnim] = useState(new Animated.Value(1));
   const local = useLocalSearchParams();
   const docRef = doc(db, 'grocery_lists', local.id as string);
@@ -203,8 +201,12 @@ const GroceryList = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  
-    await addRandomItem();
+
+    setModalVisible(true); // Show modal when FAB is pressed
+  };
+
+  const closeModal = () => {
+    setModalVisible(false); // Close modal
   };
   
 
@@ -285,10 +287,6 @@ const GroceryList = () => {
     );
   };
   
-  
-  
-  
-  
   const smallScreen = screenWidth < 680;
   const numColumns = screenWidth < 1015 ? 1 : 2;
 
@@ -331,7 +329,7 @@ const GroceryList = () => {
               <Pressable style={styles.exportButton} onPress={() => alert('Export clicked!')}>
               <Text style={styles.buttonText}>Export</Text>
               </Pressable>
-              <Pressable style={styles.exportButton} onPress={() => router.push('./GroceryList')}>
+              <Pressable style={styles.exportButton} onPress={() => router.back()}>
               <Text style={styles.buttonText}>Back</Text>
               </Pressable>
             </View>
@@ -357,6 +355,37 @@ const GroceryList = () => {
           <AntDesign name="plus" size={24} color="white" />
         </Pressable>
     </Animated.View>
+
+    <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Item</Text>
+
+            {/* You can add a form here to collect details for the new item */}
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter item name"
+              // Add state for the input value here
+            />
+            <Pressable style={styles.modalButton} onPress={() => {
+              // Add item to the list
+              addRandomItem();
+              closeModal();
+            }}>
+              <Text style={styles.buttonText}>Add Item</Text>
+            </Pressable>
+
+            <Pressable style={styles.modalButton} onPress={closeModal}>
+              <Text style={styles.buttonText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -436,6 +465,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 8,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  modalInput: {
+    width: '100%',
+    padding: 10,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   fixedLeftColumn: {
     padding: 20,

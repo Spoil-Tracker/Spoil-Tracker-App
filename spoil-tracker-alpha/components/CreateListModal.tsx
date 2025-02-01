@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, TextInput, Pressable, View, Text, StyleSheet } from 'react-native';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/services/firebaseConfig';
+import { getAuth } from 'firebase/auth';  // Import Firebase Auth
 
 type CreateListModalProps = {
   visible: boolean;
@@ -18,12 +19,20 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
       return;
     }
 
+    // Get the current user
+    const user = getAuth().currentUser;
+
+    if (!user) {
+      alert('User is not logged in');
+      return;
+    }
+
     try {
       await addDoc(collection(db, 'grocery_lists'), {
         name: newListName,
-        user_id: 0,
+        user_id: user.uid,  // Use the current user's uid
         created: new Date().toISOString(),
-        description: 'Edit the grocery list description!',
+        description: 'A newly made list. Edit the description by clicking on this field!',
         completed: false,
         items: [],
       });
@@ -37,7 +46,7 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
   };
 
   return (
-    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={onClose}>
+    <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Enter New List Name</Text>
@@ -68,7 +77,6 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
 };
 
 export default CreateListModal;
-
 
 const styles = StyleSheet.create({
     input: {
@@ -111,4 +119,4 @@ const styles = StyleSheet.create({
     modalButtonText: {
         color: 'white',
     },
-})
+});

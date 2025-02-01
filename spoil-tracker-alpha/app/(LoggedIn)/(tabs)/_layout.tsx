@@ -17,18 +17,23 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colorScheme === 'dark' ? '#fff' : '#2f95dc',
+        tabBarActiveTintColor: colorScheme === 'dark' ? '#fff' : '#fff',
         tabBarStyle: {
-          backgroundColor: colorScheme === 'dark' ? '#000' : '#fff',
+          backgroundColor: colorScheme === 'dark' ? '#fff' : '#4CAE4F',
+        },
+        tabBarLabelStyle: {
+          fontFamily: 'inter-bold'
         },
         // headerShown: useClientOnlyValue(false, true), // Prevent web hydration errors COMMENTING THIS OUT FOR DEMO
         headerShown: false,
+        tabBarInactiveTintColor: '#fff'
       }}
     >
       <Tabs.Screen
         name="Home"
         options={{
           tabBarLabel: 'Home',
+          tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
         }}
       />
@@ -36,6 +41,7 @@ export default function TabLayout() {
         name="GroceryList"
         options={{
           tabBarLabel: 'Grocery',
+          tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="shopping-cart" color={color} />
           ),
@@ -45,6 +51,7 @@ export default function TabLayout() {
         name="Pantry"
         options={{
           tabBarLabel: 'Pantry',
+          tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="archive" color={color} />
           ),
@@ -54,6 +61,7 @@ export default function TabLayout() {
         name="Profile"
         options={{
           tabBarLabel: 'Profile',
+          tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
         }}
       />
@@ -61,6 +69,7 @@ export default function TabLayout() {
         name="Settings"
         options={{
           tabBarLabel: 'Settings',
+          tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
         }}
       />
@@ -68,6 +77,7 @@ export default function TabLayout() {
         name="GraphQLDemo"
         options={{
           tabBarLabel: 'GraphQL',
+          tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="database" color={color} />
           ),

@@ -35,7 +35,7 @@ export default function Registration() {
     <View style={styles.container}>
       <Text style={styles.spoilTrackerText}>WELCOME TO THE HOME PAGE!!!</Text>
 
-      <TouchableOpacity onPress={() => router.push('../login')}>
+      <TouchableOpacity onPress={() => router.push('../../login')}>
         <Text style={styles.btnLogin}>Back to Login Button</Text>
       </TouchableOpacity>
 
