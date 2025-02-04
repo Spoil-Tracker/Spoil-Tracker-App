@@ -60,6 +60,21 @@ const styles = StyleSheet.create
         color: '#fff',
         fontSize: 16,
     },
+    avatar: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 2,
+        borderColor: '#4CAE4F',
+        marginBottom: 10,
+      },
+      
+      avatarText: {
+        color: '#4CAE4F',
+        fontSize: 14,
+        textAlign: 'center',
+      },
+      
 });
 
 export default styles;
