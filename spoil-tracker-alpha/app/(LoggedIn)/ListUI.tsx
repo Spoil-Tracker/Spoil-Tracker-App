@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal } from 'react-native';
-import { AntDesign } from '@expo/vector-icons'; // For the plus icon
+import React, { useState, useEffect, useRef } from 'react';
+import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { AntDesign, Ionicons } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
+import { Picker } from '@react-native-picker/picker';
 
 
 // Mock data to simulate Firestore documents
-const foodItems = [
+  const foodItems = [
     { title: 'Apples', description: 'Fresh and juicy apples', imageUrl: 'https://via.placeholder.com/100?text=Apples' },
     { title: 'Bananas', description: 'Sweet and ripe bananas', imageUrl: 'https://via.placeholder.com/100?text=Bananas' },
     { title: 'Carrots', description: 'Crunchy and nutritious carrots', imageUrl: 'https://via.placeholder.com/100?text=Carrots' },
@@ -21,6 +22,8 @@ const foodItems = [
     { title: 'Fish', description: 'Fresh fish from the ocean', imageUrl: 'https://via.placeholder.com/100?text=Fish' },
     { title: 'Potatoes', description: 'Perfect for any meal', imageUrl: 'https://via.placeholder.com/100?text=Potatoes' },
   ];
+
+  const FOOD_UNITS = ['mg', 'g', 'kg', 'lb', 'L', 'mL', 'unit'];
 
 type ListItem = {
     id: string,
@@ -44,7 +47,10 @@ const GroceryList = () => {
   const [scaleAnim] = useState(new Animated.Value(1));
   const local = useLocalSearchParams();
   const docRef = doc(db, 'grocery_lists', local.id as string);
-  const router = useRouter();
+  const [sortOption, setSortOption] = useState('alphabetical');
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const dropdownHeight = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const onChange = () => {
@@ -241,11 +247,10 @@ const GroceryList = () => {
       }
     };
   
-    const handleQuantityChange = async (text: string) => {
-      const numericQuantity = text.trim() === '' ? 0 : parseInt(text, 10);
+    const handleQuantityChange = async (value: string) => {
+      const numericQuantity = value.trim() === '' ? 0 : parseInt(value, 10);
   
       if (isNaN(numericQuantity)) {
-        // Avoid invalid numbers
         return;
       }
   
@@ -261,7 +266,6 @@ const GroceryList = () => {
         console.error('Error updating quantity:', error);
       }
     };
-  
     return (
       <View style={[styles.unit, item.complete ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
@@ -274,8 +278,17 @@ const GroceryList = () => {
               keyboardType="numeric"
               onChangeText={handleQuantityChange}
             />
-            <Pressable style={styles.itemButton} onPress={toggleCompleteStatus}>
-              <Text style={styles.itemButtonText}>{item.complete ? 'Undo' : 'Mark'}</Text>
+            <Picker
+              selectedValue={item.quantity.toString()}
+              style={styles.picker}
+              onValueChange={(itemValue) => handleQuantityChange(itemValue)}
+            >
+              {FOOD_UNITS.map((quantity) => (
+                <Picker.Item key={quantity} label={quantity} value={quantity} />
+              ))}
+            </Picker>
+            <Pressable style={[styles.itemButton, item.complete ? styles.completeButton: styles.incompleteButton]} onPress={toggleCompleteStatus}>
+              <Text style={styles.itemButtonText}>{item.complete ? 'X' : '✔'}</Text>
             </Pressable>
             <Pressable style={styles.minusButton} onPress={deleteItem}>
               <Text style={styles.minusButtonText}>-</Text>
@@ -285,10 +298,19 @@ const GroceryList = () => {
         <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
       </View>
     );
-  };
+  }
   
-  const smallScreen = screenWidth < 680;
-  const numColumns = screenWidth < 1015 ? 1 : 2;
+  const smallScreen = screenWidth < 690;
+  const numColumns = screenWidth < 1090 ? 1 : 2;
+
+  const toggleDropdown = () => {
+      setDropdownVisible(!dropdownVisible);
+      Animated.timing(dropdownHeight, {
+        toValue: dropdownVisible ? 0 : 200, // Increased height for content and delete button
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -329,10 +351,42 @@ const GroceryList = () => {
               <Pressable style={styles.exportButton} onPress={() => alert('Export clicked!')}>
               <Text style={styles.buttonText}>Export</Text>
               </Pressable>
-              <Pressable style={styles.exportButton} onPress={() => router.back()}>
-              <Text style={styles.buttonText}>Back</Text>
+              <Pressable style={styles.sortByButton} onPress={() => setSortModalVisible(true)}>
+              <Text style={styles.buttonText}>Sort By</Text>
               </Pressable>
-            </View>
+              <Modal
+                transparent={true}
+                visible={sortModalVisible}
+                animationType="fade"
+                onRequestClose={() => setSortModalVisible(false)}
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Sort By</Text>
+                    <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
+                      <TouchableOpacity 
+                        style={[styles.sortByButton]} 
+                        onPress={() => { setSortOption('alphabetical'); setSortModalVisible(false); }}>
+                        <Text style={styles.buttonText}>Alphabetical</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.sortByButton]} 
+                        onPress={() => { setSortOption('quantity'); setSortModalVisible(false); }}>
+                        <Text style={styles.buttonText}>Quantity</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.sortByButton]} 
+                        onPress={() => { setSortOption('completed'); setSortModalVisible(false); }}>
+                        <Text style={styles.buttonText}>Completed</Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                      <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
+                        <Text style={styles.closeButtonText}>Close</Text>
+                      </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+          </View>
           </View>
 
           {/* Right column (scrollable list) */}
@@ -379,6 +433,19 @@ const GroceryList = () => {
             }}>
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
+            <TouchableOpacity onPress={toggleDropdown} style={styles.sortByButton}>
+              <Ionicons name="person" size={20} color="white" />
+              <View style={styles.textContainer}>
+                <Text style={styles.buttonText}>e</Text>
+              </View>
+            </TouchableOpacity>
+            <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
+            <View style={styles.dropdownContent}>
+              <Text style={styles.dropdownText}>Created: e</Text>
+              <Text style={styles.dropdownText}>Description: e</Text>
+  
+            </View>
+            </Animated.View>
 
             <Pressable style={styles.modalButton} onPress={closeModal}>
               <Text style={styles.buttonText}>Cancel</Text>
@@ -452,7 +519,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 10,
     borderColor: 'white',
-    borderWidth: 2
+    borderWidth: 2,
+    backgroundColor: 'white'
   },
   floatingButton: {
     position: 'absolute',
@@ -476,7 +544,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 8,
-    width: '80%',
+    width: '40%',
+    minWidth: 340,
     alignItems: 'center',
   },
   modalTitle: {
@@ -570,6 +639,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10, // Add space between buttons
   },
+  sortByButton: {
+    backgroundColor: '#1e81b0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10, // Add space between buttons
+  },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
@@ -586,7 +664,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
-    marginRight: 10,
+    marginRight: 5,
     paddingLeft: 10,
     paddingRight: 10,
     textAlign: 'center',
@@ -599,7 +677,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10, // Add some spacing between the buttons
+    marginRight: 5, // Add some spacing between the buttons
   },
   itemButtonText: {
     color: 'white',
@@ -617,16 +695,18 @@ const styles = StyleSheet.create({
   minusButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 20
+    fontSize: 20,
+    textAlign: 'center',
+    paddingBottom: 4
   },
   completedItem: {
     flex: 1,
-    backgroundColor: '#A8E6A3', // Light green
+    backgroundColor: '#94d38f', // Light green
     padding: 15,
     marginBottom: 15,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
@@ -640,15 +720,15 @@ const styles = StyleSheet.create({
   },
   incompleteItem: {
     flex: 1,
-    backgroundColor: '#94D3FF', // Light blue
+    backgroundColor: '#f5e9d9', // Light blue
     padding: 15,
     marginBottom: 15,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#f5e9d9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 1,
     shadowRadius: 5,
     elevation: 5,
     flexDirection: 'row',
@@ -657,6 +737,37 @@ const styles = StyleSheet.create({
     minHeight: 150,
     alignItems: 'flex-start',
   },
+  picker: {
+    minWidth: 80,
+    height: 25,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginRight: 5,
+    paddingLeft: 10,
+    paddingRight: 10,
+    textAlign: 'center',
+    backgroundColor: '#FFFFFF'
+  },
+  completeButton: {
+    backgroundColor: '#cd2525'
+  },
+  incompleteButton: {
+    backgroundColor: '#227730'
+  },
+  closeButton: { 
+    marginTop: 10,
+    padding: 10, 
+    backgroundColor: '#d9534f', 
+    borderRadius: 5 
+  },
+  closeButtonText: { 
+    color: 'white', 
+    fontWeight: 'bold' 
+  },
+  sortOptionButton: {
+
+  }
 });
 
 export default GroceryList;
