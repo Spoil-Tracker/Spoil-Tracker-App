@@ -24,8 +24,10 @@ const SettingsPage = (): JSX.Element => {
   const [user, setUser] = useState<User | null>(null);
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
+
   const [notificationSetting, setNotificationSetting] = useState('Notify Everyday');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -41,13 +43,13 @@ const SettingsPage = (): JSX.Element => {
       setBannerType('error');
       return;
     }
-  
+
     if (username.trim() === '') {
       setBannerMessage('Email cannot be empty.');
       setBannerType('error');
       return;
     }
-  
+
     const credential = EmailAuthProvider.credential(user.email || '', password);
     try {
       await reauthenticateWithCredential(user, credential);
@@ -60,20 +62,20 @@ const SettingsPage = (): JSX.Element => {
       setBannerType('error');
     }
   };
-  
+
   const handlePasswordChange = async () => {
     if (!user) {
       setBannerMessage('You must be logged in to change your password.');
       setBannerType('error');
       return;
     }
-  
+
     if (password.trim().length < 6) {
       setBannerMessage('Password must be at least 6 characters long.');
       setBannerType('error');
       return;
     }
-  
+
     try {
       await updatePassword(user, password);
       setBannerMessage('Password updated successfully.');
@@ -84,19 +86,19 @@ const SettingsPage = (): JSX.Element => {
       setBannerType('error');
     }
   };
-  
+
   const handleEmailVerification = async () => {
     if (!user) {
       setBannerMessage('You must be logged in to verify your email.');
       setBannerType('error');
       return;
     }
-  
+
     if (user.emailVerified) {
       setEmailVerified(true);
       return;
     }
-  
+
     try {
       await sendEmailVerification(user);
       setBannerMessage('Verification email sent.');
@@ -108,15 +110,13 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
-  const handleNotificationChange = (setting: string) => 
-  {
+  const handleNotificationChange = (setting: string) => {
     setNotificationSetting(setting);
     setBannerMessage(`Notification setting changed to: ${setting}`);
     setBannerType('success');
   };
 
-  const handlePhoneNumberSave = () => 
-  {
+  const handlePhoneNumberSave = () => {
     const phoneRegex = /^[0-9]{10,15}$/;
 
     if (phoneNumber.trim() === '') {
@@ -136,21 +136,22 @@ const SettingsPage = (): JSX.Element => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, darkMode ? styles.darkContainer : styles.lightContainer]}>
       {/* Display the banner if there is a message */}
       {bannerMessage && <Banner message={bannerMessage} type={bannerType} />}
 
-      <Text style={styles.title}>Settings</Text>
+      <Text style={[styles.title, darkMode ? styles.darkText : styles.lightText]}>Settings</Text>
 
       <View style={styles.contentContainer}>
         <View style={styles.leftSection}>
           <View style={styles.formGroup}>
-            <Text style={styles.label}>New Email:</Text>
+            <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>New Email:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, darkMode ? styles.darkInput : styles.lightInput]}
               value={username}
-              onChangeText={(text) => setUsername(text)}
+              onChangeText={setUsername}
               placeholder="Enter your new email"
+              placeholderTextColor={darkMode ? "#ddd" : "#555"}
             />
             <TouchableOpacity style={styles.button} onPress={handleEmailChange}>
               <Text style={styles.buttonText}>Change Email</Text>
@@ -158,38 +159,27 @@ const SettingsPage = (): JSX.Element => {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>New Password:</Text>
+            <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>New Password:</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, darkMode ? styles.darkInput : styles.lightInput]}
               value={password}
-              onChangeText={(text) => setPassword(text)}
+              onChangeText={setPassword}
               placeholder="Enter your password to confirm"
+              placeholderTextColor={darkMode ? "#ddd" : "#555"}
               secureTextEntry
             />
             <TouchableOpacity style={styles.button} onPress={handlePasswordChange}>
               <Text style={styles.buttonText}>Change Password</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.formGroup}>
-            <TouchableOpacity
-              style={[styles.button, emailVerified && styles.disabledButton]}
-              onPress={handleEmailVerification}
-              disabled={emailVerified}
-            >
-              <Text style={styles.buttonText}>
-                {emailVerified ? 'Email Verified' : 'Verify Email'}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
-        {/* Divider for two sections */}
+        {/* Divider */}
         <View style={styles.divider} />
 
+        {/* Right Section for Notifications, Phone Number, and Theme Toggle */}
         <View style={styles.rightSection}>
-          <Text style={styles.label}>Notification Settings:</Text>
-
+          <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>Notification Settings:</Text>
           {['Notify Everyday', 'Notify Weekly', 'Notify Monthly', 'Notify Never'].map((option) => (
             <TouchableOpacity
               key={option}
@@ -204,18 +194,26 @@ const SettingsPage = (): JSX.Element => {
           ))}
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Phone Number (Optional):</Text>
+            <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>Phone Number (Optional):</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, darkMode ? styles.darkInput : styles.lightInput]}
               value={phoneNumber}
-              onChangeText={(text) => setPhoneNumber(text)}
+              onChangeText={setPhoneNumber}
               placeholder="Enter your phone number"
+              placeholderTextColor={darkMode ? "#ddd" : "#555"}
               keyboardType="phone-pad"
             />
             <TouchableOpacity style={styles.button} onPress={handlePhoneNumberSave}>
               <Text style={styles.buttonText}>Save Phone Number</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Theme Toggle */}
+          <TouchableOpacity style={styles.button} onPress={() => setDarkMode(!darkMode)}>
+            <Text style={styles.buttonText}>
+              {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>

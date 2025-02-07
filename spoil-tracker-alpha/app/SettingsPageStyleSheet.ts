@@ -6,16 +6,34 @@ const styles = StyleSheet.create
     {
         flex: 1,
         padding: 20,
+    },
+
+    lightContainer:
+    {
         backgroundColor: '#FEF9F2',
+    },
+
+    darkContainer:
+    {
+        backgroundColor: '#121212',
     },
 
     title: 
     {
         fontSize: 60,
         fontFamily: 'inter-bold',
-        color: '#4CAE4F',
         textAlign: 'center',
         marginBottom: 30,
+    },
+
+    lightText: 
+    {
+        color: '#000',
+    },
+
+    darkText: 
+    {
+        color: '#FFF',
     },
 
     contentContainer:
@@ -62,23 +80,33 @@ const styles = StyleSheet.create
     input: 
     {
         borderWidth: 1,
-        borderColor: '#ccc',
         borderRadius: 5,
         padding: 10,
         fontSize: 16,
         width: '100%',
-        marginBottom: 10,
+    },
+
+    lightInput: 
+    {
+        borderColor: '#ccc',
+        color: '#000',
+        backgroundColor: '#FFF',
+    },
+
+    darkInput: 
+    {
+        borderColor: '#444',
+        color: '#FFF',
+        backgroundColor: '#222',
     },
       
     button: 
     {
         backgroundColor: '#4CAE4F',
-        color: 'white',
-        textAlign: 'center',
-        fontWeight: 'bold',
         borderRadius: 5,
         padding: 10,
         marginTop: 10,
+        alignItems: 'center',
     },
       
     disabledButton: 
@@ -118,11 +146,24 @@ const styles = StyleSheet.create
     phoneInput:
     {
         borderWidth: 1,
-        borderColor: '#ccc',
         borderRadius: 5,
         padding: 10,
         fontSize: 16,
         width: '100%',
+    },
+
+    lightPhoneInput: 
+    {
+        borderColor: '#ccc',
+        color: '#000',
+        backgroundColor: '#FFF',
+    },
+
+    darkPhoneInput: 
+    {
+        borderColor: '#444',
+        color: '#FFF',
+        backgroundColor: '#222',
     },
 
     phoneSaveButton:
