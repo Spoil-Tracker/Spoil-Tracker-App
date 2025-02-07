@@ -5,7 +5,8 @@ const styles = StyleSheet.create
     container: 
     {
         flex: 1,
-        padding: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
         backgroundColor: '#FEF9F2',
     },
 
@@ -14,49 +15,18 @@ const styles = StyleSheet.create
         fontSize: 60,
         fontFamily: 'inter-bold',
         color: '#4CAE4F',
-        textAlign: 'center',
-        marginBottom: 30,
-    },
-
-    contentContainer:
-    {
-        flexDirection: 'row',
-        flex: 1,
-    },
-
-    leftSection:
-    {
-        flex: 1,
-        alignItems: 'flex-start',
-        paddingLeft: 10,
-    },
-
-    rightSection:
-    {
-        flex: 1,
-        alignItems: 'flex-start',
-        paddingLeft: 20,
-    },
-
-    divider:
-    {
-        width: 2,
-        backgroundColor: '#4CAE4F',
-        marginHorizontal: 15,
-        height: '100%',
+        marginBottom: 10,
     },
 
     formGroup: 
     {
-        marginBottom: 15,
-        width: '90%',
+        marginBottom: 20,
     },
 
     label: 
     {
         fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 5,
+        marginBottom: 8,
     },
     
     input: 
@@ -66,7 +36,6 @@ const styles = StyleSheet.create
         borderRadius: 5,
         padding: 10,
         fontSize: 16,
-        width: '100%',
         marginBottom: 10,
     },
       
@@ -76,9 +45,9 @@ const styles = StyleSheet.create
         color: 'white',
         textAlign: 'center',
         fontWeight: 'bold',
-        borderRadius: 5,
-        padding: 10,
-        marginTop: 10,
+        borderRadius: 10,
+        padding: 15,
+        marginTop: 20,
     },
       
     disabledButton: 
@@ -90,57 +59,7 @@ const styles = StyleSheet.create
     {
         color: '#fff',
         fontSize: 16,
-        fontWeight: 'bold',
     },
-
-    notificationOption: 
-    {
-        padding: 10,
-        marginVertical: 5,
-        borderWidth: 1,
-        borderColor: '#4CAE4F',
-        borderRadius: 5,
-        alignItems: 'center',
-        width: '90%',
-    },
-      
-    selectedOption: 
-    {
-        backgroundColor: '#4CAE4F',
-    },
-      
-    notificationText: 
-    {
-        fontSize: 16,
-        color: '#000',
-    },
-
-    phoneInput:
-    {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        padding: 10,
-        fontSize: 16,
-        width: '100%',
-    },
-
-    phoneSaveButton:
-    {
-        backgroundColor: '#4CAE4F',
-        padding: 10,
-        borderRadius: 5,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-
-    phoneSaveButtonText:
-    {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-      
 });
 
 export default styles;
