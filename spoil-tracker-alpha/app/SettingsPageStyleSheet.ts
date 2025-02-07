@@ -114,6 +114,32 @@ const styles = StyleSheet.create
         fontSize: 16,
         color: '#000',
     },
+
+    phoneInput:
+    {
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+        padding: 10,
+        fontSize: 16,
+        width: '100%',
+    },
+
+    phoneSaveButton:
+    {
+        backgroundColor: '#4CAE4F',
+        padding: 10,
+        borderRadius: 5,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+
+    phoneSaveButtonText:
+    {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
       
 });
 

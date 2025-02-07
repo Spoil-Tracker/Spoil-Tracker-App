@@ -7,6 +7,8 @@ const SettingsPage = (): JSX.Element =>
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
+  const [notificationSetting, setNotificationSetting] = useState('Notify Everyday');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const handleUsernameChange = () => 
   {
@@ -31,6 +33,29 @@ const SettingsPage = (): JSX.Element =>
   {
     setEmailVerified(true);
     Alert.alert('Success', 'Email verified successfully.');
+  };
+
+  const handleNotificationChange = (setting: string) => 
+  {
+    setNotificationSetting(setting);
+    Alert.alert('Success', `Notification setting changed to: ${setting}`);
+  };
+
+  const handlePhoneNumberSave = () => 
+  {
+    const phoneRegex = /^[0-9]{10,15}$/; 
+
+    if (phoneNumber.trim() === '') {
+      Alert.alert('Success', 'Phone number removed.');
+      return;
+    }
+
+    if (!phoneRegex.test(phoneNumber)) {
+      Alert.alert('Error', 'Invalid phone number. Please enter a valid number.');
+      return;
+    }
+
+    Alert.alert('Success', 'Phone number saved successfully.');
   };
 
   return (
@@ -82,7 +107,33 @@ const SettingsPage = (): JSX.Element =>
         <View style={styles.divider} />
 
         <View style={styles.rightSection}>
-          <Text>Placeholder</Text>
+          <Text style={styles.label}>Notification Settings:</Text>
+          {['Notify Everyday', 'Notify Weekly', 'Notify Monthly', 'Notify Never'].map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[
+                styles.notificationOption,
+                notificationSetting === option && styles.selectedOption,
+              ]}
+              onPress={() => handleNotificationChange(option)}
+            >
+              <Text style={styles.notificationText}>{option}</Text>
+            </TouchableOpacity>
+          ))}
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Phone Number (Optional):</Text>
+            <TextInput
+              style={styles.input}
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+            />
+            <TouchableOpacity style={styles.button} onPress={handlePhoneNumberSave}>
+              <Text style={styles.buttonText}>Save Phone Number</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>

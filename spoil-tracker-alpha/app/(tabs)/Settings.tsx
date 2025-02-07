@@ -25,6 +25,7 @@ const SettingsPage = (): JSX.Element => {
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
   const [notificationSetting, setNotificationSetting] = useState('Notify Everyday');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -114,6 +115,26 @@ const SettingsPage = (): JSX.Element => {
     setBannerType('success');
   };
 
+  const handlePhoneNumberSave = () => 
+  {
+    const phoneRegex = /^[0-9]{10,15}$/;
+
+    if (phoneNumber.trim() === '') {
+      setBannerMessage('Phone number removed.');
+      setBannerType('success');
+      return;
+    }
+
+    if (!phoneRegex.test(phoneNumber)) {
+      setBannerMessage('Invalid phone number. Please enter a valid number.');
+      setBannerType('error');
+      return;
+    }
+
+    setBannerMessage('Phone number saved successfully.');
+    setBannerType('success');
+  };
+
   return (
     <View style={styles.container}>
       {/* Display the banner if there is a message */}
@@ -166,7 +187,6 @@ const SettingsPage = (): JSX.Element => {
         {/* Divider for two sections */}
         <View style={styles.divider} />
 
-        {/* Placeholder for future content on the right side */}
         <View style={styles.rightSection}>
           <Text style={styles.label}>Notification Settings:</Text>
 
@@ -182,6 +202,20 @@ const SettingsPage = (): JSX.Element => {
               <Text style={styles.notificationText}>{option}</Text>
             </TouchableOpacity>
           ))}
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Phone Number (Optional):</Text>
+            <TextInput
+              style={styles.input}
+              value={phoneNumber}
+              onChangeText={(text) => setPhoneNumber(text)}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+            />
+            <TouchableOpacity style={styles.button} onPress={handlePhoneNumberSave}>
+              <Text style={styles.buttonText}>Save Phone Number</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
