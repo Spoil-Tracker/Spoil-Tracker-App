@@ -5,7 +5,7 @@ import {
   View,
   Text,
 } from 'react-native';
-import { auth } from '@/services/firebaseConfig'; // Import Firebase auth config
+import { auth } from '@/services/firebaseConfig';
 import { verifyBeforeUpdateEmail } from 'firebase/auth';
 import {
   updatePassword,
@@ -14,8 +14,8 @@ import {
   EmailAuthProvider,
   User,
 } from 'firebase/auth';
-import Banner from '@/components/Banner'; // Import the Banner component
-import styles from '../SettingsPageStyleSheet'; // Import your existing styles
+import Banner from '@/components/Banner';
+import styles from '../SettingsPageStyleSheet';
 
 const SettingsPage = (): JSX.Element => {
   const [username, setUsername] = useState('');
@@ -83,29 +83,6 @@ const SettingsPage = (): JSX.Element => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       setBannerMessage('Failed to update password: ' + errorMessage);
-      setBannerType('error');
-    }
-  };
-
-  const handleEmailVerification = async () => {
-    if (!user) {
-      setBannerMessage('You must be logged in to verify your email.');
-      setBannerType('error');
-      return;
-    }
-
-    if (user.emailVerified) {
-      setEmailVerified(true);
-      return;
-    }
-
-    try {
-      await sendEmailVerification(user);
-      setBannerMessage('Verification email sent.');
-      setBannerType('success');
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      setBannerMessage('Failed to send verification email: ' + errorMessage);
       setBannerType('error');
     }
   };
@@ -208,7 +185,6 @@ const SettingsPage = (): JSX.Element => {
             </TouchableOpacity>
           </View>
 
-          {/* Theme Toggle */}
           <TouchableOpacity style={styles.button} onPress={() => setDarkMode(!darkMode)}>
             <Text style={styles.buttonText}>
               {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
