@@ -1,0 +1,12 @@
+query GetPantriesForUser($name: String!) {
+  getPantryForUser(name: $name) {
+    id
+    name
+    foodItems {
+      id
+      name
+      quantity
+      expiration
+    }
+  }
+}

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import * as Font from 'expo-font';
-import { useNavigation, useRouter } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import {
   TextInput,
   View,
   StyleSheet,
+  Platform,
   TouchableOpacity,
   Text,
 } from 'react-native';
@@ -17,7 +18,6 @@ const Registration = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigation = useNavigation();
-  const router = useRouter();
 
   useEffect(() => {
     // Hide the header for this screen
@@ -47,7 +47,7 @@ const Registration = () => {
       const user = userCredential.user;
 
       // Navigate to login or home after successful registration
-      router.push('/login');
+      navigation.navigate('login');
     } catch (error: any) {
       setError(error.message); // Display error message if registration fails
     }
@@ -88,7 +88,7 @@ const Registration = () => {
         <Text style={styles.btnLogin}>Join</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/login')}>
+      <TouchableOpacity onPress={() => navigation.navigate('login')}>
         <Text style={styles.btnRegister}>I already have an account</Text>
       </TouchableOpacity>
     </View>
@@ -111,11 +111,14 @@ const styles = StyleSheet.create({
   },
   TextInput: {
     backgroundColor: 'white',
+    alignContent: 'center',
     borderWidth: 2,
     padding: 10,
     borderRadius: 25,
     marginTop: 10,
-    width: '80%',
+    ...(Platform.OS === 'ios' && {
+      width: '55%',
+    }),
   },
   btnLogin: {
     backgroundColor: 'blue',

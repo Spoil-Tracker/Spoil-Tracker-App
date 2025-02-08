@@ -16,7 +16,7 @@ const Login = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, error, setError } = useAuth(); // Destructure login from context
+  const { login } = useAuth(); // Destructure login from context
   const router = useRouter(); // For navigation after login
 
   useEffect(() => {
@@ -33,21 +33,13 @@ const Login = () => {
     try {
       // Call the login function from context, passing the email and password
       await login(email, password);
-      router.push('/HomeProfile'); // Navigate to the home page after successful login
+      router.push('./Home'); // Navigate to the home page after successful login
     } catch (error: any) {
       console.error('Login error:', error);
       // Show an alert if login fails
       Alert.alert('Login Error', error.message);
     }
   };
-  
-  // Display error message if exists
-  useEffect(() => {
-    if (error) {
-      Alert.alert('Login Error', error);
-      setError(null); // Reset error after showing the alert
-    }
-  }, [error, setError]);
 
   if (!fontsLoaded) {
     return (

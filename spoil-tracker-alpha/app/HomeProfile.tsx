@@ -64,7 +64,7 @@ export default function HomeScreen() {
       //console.log("User account deleted successfully.");
 
       // Optionally, navigate to a different screen (e.g., home page)
-      router.push("/HomeProfile"); // Redirect to the Home screen
+      router.push("/Profile"); // Redirect to the Home screen
 
       // Close the modal after deletion
       setModalVisible(false);
