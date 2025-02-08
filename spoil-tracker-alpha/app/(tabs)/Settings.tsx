@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
+import 
+{
   TextInput,
   TouchableOpacity,
   View,
@@ -7,7 +8,8 @@ import {
 } from 'react-native';
 import { auth } from '@/services/firebaseConfig';
 import { verifyBeforeUpdateEmail } from 'firebase/auth';
-import {
+import 
+{
   updatePassword,
   sendEmailVerification,
   reauthenticateWithCredential,
@@ -17,7 +19,8 @@ import {
 import Banner from '@/components/Banner';
 import styles from '../SettingsPageStyleSheet';
 
-const SettingsPage = (): JSX.Element => {
+const SettingsPage = (): JSX.Element => 
+{
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
@@ -29,80 +32,140 @@ const SettingsPage = (): JSX.Element => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [darkMode, setDarkMode] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => 
+  {
     const currentUser = auth.currentUser;
-    if (currentUser) {
+    if (currentUser) 
+    {
       setUser(currentUser);
       setEmailVerified(currentUser.emailVerified);
     }
   }, []);
 
-  const handleEmailChange = async () => {
-    if (!user) {
+  const handleEmailChange = async () => 
+  {
+    if (!user) 
+    {
       setBannerMessage('You must be logged in to update your email.');
       setBannerType('error');
       return;
     }
 
-    if (username.trim() === '') {
+    if (username.trim() === '') 
+    {
       setBannerMessage('Email cannot be empty.');
       setBannerType('error');
       return;
     }
 
     const credential = EmailAuthProvider.credential(user.email || '', password);
-    try {
+    try 
+    {
       await reauthenticateWithCredential(user, credential);
       await verifyBeforeUpdateEmail(user, username);
       setBannerMessage('Verification email sent. Please check your inbox.');
       setBannerType('success');
-    } catch (error) {
+    } catch (error) 
+    {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       setBannerMessage('Failed to update email: ' + errorMessage);
       setBannerType('error');
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (!user) {
+  const handlePasswordChange = async () => 
+  {
+    if (!user) 
+    {
       setBannerMessage('You must be logged in to change your password.');
       setBannerType('error');
       return;
     }
 
-    if (password.trim().length < 6) {
+    if (password.trim().length < 6) 
+    {
       setBannerMessage('Password must be at least 6 characters long.');
       setBannerType('error');
       return;
     }
 
-    try {
+    try 
+    {
       await updatePassword(user, password);
       setBannerMessage('Password updated successfully.');
       setBannerType('success');
-    } catch (error) {
+    } catch (error) 
+    {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       setBannerMessage('Failed to update password: ' + errorMessage);
       setBannerType('error');
     }
   };
 
-  const handleNotificationChange = (setting: string) => {
+  const handleEmailVerification = async () =>
+  {
+    if (!user)
+    {
+      setBannerMessage('You must be logged in to verify your email.');
+      setBannerType('error');
+      return;
+    }
+
+    if (user.emailVerified) 
+    {
+      setEmailVerified(true);
+      setBannerMessage('Your email is already verified.');
+      setBannerType('success');
+      return;
+    }
+
+    try
+    {
+      await sendEmailVerification(user);
+      setBannerMessage('Verification email sent. Please check your inbox.');
+      setBannerType('success');
+
+      const interval = setInterval(async () =>
+      {
+        await user.reload();
+        if (user.emailVerified)
+        {
+          setEmailVerified(true);
+          setBannerMessage('Email verified successfully.');
+          setBannerType('success');
+          clearInterval(interval);
+        }
+      }, 5000);
+
+      setTimeout(() => clearInterval(interval), 60000);
+    } catch (error)
+    {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to send verification email: ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
+  const handleNotificationChange = (setting: string) => 
+  {
     setNotificationSetting(setting);
     setBannerMessage(`Notification setting changed to: ${setting}`);
     setBannerType('success');
   };
 
-  const handlePhoneNumberSave = () => {
+  const handlePhoneNumberSave = () => 
+  {
     const phoneRegex = /^[0-9]{10,15}$/;
 
-    if (phoneNumber.trim() === '') {
+    if (phoneNumber.trim() === '') 
+    {
       setBannerMessage('Phone number removed.');
       setBannerType('success');
       return;
     }
 
-    if (!phoneRegex.test(phoneNumber)) {
+    if (!phoneRegex.test(phoneNumber)) 
+    {
       setBannerMessage('Invalid phone number. Please enter a valid number.');
       setBannerType('error');
       return;
@@ -114,7 +177,6 @@ const SettingsPage = (): JSX.Element => {
 
   return (
     <View style={[styles.container, darkMode ? styles.darkContainer : styles.lightContainer]}>
-      {/* Display the banner if there is a message */}
       {bannerMessage && <Banner message={bannerMessage} type={bannerType} />}
 
       <Text style={[styles.title, darkMode ? styles.darkText : styles.lightText]}>Settings</Text>
@@ -136,12 +198,25 @@ const SettingsPage = (): JSX.Element => {
           </View>
 
           <View style={styles.formGroup}>
+            <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>Email Verification:</Text>
+            <TouchableOpacity
+              style={[styles.button, emailVerified && styles.disabledButton]}
+              onPress={handleEmailVerification}
+              disabled={emailVerified}
+            >
+              <Text style={styles.buttonText}>
+                {emailVerified ? 'Email Verified' : 'Verify Email'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.formGroup}>
             <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>New Password:</Text>
             <TextInput
               style={[styles.input, darkMode ? styles.darkInput : styles.lightInput]}
               value={password}
               onChangeText={setPassword}
-              placeholder="Enter your password to confirm"
+              placeholder="Enter your new password"
               placeholderTextColor={darkMode ? "#ddd" : "#555"}
               secureTextEntry
             />
@@ -151,10 +226,8 @@ const SettingsPage = (): JSX.Element => {
           </View>
         </View>
 
-        {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Right Section for Notifications, Phone Number, and Theme Toggle */}
         <View style={styles.rightSection}>
           <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>Notification Settings:</Text>
           {['Notify Everyday', 'Notify Weekly', 'Notify Monthly', 'Notify Never'].map((option) => (
