@@ -9,6 +9,7 @@ import { db } from '@/services/firebaseConfig'; // Import your existing Firebase
 import { Picker } from '@react-native-picker/picker';
 import { v4 as uuidv4 } from 'uuid';
 import FoodDropdownComponent from '@/components/FoodDropdown';
+import { log } from 'console';
 
 
 
@@ -26,13 +27,22 @@ import FoodDropdownComponent from '@/components/FoodDropdown';
     { title: 'Potatoes', description: 'Perfect for any meal', imageUrl: 'https://via.placeholder.com/100?text=Potatoes' },
   ];
 
-  const FOOD_UNITS = ['mg', 'g', 'kg', 'lb', 'L', 'mL', 'unit'];
+  const FOOD_UNITS = [
+    { label: 'mg', value: 'mg' },
+    { label: 'g', value: 'g' },
+    { label: 'kg', value: 'kg' },
+    { label: 'lb', value: 'lb' },
+    { label: 'L', value: 'L' },
+    { label: 'mL', value: 'mL' },
+    { label: 'unit', value: 'unit' }
+  ];
 
 type ListItem = {
     id: string,
     title: string;
     description: string;
     quantity: number;
+    measurement: string;
     complete: boolean;
     imageUrl: string;
 }
@@ -150,12 +160,13 @@ const GroceryList = () => {
       title: randomFood.title,
       description: randomFood.description,
       quantity: 1,
+      measurement: 'unit',
       complete: false,
       imageUrl: randomFood.imageUrl,
     };
   };
 
-  const generateCustomItem = () => {
+  const generateCustomItem = (): ListItem => {
     const cTitle = customName;
     const cDesc = customDescription;
     setCustomName('');
@@ -165,6 +176,7 @@ const GroceryList = () => {
       title: cTitle,
       description: cDesc,
       quantity: 1,
+      measurement: 'unit',
       complete: false,
       imageUrl: 'https://www.placekittens.com/100/100'
     }
@@ -313,6 +325,20 @@ const GroceryList = () => {
         console.error('Error updating quantity:', error);
       }
     };
+
+    const handleUnitChange = async (measure: string) => {
+      const updatedItems = items.map(i =>
+        i.id === item.id ? { ...i, measurement: measure } : i
+      );
+  
+      try {
+        await updateDoc(docRef, { items: updatedItems });
+        setItems(updatedItems);
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+      }
+    };
+
     return (
       <View style={[styles.unit, item.complete ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
@@ -326,15 +352,17 @@ const GroceryList = () => {
               onBlur={(e) => handleQuantityChange(e.nativeEvent.text)}
               maxLength={3}
             />
-            <Picker
-              selectedValue={item.quantity.toString()}
-              style={styles.picker}
-              onValueChange={(itemValue) => handleQuantityChange(itemValue)}
-            >
-              {FOOD_UNITS.map((quantity) => (
-                <Picker.Item key={quantity} label={quantity} value={quantity} />
-              ))}
-            </Picker>
+            <Dropdown
+              data={FOOD_UNITS}
+              labelField="label"
+              valueField="value"
+              placeholder="---"
+              value={item.measurement}
+              onChange={(selectedItem) => handleUnitChange(selectedItem.value)}
+              style={styles.measurementDropdown}
+              itemContainerStyle={styles.measurementContainer}
+              itemTextStyle={styles.measurementText}
+            />
             <Pressable style={[styles.itemButton, item.complete ? styles.completeButton: styles.incompleteButton]} onPress={toggleCompleteStatus}>
               <Text style={styles.itemButtonText}>{item.complete ? 'X' : '✔'}</Text>
             </Pressable>
@@ -466,7 +494,7 @@ const GroceryList = () => {
               keyExtractor={(item) => item.id}
               key={numColumns}
               numColumns={numColumns}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[styles.listContent, { paddingBottom: 260 }]}
             />
           </View>
         </View>
@@ -864,6 +892,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
   },
+  measurementDropdown: {
+    backgroundColor: 'white',
+    height: 25,
+    width: 55,
+    borderColor: 'gray',
+    borderWidth: 0.5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginRight: 5
+  },
+  measurementContainer: {
+    height: 38
+  },
+  measurementText: {
+    textAlign: 'left',
+  }
 });
 
 export default GroceryList;

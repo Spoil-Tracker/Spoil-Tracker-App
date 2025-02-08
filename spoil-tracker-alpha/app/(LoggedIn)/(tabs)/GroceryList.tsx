@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  View, Text, StyleSheet, SafeAreaView, Dimensions, Pressable, ActivityIndicator, Picker, Animated, TextInput, ScrollView 
+  View, Text, StyleSheet, SafeAreaView, Dimensions, Pressable, ActivityIndicator, TextInput, ScrollView 
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
@@ -9,8 +9,12 @@ import { db } from '@/services/firebaseConfig';
 import ListSection from '@/components/ListSection';
 import CreateListModal from '@/components/CreateListModal';
 import { useFocusEffect } from '@react-navigation/native';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const SORT_OPTIONS = [
+  { label: 'Alphabetical', value: 'alphabetical' }
+]
 
 const ButtonListScreen = () => {
   const [completedLists, setCompletedLists] = useState<string[]>([]);
@@ -131,14 +135,15 @@ const ButtonListScreen = () => {
         {/* Dropdown for sorting */}
         <View style={styles.sortContainer}>
           <Text style={styles.sortText}>Sort By:</Text>
-          <Picker
-            selectedValue={sortCriteria}
-            style={styles.picker}
-            onValueChange={(itemValue) => setSortCriteria(itemValue)}
-          >
-            <Picker.Item label="Alphabetical" value="alphabetical" />
-            {/* Add other sorting options here */}
-          </Picker>
+          <Dropdown
+            style={styles.dropdown}
+            data={SORT_OPTIONS}
+            labelField="label"
+            valueField="value"
+            value={sortCriteria}
+            maxHeight={300}
+            onChange={(item) => setSortCriteria(item.value)}
+          />
         </View>
 
         {/* Search Bar right below the Sort Dropdown */}
@@ -292,5 +297,13 @@ const styles = StyleSheet.create({
   closeText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  dropdown: {
+    backgroundColor: 'white',
+    height: 50,
+    borderColor: 'gray',
+    borderWidth: 0.5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
   },
 });
