@@ -72,7 +72,7 @@ const ListButton = ({ list, handleDelete }: ListButtonProps) => {
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
     Animated.timing(dropdownHeight, {
-      toValue: dropdownVisible ? 0 : 200, // Increased height for content and delete button
+      toValue: dropdownVisible ? 0 : 150, // Increased height for content and delete button
       duration: 300,
       useNativeDriver: false,
     }).start();
@@ -90,23 +90,33 @@ const ListButton = ({ list, handleDelete }: ListButtonProps) => {
       {/* Dropdown Content */}
       <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
         <View style={styles.dropdownContent}>
-          <Text style={styles.dropdownText}>Created: {list.created}</Text>
-          <Text style={styles.dropdownText}>Description: {list.description}</Text>
+          {/* Container to hold buttons and text */}
+          <View style={styles.rowContainer}>
+            {/* Buttons on the left */}
+            <View style={styles.buttonsContainer}>
+              <View>
+                <Link href={`../ListUI?id=${list.id}`} style={[styles.button, styles.viewButton]}>
+                  <Text style={styles.buttonText}>View</Text>
+                </Link>
 
-          {/* View List and Delete Buttons in a Row */}
-          <View style={styles.buttonsContainer}>
-            {/* View List Button */}
-            <Link href={`../ListUI?id=${list.id}`} style={[styles.button, styles.viewButton]}>
-              <Text style={styles.buttonText}>View List</Text>
-            </Link>
+                <TouchableOpacity
+                  style={[styles.button, styles.deleteButton]}
+                  onPress={() => setShowDeleteModal(true)}
+                >
+                  <Text style={styles.buttonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-            {/* Delete Button */}
-            <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={() => setShowDeleteModal(true)}>
-              <Text style={styles.buttonText}>Delete</Text>
-            </TouchableOpacity>
+            {/* Text on the right */}
+            <View style={styles.dropdownTextContainer}>  
+              <Text style={styles.dropdownText}>Created: {list.created}</Text>
+              <Text style={styles.dropdownText}>Description: {list.description}</Text>
+            </View>
           </View>
         </View>
       </Animated.View>
+
 
       {/* Custom Delete Confirmation Modal */}
       <Modal
@@ -210,18 +220,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  buttonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
+  buttonsContainer: { 
+    flexDirection: 'column', 
+    alignItems: 'flex-start', 
+    marginRight: 10, 
+  }, 
   viewButton: {
     flex: 1,
-    marginRight: 5,
+    width: 110
   },
   deleteButton: {
     flex: 1,
     backgroundColor: '#D9534F', // Red for delete
+    width: 110,
   },
   cancelButton: {
     flex: 1,
@@ -262,4 +273,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  rowContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'flex-start', 
+    justifyContent: 'flex-start', 
+    paddingVertical: 5, 
+  }, 
+  dropdownTextContainer: { 
+    flex: 1, 
+    alignItems: 'flex-start', 
+  }, 
 });

@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
-import { useRouter } from 'expo-router';
+import { Dropdown } from 'react-native-element-dropdown';
 import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
 import { Picker } from '@react-native-picker/picker';
+import { v4 as uuidv4 } from 'uuid';
+import FoodDropdownComponent from '@/components/FoodDropdown';
+
 
 
 // Mock data to simulate Firestore documents
@@ -47,10 +50,11 @@ const GroceryList = () => {
   const [scaleAnim] = useState(new Animated.Value(1));
   const local = useLocalSearchParams();
   const docRef = doc(db, 'grocery_lists', local.id as string);
-  const [sortOption, setSortOption] = useState('alphabetical');
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const dropdownHeight = useRef(new Animated.Value(0)).current;
+  const [customName, setCustomName] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
 
   useEffect(() => {
     const onChange = () => {
@@ -105,7 +109,37 @@ const GroceryList = () => {
       alert('Failed to delete the list');
     }
   };
+
+  const addCustomItem = async () => {
+    if (!customName || !customDescription) {
+      return; // Exit the function early if any field is empty
+    }
+    const newItem = generateCustomItem();
+    try {
+      // Fetch current document
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
+        const updatedItems = [...currentItems, newItem]; // Add the new random item
   
+        // Update Firestore
+        await updateDoc(docRef, {
+          items: updatedItems,
+        });
+  
+        // Update local state to reflect the new addition
+        setItems(updatedItems);
+        setFilteredItems(updatedItems);
+        alert(`Added random item: ${newItem.title}`);
+      } else {
+        console.log('No such document!');
+        alert('Failed to load document');
+      }
+    } catch (error) {
+      console.error('Error adding random item to Firestore:', error);
+      alert('Error adding random item');
+    }
+  };
 
   const generateRandomItem = (): ListItem => {
     const randomIndex = Math.floor(Math.random() * foodItems.length);
@@ -121,7 +155,20 @@ const GroceryList = () => {
     };
   };
 
-  
+  const generateCustomItem = () => {
+    const cTitle = customName;
+    const cDesc = customDescription;
+    setCustomName('');
+    setCustomDescription('');
+    return {
+      id: uuidv4(),
+      title: cTitle,
+      description: cDesc,
+      quantity: 1,
+      complete: false,
+      imageUrl: 'https://www.placekittens.com/100/100'
+    }
+  };
 
   const addRandomItem = async () => {
     const newItem = generateRandomItem();
@@ -191,6 +238,7 @@ const GroceryList = () => {
       );
       setFilteredItems(filtered);
     }
+
   };
 
   const onFABPress = async () => {
@@ -261,7 +309,6 @@ const GroceryList = () => {
       try {
         await updateDoc(docRef, { items: updatedItems });
         setItems(updatedItems);
-        setFilteredItems(updatedItems);
       } catch (error) {
         console.error('Error updating quantity:', error);
       }
@@ -274,9 +321,10 @@ const GroceryList = () => {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.itemTextInput}
-              value={item.quantity.toString()}
+              defaultValue={item.quantity.toString()}
               keyboardType="numeric"
-              onChangeText={handleQuantityChange}
+              onBlur={(e) => handleQuantityChange(e.nativeEvent.text)}
+              maxLength={3}
             />
             <Picker
               selectedValue={item.quantity.toString()}
@@ -304,13 +352,34 @@ const GroceryList = () => {
   const numColumns = screenWidth < 1090 ? 1 : 2;
 
   const toggleDropdown = () => {
-      setDropdownVisible(!dropdownVisible);
-      Animated.timing(dropdownHeight, {
-        toValue: dropdownVisible ? 0 : 200, // Increased height for content and delete button
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-    };
+    setDropdownVisible(!dropdownVisible);
+    Animated.timing(dropdownHeight, {
+      toValue: dropdownVisible ? 0 : 150, // Increased height for content and delete button
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const sortItems = (text: string) => {
+    let sorted = [...items];
+  
+    if (text === 'alphabetical') {
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (text === 'quantity') {
+      sorted.sort((a, b) => b.quantity - a.quantity);
+    } else if (text === 'completed') {
+      sorted.sort((a, b) => Number(b.complete) - Number(a.complete));
+    }
+    const newFilteredItems = searchText.trim() === '' 
+      ? sorted 
+      : sorted.filter(item =>
+          item.title.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchText.toLowerCase())
+        );
+
+    setItems(sorted);
+    setFilteredItems(newFilteredItems);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -366,17 +435,17 @@ const GroceryList = () => {
                     <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
                       <TouchableOpacity 
                         style={[styles.sortByButton]} 
-                        onPress={() => { setSortOption('alphabetical'); setSortModalVisible(false); }}>
+                        onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
                         <Text style={styles.buttonText}>Alphabetical</Text>
                       </TouchableOpacity>
                       <TouchableOpacity 
                         style={[styles.sortByButton]} 
-                        onPress={() => { setSortOption('quantity'); setSortModalVisible(false); }}>
+                        onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
                         <Text style={styles.buttonText}>Quantity</Text>
                       </TouchableOpacity>
                       <TouchableOpacity 
                         style={[styles.sortByButton]} 
-                        onPress={() => { setSortOption('completed'); setSortModalVisible(false); }}>
+                        onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
                         <Text style={styles.buttonText}>Completed</Text>
                       </TouchableOpacity>
                     </ScrollView>
@@ -419,13 +488,7 @@ const GroceryList = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Item</Text>
-
-            {/* You can add a form here to collect details for the new item */}
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Enter item name"
-              // Add state for the input value here
-            />
+            <FoodDropdownComponent/>
             <Pressable style={styles.modalButton} onPress={() => {
               // Add item to the list
               addRandomItem();
@@ -433,22 +496,41 @@ const GroceryList = () => {
             }}>
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
-            <TouchableOpacity onPress={toggleDropdown} style={styles.sortByButton}>
-              <Ionicons name="person" size={20} color="white" />
-              <View style={styles.textContainer}>
-                <Text style={styles.buttonText}>e</Text>
-              </View>
-            </TouchableOpacity>
+            <View
+              style={{
+                borderBottomColor: 'white',
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                alignSelf: 'stretch',
+                marginBottom: 10
+              }}
+            />
+            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
+              <Text style={styles.buttonText}>Add Custom Item</Text>
+            </Pressable>
+            {/* Animated dropdown */}
             <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
-            <View style={styles.dropdownContent}>
-              <Text style={styles.dropdownText}>Created: e</Text>
-              <Text style={styles.dropdownText}>Description: e</Text>
-  
-            </View>
+              {/* Conditionally hide the content based on dropdown visibility */}
+              <View>
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter name"
+                  value={customName}
+                  onChangeText={setCustomName} // setName should be defined with useState
+                />
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter description"
+                  value={customDescription}
+                  onChangeText={setCustomDescription} // setDescription should be defined with useState
+                />
+                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
+                    <Text style={styles.buttonText}>Submit</Text>
+                </Pressable>
+              </View>
             </Animated.View>
 
             <Pressable style={styles.modalButton} onPress={closeModal}>
-              <Text style={styles.buttonText}>Cancel</Text>
+              <Text style={styles.buttonText}>Close</Text>
             </Pressable>
           </View>
         </View>
@@ -541,14 +623,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#4CAE4F',
     padding: 20,
     borderRadius: 8,
-    width: '40%',
+    width: '30%',
     minWidth: 340,
     alignItems: 'center',
   },
   modalTitle: {
+    color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
@@ -651,6 +734,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+    textAlign: 'center'
   },
   inputContainer: {
     flexDirection: 'row',
@@ -658,9 +742,9 @@ const styles = StyleSheet.create({
     marginTop: 10, // Add some space below description
   },
   itemTextInput: {
-    height: 35,
-    width: 60, // Make the text input 40% of the width of the item
-    minWidth: 60,
+    height: 25,
+    width: 50, // Make the text input 40% of the width of the item
+    minWidth: 50,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
@@ -672,8 +756,8 @@ const styles = StyleSheet.create({
   },
   itemButton: {
     backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 3,
+    paddingHorizontal: 13,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -765,9 +849,21 @@ const styles = StyleSheet.create({
     color: 'white', 
     fontWeight: 'bold' 
   },
-  sortOptionButton: {
-
-  }
+  customInputField: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 3,
+    marginTop: 3,
+    paddingLeft: 8,
+    borderRadius: 4,
+  },
+  dropdown: {
+    overflow: 'hidden',
+    marginTop: 5,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+  },
 });
 
 export default GroceryList;
