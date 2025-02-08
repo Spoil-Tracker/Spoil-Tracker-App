@@ -30,7 +30,7 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
     try {
       await addDoc(collection(db, 'grocery_lists'), {
         name: newListName,
-        user_id: user.uid,  // Use the current user's uid
+        owner_id: user.uid,  // Use the current user's uid
         created: new Date().toISOString(),
         last_opened: new Date().toISOString(),
         family: false,
