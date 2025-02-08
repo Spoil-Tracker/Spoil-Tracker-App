@@ -1,13 +1,12 @@
 import "reflect-metadata";
 import { ApolloServer } from "apollo-server";
 import { buildSchema } from "type-graphql";
-import { UserResolver } from "./resolvers/UserResolver";
-import { PantryResolver } from "./resolvers/PantryResolver";
+import { UserResolver } from "./entities/User"
 
 const bootstrap = async () => {
   // Build GraphQL schema
   const schema = await buildSchema({
-    resolvers: [UserResolver, PantryResolver],
+    resolvers: [UserResolver],
     validate: false,
   });
 
