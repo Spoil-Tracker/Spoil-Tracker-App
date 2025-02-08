@@ -2,16 +2,63 @@ This is Cong's part of the project
 
 # Getting Started
 
-After cloning the repository to your computer, open the cloned folder in VS Code. Once you're in VS Code, open it's terminal and type in the command: `cd spoil-tracker-alpha`
+The following build is a demo build for the Initial Programming segment of our project. A lot of it does not represent what we think should be the final product of our application. With that said, the build was made with the purpose of demonstrating our idea, how it works, and showing it works as an application through pre-existing frameworks.
 
-Once this has been completed, you’ll need to install the dependencies needed for the program to function correctly. With the terminal still open, type: `npm install`
+<div style="text-align: center;">
+  <img src="https://i.imgur.com/JlA6lgq.png" width="500"/>
+  <img src="https://i.imgur.com/QUBqs5A.png" width="445"/>
+</div>
 
-Next, in order for the backend to work, the next command you’ll need to type is: `npm install graphql graphql-scalars type-graphql` then after that’s done: `npm install reflect-metadata` 
+## Requirements
 
-In order to test if the project is up and running on your machine, make sure you're still in the `spoil-tracker-alpha` folder in the terminal and type: `npx expo start` 
-which will show you a QR code along with with a few options to open the application.
+1. Verify that you have NodeJS installed on your desktop
+2. Requires a firebase config file with valid keys, placed in the services folder with a name of "firebaseConfig.ts"
+3. (Only applicable if you want to run the GraphQL Backend) Requires valid service account keys from Firebase, placed into the spoil-tracker-alpha directory
 
-Press w to open the web version of the app. You should see a white page that says `Edit app/index.tsx to edit this screen.` If you see this message, you’re all set!
+After cloning the repository to your computer, open the cloned folder in VS Code. Once you're in VS Code, open it's terminal and type in the command: 
 
-## Important
-#### **PLEASE PUSH CHANGES ONLY INTO YOUR OWN BRANCH. DO NOT PUSH ANYTHING TO THE MAIN BRANCH UNLESS WE’VE ALL APPROVED IT!!**
+```
+cd spoil-tracker-alpha
+./setup.sh
+```
+
+This downloads all of the required dependencies needed to run the application locally. Alternatively, if you do not want to / cannot run ./setup.sh, then paste the following onto a terminal that is open on the spoil-tracker-alpha directory:
+
+```
+cd spoil-tracker-alpha
+npm install
+npm install graphql graphql-scalars type-graphql
+npm install reflect-metadata
+npm install --save-dev typescript ts-node @types/node
+npm install firebase-admin
+npx tsc --init
+npm install type-graphql graphql reflect-metadata class-validator apollo-server
+npm install @apollo/client graphql
+npm run codegen
+```
+
+To run the application, we use Expo:
+
+```
+npx expo start
+```
+
+To run GraphQL:
+```
+npx ts-node src/backendServerStart.ts
+```
+
+## Work Report
+
+|Task #|Difficulty|Description|Percentage Done|%Done by Rex|%Done by Kevin|%Done by Tom|%Done by James|%Done by Cong|
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |:-: |
+1 | 30 | Pre-alpha Working Pantry Interface | 90% | 100% | 0% | 0% | 0% | 0% |
+1 | 30 | Pre-alpha Working Grocery List Interface | 90% | 100% | 0% | 0% | 0% | 0% |
+1 | 30 | Navigation| 70% | 50% | 50% | 0% | 0%| 0% |
+2 | 30 | User Account | 65% | 0% | 15% | 40% | 0%| 45% |
+2 | 30 | Registration | 90% | 10% | 90% | 0% | 0%| 0% |
+3 | 30 | Login | 90% | 0% | 100% | 0% | 0%| 0% |
+3 | 30 | Settings | 70% | 5% | 0% | 95% | 0% | 0% |
+4 | 30 | Profiles | 90% | 10% | 5% | 0% | 0% | 85% |
+5 | 45 | Schema | 100% | 0% | 0% | 0% | 100%| 0% |
+5 | 15 | minimal db documents (1-2) | 100% | 0% | 0% | 0% | 100%| 0% |
