@@ -7,16 +7,18 @@ import {
   TouchableOpacity,
   Platform,
   TextInput,
-  Alert,
 } from 'react-native';
-import { useAuth } from '../services/authContext'; // Importing the context for authentication
-import { useRouter } from 'expo-router'; // For routing after login
+import { useRouter } from 'expo-router'; // adds routing after login
+import { Ionicons } from '@expo/vector-icons';
+import { signInWithEmailAndPassword } from 'firebase/auth'; // Import Firebase auth method
+import { auth } from '@/services/firebaseConfig';
 
 const Login = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login } = useAuth(); // Destructure login from context
+  const [showPassword, setShowPassword] = useState(false); // toggle state on and off
   const router = useRouter(); // For navigation after login
 
   useEffect(() => {
@@ -30,14 +32,23 @@ const Login = () => {
   }, []);
 
   const handleLogin = async () => {
+    setError('');
     try {
-      // Call the login function from context, passing the email and password
-      await login(email, password);
-      router.push('./Home'); // Navigate to the home page after successful login
+      // calls login function, passing the email and password
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push('./Home'); // navigates to the home page after successful login
     } catch (error: any) {
-      console.error('Login error:', error);
-      // Show an alert if login fails
-      Alert.alert('Login Error', error.message);
+      console.error('Login error:', error.code, error.message);
+      // shows an alert if login fails
+      if (error.code === 'auth/invalid-email') {
+        setError('Invalid email format.');
+      } else if (error.code === 'auth/invalid-credential') {
+        setError('Incorrect email and/or password.');
+      } else if (error.code === 'auth/missing-password') {
+        setError('Password missing');
+      } else {
+        setError(`${error.message}`); // debugging error message
+      }
     }
   };
 
@@ -52,11 +63,11 @@ const Login = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.spoilTrackerText}>Spoil Tracker</Text>
-
       <Text style={{ fontSize: 18, marginBottom: 20 }}>
-        Welcome to Spoil Tracker!
+        <Text>Welcome to Spoil Tracker!</Text>
       </Text>
-
+      {error ? <Text style={styles.error}>{error}</Text> : null}{' '}
+      {/* Show error message */}
       <TextInput
         style={styles.TextInput}
         placeholder="Email"
@@ -64,21 +75,31 @@ const Login = () => {
         value={email}
         onChangeText={setEmail} // Update email state
       />
-      <TextInput
-        style={styles.TextInput}
-        placeholder="Password"
-        placeholderTextColor="black"
-        value={password}
-        onChangeText={setPassword} // Update password state
-        secureTextEntry={true} // Hide password input
-      />
-
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="  Password"
+          placeholderTextColor="black"
+          value={password}
+          onChangeText={setPassword} // Update password state
+          secureTextEntry={!showPassword} // toggle password visibility
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <Ionicons
+            name={showPassword ? 'eye-off' : 'eye'}
+            size={24}
+            color="black"
+          />
+        </TouchableOpacity>
+      </View>
       <TouchableOpacity onPress={handleLogin}>
         <Text style={styles.btnLogin}>Login</Text>
       </TouchableOpacity>
-
-      <Text style={styles.forgot}>Forgot Password?</Text>
-
+      <TouchableOpacity onPress={() => router.push('/forgotPassword')}>
+        <Text style={styles.forgot}>Forgot Password?</Text>
+      </TouchableOpacity>
       <TouchableOpacity onPress={() => router.push('/registration')}>
         <Text style={styles.btnRegister}>Create New Account</Text>
       </TouchableOpacity>
@@ -106,9 +127,26 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 25,
     marginTop: 10,
+    paddingHorizontal: 25,
     ...(Platform.OS === 'ios' && {
       width: '45%',
     }),
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderRadius: 25,
+    marginTop: 10,
+    paddingHorizontal: 5,
+    ...(Platform.OS === 'ios' && {
+      width: '45%',
+    }),
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 10,
   },
   forgot: { textAlign: 'right', color: 'blue', marginTop: 10 },
   btnLogin: {
@@ -128,6 +166,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     marginTop: 20,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 10,
+    fontWeight: 'bold',
   },
 });
 
