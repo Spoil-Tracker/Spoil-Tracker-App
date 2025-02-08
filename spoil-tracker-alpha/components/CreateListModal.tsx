@@ -32,6 +32,9 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
         name: newListName,
         user_id: user.uid,  // Use the current user's uid
         created: new Date().toISOString(),
+        last_opened: new Date().toISOString(),
+        family: false,
+        shared: false,
         description: 'A newly made list. Edit the description by clicking on this field!',
         completed: false,
         items: [],
