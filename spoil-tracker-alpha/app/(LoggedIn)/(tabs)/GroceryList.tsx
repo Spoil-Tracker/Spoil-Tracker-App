@@ -43,7 +43,7 @@ const ButtonListScreen = () => {
       // Create a query to fetch grocery lists where user_id matches the current user
       const groceryListsQuery = query(
         collection(db, 'grocery_lists'),
-        where('user_id', '==', currentUser.uid) // Filter by user_id
+        where('owner_id', '==', currentUser.uid) // Filter by user_id
       );
   
       const querySnapshot = await getDocs(groceryListsQuery);
