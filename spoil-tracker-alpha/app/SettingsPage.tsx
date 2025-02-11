@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import styles from './SettingsPageStyleSheet';
+import styles from '@/app/(LoggedIn)/SettingsPageStyleSheet';
 
 const SettingsPage = (): JSX.Element => {
   const [username, setUsername] = useState('');

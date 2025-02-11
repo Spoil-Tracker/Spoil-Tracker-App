@@ -432,7 +432,7 @@ const Pantry = () => {
             <Pressable style={styles.addListButton} onPress={addNewList}>
               <Text style={styles.addListButtonText}>Add New List</Text>
             </Pressable>
-            <Pressable style={styles.addListButton} onPress={() => router.push('./Pantry')}>
+            <Pressable style={styles.addListButton} onPress={() => router.back()}>
               <Text style={styles.addListButtonText}>Back</Text>
             </Pressable>
           </View>

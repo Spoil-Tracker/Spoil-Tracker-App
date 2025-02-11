@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView } from 'react-native';
-import { AntDesign } from '@expo/vector-icons'; // For the plus icon
-import { getBackgroundColorAsync } from 'expo-system-ui';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { AntDesign, Ionicons } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
-import { useRouter } from 'expo-router';
+import { Dropdown } from 'react-native-element-dropdown';
 import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
+import { Picker } from '@react-native-picker/picker';
+import { v4 as uuidv4 } from 'uuid';
+import FoodDropdownComponent from '@/components/FoodDropdown';
+import { log } from 'console';
+
 
 
 // Mock data to simulate Firestore documents
-const foodItems = [
+  const foodItems = [
     { title: 'Apples', description: 'Fresh and juicy apples', imageUrl: 'https://via.placeholder.com/100?text=Apples' },
     { title: 'Bananas', description: 'Sweet and ripe bananas', imageUrl: 'https://via.placeholder.com/100?text=Bananas' },
     { title: 'Carrots', description: 'Crunchy and nutritious carrots', imageUrl: 'https://via.placeholder.com/100?text=Carrots' },
@@ -23,30 +27,44 @@ const foodItems = [
     { title: 'Potatoes', description: 'Perfect for any meal', imageUrl: 'https://via.placeholder.com/100?text=Potatoes' },
   ];
 
+  const FOOD_UNITS = [
+    { label: 'mg', value: 'mg' },
+    { label: 'g', value: 'g' },
+    { label: 'kg', value: 'kg' },
+    { label: 'lb', value: 'lb' },
+    { label: 'L', value: 'L' },
+    { label: 'mL', value: 'mL' },
+    { label: 'unit', value: 'unit' }
+  ];
+
 type ListItem = {
     id: string,
     title: string;
     description: string;
     quantity: number;
+    measurement: string;
     complete: boolean;
     imageUrl: string;
 }
 
 const GroceryList = () => {
   const [items, setItems] = useState<ListItem[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
   const [searchText, setSearchText] = useState(''); // Search text state
   const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state
-  const [groceryListText, setGroceryListText] = useState('');
   const [groceryListTitle, setGroceryListTitle] = useState('');
   const [groceryListDate, setGroceryListDate] = useState('');
   const [groceryListDescription, setGroceryListDescription] = useState('');
   const [groceryListCompletion, setGroceryListCompletion] = useState<boolean>(false);
-  const [groceryListItems, setGroceryListItems] = useState<ListItem[]>([]);
   const [scaleAnim] = useState(new Animated.Value(1));
   const local = useLocalSearchParams();
   const docRef = doc(db, 'grocery_lists', local.id as string);
-  const router = useRouter();
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const dropdownHeight = useRef(new Animated.Value(0)).current;
+  const [customName, setCustomName] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
 
   useEffect(() => {
     const onChange = () => {
@@ -101,7 +119,37 @@ const GroceryList = () => {
       alert('Failed to delete the list');
     }
   };
+
+  const addCustomItem = async () => {
+    if (!customName || !customDescription) {
+      return; // Exit the function early if any field is empty
+    }
+    const newItem = generateCustomItem();
+    try {
+      // Fetch current document
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
+        const updatedItems = [...currentItems, newItem]; // Add the new random item
   
+        // Update Firestore
+        await updateDoc(docRef, {
+          items: updatedItems,
+        });
+  
+        // Update local state to reflect the new addition
+        setItems(updatedItems);
+        setFilteredItems(updatedItems);
+        alert(`Added random item: ${newItem.title}`);
+      } else {
+        console.log('No such document!');
+        alert('Failed to load document');
+      }
+    } catch (error) {
+      console.error('Error adding random item to Firestore:', error);
+      alert('Error adding random item');
+    }
+  };
 
   const generateRandomItem = (): ListItem => {
     const randomIndex = Math.floor(Math.random() * foodItems.length);
@@ -112,12 +160,27 @@ const GroceryList = () => {
       title: randomFood.title,
       description: randomFood.description,
       quantity: 1,
+      measurement: 'unit',
       complete: false,
       imageUrl: randomFood.imageUrl,
     };
   };
 
-  
+  const generateCustomItem = (): ListItem => {
+    const cTitle = customName;
+    const cDesc = customDescription;
+    setCustomName('');
+    setCustomDescription('');
+    return {
+      id: uuidv4(),
+      title: cTitle,
+      description: cDesc,
+      quantity: 1,
+      measurement: 'unit',
+      complete: false,
+      imageUrl: 'https://www.placekittens.com/100/100'
+    }
+  };
 
   const addRandomItem = async () => {
     const newItem = generateRandomItem();
@@ -187,6 +250,7 @@ const GroceryList = () => {
       );
       setFilteredItems(filtered);
     }
+
   };
 
   const onFABPress = async () => {
@@ -203,8 +267,12 @@ const GroceryList = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  
-    await addRandomItem();
+
+    setModalVisible(true); // Show modal when FAB is pressed
+  };
+
+  const closeModal = () => {
+    setModalVisible(false); // Close modal
   };
   
 
@@ -239,11 +307,10 @@ const GroceryList = () => {
       }
     };
   
-    const handleQuantityChange = async (text: string) => {
-      const numericQuantity = text.trim() === '' ? 0 : parseInt(text, 10);
+    const handleQuantityChange = async (value: string) => {
+      const numericQuantity = value.trim() === '' ? 0 : parseInt(value, 10);
   
       if (isNaN(numericQuantity)) {
-        // Avoid invalid numbers
         return;
       }
   
@@ -254,12 +321,24 @@ const GroceryList = () => {
       try {
         await updateDoc(docRef, { items: updatedItems });
         setItems(updatedItems);
-        setFilteredItems(updatedItems);
       } catch (error) {
         console.error('Error updating quantity:', error);
       }
     };
+
+    const handleUnitChange = async (measure: string) => {
+      const updatedItems = items.map(i =>
+        i.id === item.id ? { ...i, measurement: measure } : i
+      );
   
+      try {
+        await updateDoc(docRef, { items: updatedItems });
+        setItems(updatedItems);
+      } catch (error) {
+        console.error('Error updating quantity:', error);
+      }
+    };
+
     return (
       <View style={[styles.unit, item.complete ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
@@ -268,12 +347,24 @@ const GroceryList = () => {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.itemTextInput}
-              value={item.quantity.toString()}
+              defaultValue={item.quantity.toString()}
               keyboardType="numeric"
-              onChangeText={handleQuantityChange}
+              onBlur={(e) => handleQuantityChange(e.nativeEvent.text)}
+              maxLength={3}
             />
-            <Pressable style={styles.itemButton} onPress={toggleCompleteStatus}>
-              <Text style={styles.itemButtonText}>{item.complete ? 'Undo' : 'Mark'}</Text>
+            <Dropdown
+              data={FOOD_UNITS}
+              labelField="label"
+              valueField="value"
+              placeholder="---"
+              value={item.measurement}
+              onChange={(selectedItem) => handleUnitChange(selectedItem.value)}
+              style={styles.measurementDropdown}
+              itemContainerStyle={styles.measurementContainer}
+              itemTextStyle={styles.measurementText}
+            />
+            <Pressable style={[styles.itemButton, item.complete ? styles.completeButton: styles.incompleteButton]} onPress={toggleCompleteStatus}>
+              <Text style={styles.itemButtonText}>{item.complete ? 'X' : '✔'}</Text>
             </Pressable>
             <Pressable style={styles.minusButton} onPress={deleteItem}>
               <Text style={styles.minusButtonText}>-</Text>
@@ -283,14 +374,40 @@ const GroceryList = () => {
         <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
       </View>
     );
+  }
+  
+  const smallScreen = screenWidth < 690;
+  const numColumns = screenWidth < 1090 ? 1 : 2;
+
+  const toggleDropdown = () => {
+    setDropdownVisible(!dropdownVisible);
+    Animated.timing(dropdownHeight, {
+      toValue: dropdownVisible ? 0 : 150, // Increased height for content and delete button
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
   };
+
+  const sortItems = (text: string) => {
+    let sorted = [...items];
   
-  
-  
-  
-  
-  const smallScreen = screenWidth < 680;
-  const numColumns = screenWidth < 1015 ? 1 : 2;
+    if (text === 'alphabetical') {
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (text === 'quantity') {
+      sorted.sort((a, b) => b.quantity - a.quantity);
+    } else if (text === 'completed') {
+      sorted.sort((a, b) => Number(b.complete) - Number(a.complete));
+    }
+    const newFilteredItems = searchText.trim() === '' 
+      ? sorted 
+      : sorted.filter(item =>
+          item.title.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchText.toLowerCase())
+        );
+
+    setItems(sorted);
+    setFilteredItems(newFilteredItems);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -331,10 +448,42 @@ const GroceryList = () => {
               <Pressable style={styles.exportButton} onPress={() => alert('Export clicked!')}>
               <Text style={styles.buttonText}>Export</Text>
               </Pressable>
-              <Pressable style={styles.exportButton} onPress={() => router.push('./GroceryList')}>
-              <Text style={styles.buttonText}>Back</Text>
+              <Pressable style={styles.sortByButton} onPress={() => setSortModalVisible(true)}>
+              <Text style={styles.buttonText}>Sort By</Text>
               </Pressable>
-            </View>
+              <Modal
+                transparent={true}
+                visible={sortModalVisible}
+                animationType="fade"
+                onRequestClose={() => setSortModalVisible(false)}
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Sort By</Text>
+                    <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
+                      <TouchableOpacity 
+                        style={[styles.sortByButton]} 
+                        onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
+                        <Text style={styles.buttonText}>Alphabetical</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.sortByButton]} 
+                        onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
+                        <Text style={styles.buttonText}>Quantity</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.sortByButton]} 
+                        onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
+                        <Text style={styles.buttonText}>Completed</Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                      <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
+                        <Text style={styles.closeButtonText}>Close</Text>
+                      </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+          </View>
           </View>
 
           {/* Right column (scrollable list) */}
@@ -345,7 +494,7 @@ const GroceryList = () => {
               keyExtractor={(item) => item.id}
               key={numColumns}
               numColumns={numColumns}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[styles.listContent, { paddingBottom: 260 }]}
             />
           </View>
         </View>
@@ -357,6 +506,63 @@ const GroceryList = () => {
           <AntDesign name="plus" size={24} color="white" />
         </Pressable>
     </Animated.View>
+
+    <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Item</Text>
+            <FoodDropdownComponent/>
+            <Pressable style={styles.modalButton} onPress={() => {
+              // Add item to the list
+              addRandomItem();
+              closeModal();
+            }}>
+              <Text style={styles.buttonText}>Add Item</Text>
+            </Pressable>
+            <View
+              style={{
+                borderBottomColor: 'white',
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                alignSelf: 'stretch',
+                marginBottom: 10
+              }}
+            />
+            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
+              <Text style={styles.buttonText}>Add Custom Item</Text>
+            </Pressable>
+            {/* Animated dropdown */}
+            <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
+              {/* Conditionally hide the content based on dropdown visibility */}
+              <View>
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter name"
+                  value={customName}
+                  onChangeText={setCustomName} // setName should be defined with useState
+                />
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter description"
+                  value={customDescription}
+                  onChangeText={setCustomDescription} // setDescription should be defined with useState
+                />
+                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
+                    <Text style={styles.buttonText}>Submit</Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+
+            <Pressable style={styles.modalButton} onPress={closeModal}>
+              <Text style={styles.buttonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -423,7 +629,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 10,
     borderColor: 'white',
-    borderWidth: 2
+    borderWidth: 2,
+    backgroundColor: 'white'
   },
   floatingButton: {
     position: 'absolute',
@@ -436,6 +643,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#4CAE4F',
+    padding: 20,
+    borderRadius: 8,
+    width: '30%',
+    minWidth: 340,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  modalInput: {
+    width: '100%',
+    padding: 10,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   fixedLeftColumn: {
     padding: 20,
@@ -506,9 +750,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10, // Add space between buttons
   },
+  sortByButton: {
+    backgroundColor: '#1e81b0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10, // Add space between buttons
+  },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
+    textAlign: 'center'
   },
   inputContainer: {
     flexDirection: 'row',
@@ -516,13 +770,13 @@ const styles = StyleSheet.create({
     marginTop: 10, // Add some space below description
   },
   itemTextInput: {
-    height: 35,
-    width: 60, // Make the text input 40% of the width of the item
-    minWidth: 60,
+    height: 25,
+    width: 50, // Make the text input 40% of the width of the item
+    minWidth: 50,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
-    marginRight: 10,
+    marginRight: 5,
     paddingLeft: 10,
     paddingRight: 10,
     textAlign: 'center',
@@ -530,12 +784,12 @@ const styles = StyleSheet.create({
   },
   itemButton: {
     backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 3,
+    paddingHorizontal: 13,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10, // Add some spacing between the buttons
+    marginRight: 5, // Add some spacing between the buttons
   },
   itemButtonText: {
     color: 'white',
@@ -553,16 +807,18 @@ const styles = StyleSheet.create({
   minusButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 20
+    fontSize: 20,
+    textAlign: 'center',
+    paddingBottom: 4
   },
   completedItem: {
     flex: 1,
-    backgroundColor: '#A8E6A3', // Light green
+    backgroundColor: '#94d38f', // Light green
     padding: 15,
     marginBottom: 15,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
@@ -576,15 +832,15 @@ const styles = StyleSheet.create({
   },
   incompleteItem: {
     flex: 1,
-    backgroundColor: '#94D3FF', // Light blue
+    backgroundColor: '#f5e9d9', // Light blue
     padding: 15,
     marginBottom: 15,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'white',
+    borderColor: '#f5e9d9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 1,
     shadowRadius: 5,
     elevation: 5,
     flexDirection: 'row',
@@ -593,6 +849,65 @@ const styles = StyleSheet.create({
     minHeight: 150,
     alignItems: 'flex-start',
   },
+  picker: {
+    minWidth: 80,
+    height: 25,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginRight: 5,
+    paddingLeft: 10,
+    paddingRight: 10,
+    textAlign: 'center',
+    backgroundColor: '#FFFFFF'
+  },
+  completeButton: {
+    backgroundColor: '#cd2525'
+  },
+  incompleteButton: {
+    backgroundColor: '#227730'
+  },
+  closeButton: { 
+    marginTop: 10,
+    padding: 10, 
+    backgroundColor: '#d9534f', 
+    borderRadius: 5 
+  },
+  closeButtonText: { 
+    color: 'white', 
+    fontWeight: 'bold' 
+  },
+  customInputField: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 3,
+    marginTop: 3,
+    paddingLeft: 8,
+    borderRadius: 4,
+  },
+  dropdown: {
+    overflow: 'hidden',
+    marginTop: 5,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+  },
+  measurementDropdown: {
+    backgroundColor: 'white',
+    height: 25,
+    width: 55,
+    borderColor: 'gray',
+    borderWidth: 0.5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    marginRight: 5
+  },
+  measurementContainer: {
+    height: 38
+  },
+  measurementText: {
+    textAlign: 'left',
+  }
 });
 
 export default GroceryList;
