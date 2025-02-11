@@ -1,4 +1,3 @@
-// authContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   onAuthStateChanged,
@@ -6,8 +5,11 @@ import {
   signInWithEmailAndPassword,
   signOut,
   UserCredential,
+  setPersistence,
+  browserLocalPersistence,
 } from 'firebase/auth';
 import { auth } from './firebaseConfig';
+import { useRouter, useSegments } from 'expo-router';
 
 type AuthContextType = {
   user: User | null;
@@ -21,17 +23,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
+  const segments = useSegments();
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) =>
-      setUser(currentUser)
-    );
-    return unsubscribe;
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      setIsAuthLoaded(true);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = (email: string, password: string) =>
-    signInWithEmailAndPassword(auth, email, password);
-  const logout = () => signOut(auth);
+  useEffect(() => {
+    if (!isAuthLoaded) return;
+
+    // Check if we are on a public screen (e.g., login)
+    const isInsideAuth =
+      segments[0] === 'login' ||
+      segments[0] === 'registration' ||
+      segments[0] == 'forgotPassword';
+
+    if (user && isInsideAuth) {
+      router.replace('/Home'); // Redirect to home if logged in
+    } else if (!user && !isInsideAuth) {
+      router.replace('/login'); // Redirect to login if not authenticated
+    }
+  }, [user, isAuthLoaded, segments]);
+
+  const login = async (email: string, password: string) => {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      return await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+    setUser(null);
+    router.replace('/login'); // Redirect user to login screen after logout
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>

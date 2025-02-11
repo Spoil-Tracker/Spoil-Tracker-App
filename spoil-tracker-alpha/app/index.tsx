@@ -1,5 +1,5 @@
 // app/index.tsx
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../services/authContext'; // Adjust path if needed
 import { useRouter } from 'expo-router';
 
@@ -12,9 +12,9 @@ const Index = () => {
   useEffect(() => {
     if (isReady) {
       if (!user) {
-        router.push('./login'); // Navigate to login if no user is logged in
+        router.push('/login'); // Navigate to login if no user is logged in
       } else {
-        router.push('./Home'); // Navigate to home page if the user is logged in
+        router.push('/Home'); // Navigate to home page if the user is logged in
       }
     }
   }, [isReady, user, router]);
