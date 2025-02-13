@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '@/services/firebaseConfig';
+import { auth } from '../services/firebaseConfig';
 import { useNavigation } from 'expo-router';
 
 const ForgotPassword = () => {
