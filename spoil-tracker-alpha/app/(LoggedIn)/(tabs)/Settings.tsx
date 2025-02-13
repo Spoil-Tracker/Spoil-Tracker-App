@@ -7,7 +7,7 @@ import
   Text,
   Image,
 } from 'react-native';
-import { auth } from '@/services/firebaseConfig';
+import { auth } from '../../../services/firebaseConfig';
 import { verifyBeforeUpdateEmail } from 'firebase/auth';
 import 
 {
@@ -20,7 +20,7 @@ import
   signInWithCredential,
   RecaptchaVerifier,
 } from 'firebase/auth';
-import Banner from '@/components/Banner';
+import Banner from '../../../components/Banner';
 import styles from '../SettingsPageStyleSheet';
 
 const SettingsPage = (): JSX.Element => 

@@ -5,10 +5,10 @@ import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
 import { Dropdown } from 'react-native-element-dropdown';
-import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
+import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
 import { Picker } from '@react-native-picker/picker';
 import { v4 as uuidv4 } from 'uuid';
-import FoodDropdownComponent from '@/components/FoodDropdown';
+import FoodDropdownComponent from '../../components/FoodDropdown';
 import { log } from 'console';
 
 

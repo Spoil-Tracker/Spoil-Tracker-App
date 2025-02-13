@@ -14,7 +14,7 @@ const Index = () => {
       if (!user) {
         router.push('/login'); // Navigate to login if no user is logged in
       } else {
-        router.push('/Home'); // Navigate to home page if the user is logged in
+        router.push('/home'); // Navigate to home page if the user is logged in
       }
     }
   }, [isReady, user, router]);
