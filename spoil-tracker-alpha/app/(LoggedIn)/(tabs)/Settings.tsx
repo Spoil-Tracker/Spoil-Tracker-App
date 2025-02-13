@@ -172,28 +172,6 @@ const SettingsPage = (): JSX.Element =>
     setBannerType('success');
   };
 
-  const handlePhoneNumberSave = () => 
-  {
-    const phoneRegex = /^[0-9]{10,15}$/;
-
-    if (phoneNumber.trim() === '') 
-    {
-      setBannerMessage('Phone number removed.');
-      setBannerType('success');
-      return;
-    }
-
-    if (!phoneRegex.test(phoneNumber)) 
-    {
-      setBannerMessage('Invalid phone number. Please enter a valid number.');
-      setBannerType('error');
-      return;
-    }
-
-    setBannerMessage('Phone number saved successfully.');
-    setBannerType('success');
-  };
-
   const sendVerificationCode = async () =>
   {
     if (phoneNumber.trim() === '')
@@ -212,14 +190,17 @@ const SettingsPage = (): JSX.Element =>
 
     try
     {
+      console.log("Sending verification code to:", phoneNumber);
       const provider = new PhoneAuthProvider(auth);
       const id = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier);
       setVerificationId(id);
+      console.log("Verification ID received:", id);
       setBannerMessage('Verification code sent to your phone.');
       setBannerType('success');
     } catch (error)
     {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error("Error sending verification code:", error);
       setBannerMessage('Failed to send verification code. ' + errorMessage);
       setBannerType('error');
     }
@@ -236,6 +217,7 @@ const SettingsPage = (): JSX.Element =>
 
     try
     {
+      console.log("Verifying code:", verificationCode);
       const credential = PhoneAuthProvider.credential(verificationId, verificationCode);
       await signInWithCredential(auth, credential);
       setPhoneVerified(true);
@@ -244,6 +226,7 @@ const SettingsPage = (): JSX.Element =>
     } catch (error)
     {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error("Error verifying code:", error);
       setBannerMessage('Invalid verification code. ' + errorMessage);
       setBannerType('error');
     }
@@ -333,12 +316,12 @@ const SettingsPage = (): JSX.Element =>
               placeholderTextColor={darkMode ? "#ddd" : "#555"}
               keyboardType="phone-pad"
             />
-            <TouchableOpacity style={styles.button} onPress={handlePhoneNumberSave}>
-              <Text style={styles.buttonText}>Save Phone Number</Text>
+            <TouchableOpacity style={styles.button} onPress={sendVerificationCode}>
+              <Text style={styles.buttonText}>Send Verification Code</Text>
             </TouchableOpacity>
           </View>
 
-          {verificationId && (
+          {verificationId !== '' && (
             <View style={styles.formGroup}>
               <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>
                 Enter Verification Code:
