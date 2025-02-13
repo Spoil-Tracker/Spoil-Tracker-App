@@ -102,7 +102,7 @@ export default function HomeScreen() {
       console.log("User account and authentication deleted successfully.");
   
       // Redirect to the login screen
-      router.push('./login');
+      router.push('/login');
   
       // Close the modal after deletion
       setModalVisible(false);

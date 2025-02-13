@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
+import { useAuth } from '../../services/authContext'; // Import the authentication context
 
-export default function Registration() {
+export default function HomeScreen() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const router = useRouter();
+  const { logout } = useAuth(); // Get the logout function
 
   useEffect(() => {
     const loadFonts = async () => {
@@ -31,28 +33,37 @@ export default function Registration() {
     );
   }
 
+  const handleLogout = async () => {
+    try {
+      await logout(); // Sign out the user
+      router.replace('/login'); // Navigate back to the login screen
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.spoilTrackerText}>WELCOME TO THE HOME PAGE!!!</Text>
 
-      <TouchableOpacity onPress={() => router.push('../login')}>
-        <Text style={styles.btnLogin}>Back to Login Button</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.push('../Pantry')}>
+      <TouchableOpacity onPress={() => router.push('/Pantry')}>
         <Text style={styles.btnLogin}>Pantries</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('../GroceryList')}>
+      <TouchableOpacity onPress={() => router.push('/GroceryList')}>
         <Text style={styles.btnLogin}>Grocery Lists</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('../Profile')}>
+      <TouchableOpacity onPress={() => router.push('/Profile')}>
         <Text style={styles.btnLogin}>My Profile</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('../Settings')}>
+      <TouchableOpacity onPress={() => router.push('/Settings')}>
         <Text style={styles.btnLogin}>Settings</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={handleLogout}>
+        <Text style={styles.btnLogout}>Logout</Text>
       </TouchableOpacity>
     </View>
   );
@@ -66,20 +77,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF9F2',
   },
   spoilTrackerText: {
-    fontSize: 40, // Adjust size as needed
-    fontFamily: 'inter-bold', // Using Inter font
-    color: '#4CAE4F', // Green color for the text
-    marginBottom: 10, // Add space between text and other elements
-  },
-  TextInput: {
-    backgroundColor: 'white',
-    borderWidth: 2,
-    padding: 10,
-    borderRadius: 25,
-    marginTop: 10,
-    ...(Platform.OS === 'ios' && {
-      width: '45%',
-    }),
+    fontSize: 40,
+    fontFamily: 'inter-bold',
+    color: '#4CAE4F',
+    marginBottom: 10,
   },
   btnLogin: {
     backgroundColor: 'blue',
@@ -90,13 +91,13 @@ const styles = StyleSheet.create({
     padding: 15,
     marginTop: 10,
   },
-  btnRegister: {
-    backgroundColor: '#4CAE4F',
+  btnLogout: {
+    backgroundColor: 'red',
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
     borderRadius: 10,
     padding: 15,
-    marginTop: 20,
+    marginTop: 10,
   },
 });
