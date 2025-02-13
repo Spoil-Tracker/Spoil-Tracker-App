@@ -7,7 +7,7 @@ import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'expo-router';
-import { db } from '../services/firebaseConfig'; // Import your existing Firebase setup
+import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
 
 
 type ListItem = {
@@ -432,7 +432,7 @@ const Pantry = () => {
             <Pressable style={styles.addListButton} onPress={addNewList}>
               <Text style={styles.addListButtonText}>Add New List</Text>
             </Pressable>
-            <Pressable style={styles.addListButton} onPress={() => router.push('./Pantry')}>
+            <Pressable style={styles.addListButton} onPress={() => router.back()}>
               <Text style={styles.addListButtonText}>Back</Text>
             </Pressable>
           </View>

@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, Button, Modal, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter, router } from 'expo-router';
-import { db, auth } from '../../services/firebaseConfig';
+import { db, auth } from '../../../services/firebaseConfig';
 import { deleteUser } from "firebase/auth";
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { useAuth } from '../../services/authContext';
+import { useAuth } from '../../../services/authContext';
 
-const userIcon = require('../../assets/images/icon.png');
+const userIcon = require('../../../assets/images/icon.png');
 
 export default function HomeScreen() {
   const { user } = useAuth();

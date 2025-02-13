@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
+import { db } from '../../../services/firebaseConfig'; // Import your existing Firebase setup
 import { useFocusEffect } from '@react-navigation/native';
 import { Link } from 'expo-router';
 import { v4 as uuidv4 } from 'uuid';
