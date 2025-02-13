@@ -18,12 +18,28 @@ const styles = StyleSheet.create
         backgroundColor: '#121212',
     },
 
+    titleContainer:
+    {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 30,
+    },
+
     title: 
     {
         fontSize: 60,
         fontFamily: 'inter-bold',
         textAlign: 'center',
         marginBottom: 30,
+        color: '#4CAE4F',
+    },
+
+    icon:
+    {
+        width: 50,
+        height: 50,
+        marginRight: 10,
     },
 
     lightText: 

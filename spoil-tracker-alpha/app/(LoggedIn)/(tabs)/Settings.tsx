@@ -5,6 +5,7 @@ import
   TouchableOpacity,
   View,
   Text,
+  Image,
 } from 'react-native';
 import { auth } from '@/services/firebaseConfig';
 import { verifyBeforeUpdateEmail } from 'firebase/auth';
@@ -179,7 +180,13 @@ const SettingsPage = (): JSX.Element =>
     <View style={[styles.container, darkMode ? styles.darkContainer : styles.lightContainer]}>
       {bannerMessage && <Banner message={bannerMessage} type={bannerType} />}
 
-      <Text style={[styles.title, darkMode ? styles.darkText : styles.lightText]}>Settings</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}>
+        <Image
+          source={require('C:/Users/dgkth/Downloads/Spoil-Tracker-App/spoil-tracker-alpha/assets/images/favicon.png')}
+          style={{ width: 50, height: 50, marginRight: 10 }}
+        />
+        <Text style={[styles.title, { color: '#4CAE4F' }]}>Settings</Text>
+      </View>
 
       <View style={styles.contentContainer}>
         <View style={styles.leftSection}>
