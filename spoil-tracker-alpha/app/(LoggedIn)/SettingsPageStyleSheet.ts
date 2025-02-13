@@ -197,6 +197,14 @@ const styles = StyleSheet.create
         fontSize: 16,
         fontWeight: 'bold',
     },
+
+    phoneVerifiedText:
+    {
+        color: '#4CAE4F',
+        fontSize: 16,
+        marginTop: 10,
+        textAlign: 'center',
+    },
       
 });
 

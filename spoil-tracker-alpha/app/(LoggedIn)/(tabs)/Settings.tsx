@@ -16,6 +16,9 @@ import
   reauthenticateWithCredential,
   EmailAuthProvider,
   User,
+  PhoneAuthProvider,
+  signInWithCredential,
+  RecaptchaVerifier,
 } from 'firebase/auth';
 import Banner from '@/components/Banner';
 import styles from '../SettingsPageStyleSheet';
@@ -33,6 +36,11 @@ const SettingsPage = (): JSX.Element =>
   const [phoneNumber, setPhoneNumber] = useState('');
   const [darkMode, setDarkMode] = useState(false);
 
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationId, setVerificationId] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+
   useEffect(() => 
   {
     const currentUser = auth.currentUser;
@@ -41,6 +49,16 @@ const SettingsPage = (): JSX.Element =>
       setUser(currentUser);
       setEmailVerified(currentUser.emailVerified);
     }
+  }, []);
+
+  useEffect(() => 
+  {
+    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', 
+    {
+      size: 'invisible',
+      callback: () => console.log('Recaptcha resolved'),
+    });
+    setRecaptchaVerifier(verifier);
   }, []);
 
   const handleEmailChange = async () => 
@@ -176,6 +194,61 @@ const SettingsPage = (): JSX.Element =>
     setBannerType('success');
   };
 
+  const sendVerificationCode = async () =>
+  {
+    if (phoneNumber.trim() === '')
+    {
+      setBannerMessage('Please enter a phone number.');
+      setBannerType('error');
+      return;
+    }
+
+    if (!recaptchaVerifier)
+    {
+      setBannerMessage('Recaptcha not ready, please try again.');
+      setBannerType('error');
+      return;
+    }
+
+    try
+    {
+      const provider = new PhoneAuthProvider(auth);
+      const id = await provider.verifyPhoneNumber(phoneNumber, recaptchaVerifier);
+      setVerificationId(id);
+      setBannerMessage('Verification code sent to your phone.');
+      setBannerType('success');
+    } catch (error)
+    {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to send verification code. ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
+  const verifyCode = async () =>
+  {
+    if (!verificationId || verificationCode.trim() === '')
+    {
+      setBannerMessage('Please enter the verification code.');
+      setBannerType('error');
+      return;
+    }
+
+    try
+    {
+      const credential = PhoneAuthProvider.credential(verificationId, verificationCode);
+      await signInWithCredential(auth, credential);
+      setPhoneVerified(true);
+      setBannerMessage('Phone number verified successfully.');
+      setBannerType('success');
+    } catch (error)
+    {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Invalid verification code. ' + errorMessage);
+      setBannerType('error');
+    }
+  }
+
   return (
     <View style={[styles.container, darkMode ? styles.darkContainer : styles.lightContainer]}>
       {bannerMessage && <Banner message={bannerMessage} type={bannerType} />}
@@ -183,9 +256,9 @@ const SettingsPage = (): JSX.Element =>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}>
         <Image
           source={require('C:/Users/dgkth/Downloads/Spoil-Tracker-App/spoil-tracker-alpha/assets/images/favicon.png')}
-          style={{ width: 50, height: 50, marginRight: 10 }}
+          style={styles.icon}
         />
-        <Text style={[styles.title, { color: '#4CAE4F' }]}>Settings</Text>
+        <Text style={styles.title}>Settings</Text>
       </View>
 
       <View style={styles.contentContainer}>
@@ -265,6 +338,31 @@ const SettingsPage = (): JSX.Element =>
             </TouchableOpacity>
           </View>
 
+          {verificationId && (
+            <View style={styles.formGroup}>
+              <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>
+                Enter Verification Code:
+              </Text>
+              <TextInput
+                style={[styles.input, darkMode ? styles.darkInput : styles.lightInput]}
+                value={verificationCode}
+                onChangeText={setVerificationCode}
+                placeholder="Enter code"
+                placeholderTextColor={darkMode ? "#ddd" : "#555"}
+                keyboardType="numeric"
+              />
+              <TouchableOpacity style={styles.button} onPress={verifyCode}>
+                <Text style={styles.buttonText}>Verify Phone Number</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {phoneVerified && (
+            <Text style={[styles.label, { color: '#4CAE4F', marginTop: 10 }]}>
+              Phone Number Verified!
+            </Text>
+          )}
+
           <TouchableOpacity style={styles.button} onPress={() => setDarkMode(!darkMode)}>
             <Text style={styles.buttonText}>
               {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -272,6 +370,8 @@ const SettingsPage = (): JSX.Element =>
           </TouchableOpacity>
         </View>
       </View>
+
+      <View id="recaptcha-container"></View>
     </View>
   );
 };
