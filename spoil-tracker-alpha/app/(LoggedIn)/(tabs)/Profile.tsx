@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, Button, Modal, StyleSheet } from 'react-native';
+import { Text, View, Button, Modal, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter, router } from 'expo-router';
 import { db, auth } from '@/services/firebaseConfig';
 import { deleteUser } from "firebase/auth";
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '@/services/authContext';
 
+const userIcon = require('@/assets/images/icon.png');
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const userID = user?.uid;
   const router = useRouter();
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isShareModalVisible, setShareModalVisible] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
   const [userData, setUserData] = useState({
     email: '',
     firstName: '',
@@ -46,7 +51,7 @@ export default function HomeScreen() {
           console.log('New user document created');
 
           setUserData({
-            email: newUserData.email,
+            email: newUserData.email || '',
             firstName: newUserData.name.split(' ')[0],
             lastName: newUserData.name.split(' ')[1] || '',
           });
@@ -58,6 +63,17 @@ export default function HomeScreen() {
 
     fetchOrCreateUserData();
   }, [userID, user]);
+
+  const generateShareLink = () => {
+    const fakeLink = `https://fakelink.com`;
+    setGeneratedLink(fakeLink);
+    setShareModalVisible(true);
+  };
+
+  const copyToClipboard = () => {
+    Clipboard.setStringAsync(generatedLink);
+    alert('Link copied to clipboard!');
+  };
 
   const toggleModal = () => {
     setModalVisible(!isModalVisible); // Toggle the modal visibility
@@ -95,24 +111,26 @@ export default function HomeScreen() {
     }
   };
 
-  //const handleDeleteAccount = () => {
-  //console.log("Account Deleted");
-  //Add logic to permanently delete the account (API call or similar)
-  //router.push("/"); // Navigate to Home Screen after deletion
-  //setModalVisible(false); // Close the modal after deletion
-  //};
 
   return (
+    
     <View style={styles.container}>
+       {/* Account Header with Small Image */}
+      <View style={styles.accountHeader}>
+        <Image source={userIcon} style={styles.icon} />
+        <Text style={styles.accountTitle}>My Account</Text>
+      </View>
+
       {/* First Group */}
       <View style={styles.group}>
-        <Text style={styles.title}>My Account</Text>
-        <Text>Your user account details</Text>
-        <View style={styles.space} />
-        <Text>Email: {userData.email || 'Loading...'}</Text>
-        <Text>First Name: {userData.firstName || 'Loading...'}</Text>
-        <Text>Last Name: {userData.lastName || 'Loading...'}</Text>
-        <Text>Date joined: </Text>
+        <Text style={styles.label}>Email</Text>
+        <Text style={styles.info}>{userData.email || 'Loading...'}</Text>
+
+        <Text style={styles.label}>First Name</Text>
+        <Text style={styles.info}>{userData.firstName || 'Loading...'}</Text>
+
+        <Text style={styles.label}>Last Name</Text>
+        <Text style={styles.info}>{userData.lastName || 'Loading...'}</Text>
         <View style={styles.space2} />
         <Button
           title="Edit Account"
@@ -134,6 +152,26 @@ export default function HomeScreen() {
         <Text style={styles.dangerText}>Permanently Delete Your Account</Text>
         <Button title="Delete Account" onPress={toggleModal} />
       </View>
+
+      {/* Share Kitchen Section */}  
+      <View style={styles.group}>
+      <Text style={styles.info}>Share your kitchen with friends and family to manage the kitchen together.</Text>
+        <Button title="Share Kitchen" onPress={generateShareLink} />
+      </View>
+
+      <Modal animationType="slide" transparent={true} visible={isShareModalVisible} onRequestClose={() => setShareModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Share Kitchen</Text>
+            <Text style={styles.modalMessage}>Share this link with your family members.</Text>
+            <TextInput style={styles.linkBox} value={generatedLink} editable={false} />
+            <TouchableOpacity style={styles.copyButton} onPress={copyToClipboard}>
+              <Text style={styles.copyButtonText}>Copy Link</Text>
+            </TouchableOpacity>
+            <Button title="Close" onPress={() => setShareModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal for Delete Confirmation */}
       <Modal
@@ -174,22 +212,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF9F2',
     padding: 16,
   },
+  accountTitle: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#4CAE4F',
+    marginBottom: 16, 
+  },
+  accountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  info: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  icon: {
+    width: 40,  // Adjust the size as needed
+    height: 40, // Adjust the size as needed
+    marginRight: 10,
+  },
   group: {
     width: '50%',
     padding: 16,
     marginBottom: 16,
     borderRadius: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f9f9f9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 8,
   },
   dangerText: {
     //marginTop: 16,
@@ -197,8 +250,10 @@ const styles = StyleSheet.create({
     color: 'red',
     fontWeight: 'bold',
   },
-  space: {
-    marginBottom: 15,
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
   },
   space2: {
     marginBottom: 10,
@@ -220,6 +275,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#4CAE4F',
     marginBottom: 10,
   },
   modalMessage: {
@@ -232,4 +288,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  linkBox: { width: '100%', padding: 10, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, textAlign: 'center', backgroundColor: '#f5f5f5', marginBottom: 10 },
+  copyButton: { backgroundColor: '#4CAE4F', padding: 10, borderRadius: 5, width: '100%', alignItems: 'center', marginBottom: 10 },
+  copyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });
