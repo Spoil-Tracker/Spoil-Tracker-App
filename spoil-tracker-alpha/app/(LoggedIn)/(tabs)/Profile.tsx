@@ -9,6 +9,8 @@ import { useAuth } from '../../../services/authContext';
 
 const userIcon = require('../../../assets/images/icon.png');
 
+//const userIcon = require('@/assets/images/icon.png');
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const userID = user?.uid;

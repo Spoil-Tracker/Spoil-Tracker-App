@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useRouter, router } from 'expo-router';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { AntDesign, FontAwesome } from '@expo/vector-icons';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 import DatePicker from 'react-datepicker';
@@ -8,11 +9,14 @@ import 'react-datepicker/dist/react-datepicker.css';
 export default function NutritionScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const user = "User"; // Replace with actual user data
-  const totalCalories = 2000;
-  const consumedCalories = 1698;
-  const remainingCalories = totalCalories - consumedCalories;
-  const percentage = consumedCalories / totalCalories;
+  const user = "User";
+
+  const nutrients = [
+    { name: 'Calories', unit: 'kcal', total: 2000, consumed: 1698, color: '#73CFD4' },
+    { name: 'Protein', unit: 'g', total: 100, consumed: 70, color: '#FFBB33' },
+    { name: 'Carbs', unit: 'g', total: 225, consumed: 169, color: '#FF6666' },
+    { name: 'Fats', unit: 'g', total: 78, consumed: 39, color: '#66CC99' },
+  ];
 
   const changeDay = (days: number) => {
     if (selectedDate) {
@@ -24,18 +28,12 @@ export default function NutritionScreen() {
 
   const formatDate = (date: Date | null) => {
     const today = new Date();
-    if (date && date.toDateString() === today.toDateString()) {
-      return "Today";
-    }
-    return date ? date.toLocaleDateString() : "Today";
+    return date && date.toDateString() === today.toDateString() ? "Today" : date?.toLocaleDateString();
   };
 
   return (
-    <View style={styles.container}>
-      {/* Greeting */}
-      <Text style={styles.greeting}>Hello, {user}!</Text>
-
-      {/* Calendar Bar */}
+    <ScrollView contentContainerStyle={styles.container}>
+            {/* Calendar Bar */}
       <View style={styles.calendarBar}>
         <TouchableOpacity onPress={() => changeDay(-1)}>
           <AntDesign name="left" size={24} color="white" />
@@ -60,34 +58,45 @@ export default function NutritionScreen() {
         />
       )}
 
-       {/* Calories Info */}
-       <View style={styles.caloriesContainer}>
-        <Text style={styles.caloriesGoalText}>Calories Goal: {totalCalories} kcal</Text>
-        <View style={styles.progressWrapper}>
-          <AnimatedCircularProgress
-            size={100}
-            width={8}
-            fill={percentage * 100}
-            tintColor='#73CFD4'
-            backgroundColor='white'
-          >
-            {() => (
-              <Text style={styles.percentageText}>{(percentage * 100).toFixed(2)}%</Text>
-            )}
-          </AnimatedCircularProgress>
-          <View style={styles.caloriesInfo}>
-            <Text style={[styles.caloriesText, styles.rightAlign]}>Consumed: {consumedCalories} kcal</Text>
-            <Text style={[styles.caloriesText, styles.rightAlign]}>Remaining: {remainingCalories} kcal</Text>
-          </View>
-        </View>
+      {/* Nutrient Info Grid */}
+      <View style={styles.nutrientGrid}>
+        {nutrients.map((nutrient, index) => {
+          const remaining = nutrient.total - nutrient.consumed;
+          const percentage = nutrient.consumed / nutrient.total;
+          return (
+            <View key={index} style={styles.nutrientBox}>
+              <Text style={styles.caloriesGoalText}>{nutrient.name} Goal: {nutrient.total} {nutrient.unit}</Text>
+              <AnimatedCircularProgress
+                size={100}
+                width={8}
+                fill={percentage * 100}
+                tintColor={nutrient.color}
+                backgroundColor='white'
+              >
+                {() => (
+                  <Text style={styles.percentageText}>{(percentage * 100).toFixed(2)}%</Text>
+                )}
+              </AnimatedCircularProgress>
+              <View style={styles.caloriesInfo}>
+                <Text style={[styles.caloriesText, styles.rightAlign]}>Consumed: {nutrient.consumed} {nutrient.unit}</Text>
+                <Text style={[styles.caloriesText, styles.rightAlign]}>Remaining: {remaining} {nutrient.unit}</Text>
+              </View>
+            </View>
+          );
+        })}
       </View>
-    </View>
+
+      {/* Manage Nutrition Metric Button */}
+      <TouchableOpacity style={styles.manageButton} onPress={() => router.push('/ManageNutrition')}>
+        <Text style={styles.manageButtonText}>Manage Nutrition Metric</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
     backgroundColor: '#FEF9F2',
     padding: 20,
@@ -119,12 +128,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
-  caloriesContainer: {
-    backgroundColor: '#FFF1DB',
-    padding: 20,
+  manageButton: {
+    marginTop: 20,
+    backgroundColor: '#5DADE2',
+    padding: 10,
     borderRadius: 10,
     width: '80%',
-    marginVertical: 20,
+    alignItems: 'center',
+  },
+  manageButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  nutrientGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '80%',
+  },
+  nutrientBox: {
+    backgroundColor: '#FFF1DB',
+    padding: 15,
+    borderRadius: 10,
+    width: '48%',
+    marginVertical: 10,
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -132,28 +161,24 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   caloriesGoalText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
   },
-  progressWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   caloriesInfo: {
-    marginLeft: 15,
+    marginTop: 10,
   },
   caloriesText: {
-    fontSize: 16,
-    marginVertical: 4,
+    fontSize: 14,
+    marginVertical: 2,
   },
   rightAlign: {
     textAlign: 'right',
   },
   percentageText: {
     position: 'absolute',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: 'black',
   },
