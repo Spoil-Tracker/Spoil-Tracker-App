@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   largeTextInput: {
-    height: 120,
+    height: 240,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
