@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Modal, TextInput, Pressable, View, Text, StyleSheet } from 'react-native';
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/services/firebaseConfig';
-import { getAuth } from 'firebase/auth';  // Import Firebase Auth
+import { db } from '../services/firebaseConfig';
+import { getAuth } from 'firebase/auth';
 
 // Type definition for component props
 type CreateListModalProps = {

@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth'; // Import Firebase function
-import { auth, db } from '@/services/firebaseConfig'; // Import Firebase auth configuration
+import { auth, db } from '../services/firebaseConfig'; // Import Firebase auth configuration
 import { doc, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 

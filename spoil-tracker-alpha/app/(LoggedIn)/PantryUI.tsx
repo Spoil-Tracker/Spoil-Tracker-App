@@ -7,7 +7,7 @@ import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'expo-router';
-import { db } from '@/services/firebaseConfig'; // Import your existing Firebase setup
+import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
 
 
 type ListItem = {
