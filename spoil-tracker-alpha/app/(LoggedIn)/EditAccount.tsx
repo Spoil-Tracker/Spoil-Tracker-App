@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/services/firebaseConfig';
+import { db } from '../../services/firebaseConfig';
 
 interface EditAccountRouteParams {
   userID: string;
@@ -87,8 +87,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF9F2',
   },
   title: {
-    fontSize: 24,
+    fontSize: 40,
     fontWeight: 'bold',
+    color: '#4CAE4F',
     marginBottom: 16,
   },
   inputContainer: {

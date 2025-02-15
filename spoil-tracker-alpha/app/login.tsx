@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router'; // adds routing after login
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth'; // Import Firebase auth method
-import { auth } from '@/services/firebaseConfig';
+import { auth } from '../services/firebaseConfig';
 
 const Login = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);

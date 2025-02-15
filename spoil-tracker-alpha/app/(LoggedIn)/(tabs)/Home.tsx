@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Platform,
 } from 'react-native';
-import { useAuth } from '@/services/authContext'; // Import the authentication context
+import { useAuth } from '../../../services/authContext'; // Import the authentication context
 
 export default function HomeScreen() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -18,7 +18,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const loadFonts = async () => {
       await Font.loadAsync({
-        'inter-bold': require('@/assets/fonts/Inter_800ExtraBold.ttf'),
+        'inter-bold': require('../../../assets/fonts/Inter_800ExtraBold.ttf'),
       });
       setFontsLoaded(true);
     };
