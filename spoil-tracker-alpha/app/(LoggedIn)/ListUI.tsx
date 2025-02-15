@@ -27,6 +27,7 @@ import { log } from 'console';
     { title: 'Potatoes', description: 'Perfect for any meal', imageUrl: 'https://via.placeholder.com/100?text=Potatoes' },
   ];
 
+  // list used for the dropdown located with each grocery list item in the flatlist
   const FOOD_UNITS = [
     { label: 'mg', value: 'mg' },
     { label: 'g', value: 'g' },
@@ -48,24 +49,25 @@ type ListItem = {
 }
 
 const GroceryList = () => {
-  const [items, setItems] = useState<ListItem[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [items, setItems] = useState<ListItem[]>([]); // List of grocery items
+  const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
   const [searchText, setSearchText] = useState(''); // Search text state
-  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state
-  const [groceryListTitle, setGroceryListTitle] = useState('');
-  const [groceryListDate, setGroceryListDate] = useState('');
-  const [groceryListDescription, setGroceryListDescription] = useState('');
-  const [groceryListCompletion, setGroceryListCompletion] = useState<boolean>(false);
-  const [scaleAnim] = useState(new Animated.Value(1));
-  const local = useLocalSearchParams();
-  const docRef = doc(db, 'grocery_lists', local.id as string);
-  const [sortModalVisible, setSortModalVisible] = useState(false);
-  const [dropdownVisible, setDropdownVisible] = useState(false);
-  const dropdownHeight = useRef(new Animated.Value(0)).current;
-  const [customName, setCustomName] = useState('');
-  const [customDescription, setCustomDescription] = useState('');
+  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state, hook used whenever the Sort By button is used or user searches through text input
+  const [groceryListTitle, setGroceryListTitle] = useState(''); // Grocery list title
+  const [groceryListDate, setGroceryListDate] = useState(''); // Grocery list creation date
+  const [groceryListDescription, setGroceryListDescription] = useState(''); // Grocery list description
+  const [groceryListCompletion, setGroceryListCompletion] = useState<boolean>(false); // Grocery List Completion status
+  const [scaleAnim] = useState(new Animated.Value(1)); // Animation state, for resizing and re-organizing the UI whenever the user changes screen size
+  const local = useLocalSearchParams(); // Retrieve parameters from route, for docRef local.id below
+  const docRef = doc(db, 'grocery_lists', local.id as string); // Reference to Firestore document in the grocery_list collection, uses the id fed by the previous list main menu
+  const [sortModalVisible, setSortModalVisible] = useState(false); // Modal visibility state
+  const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown visibility state, used in the add item modal UI
+  const dropdownHeight = useRef(new Animated.Value(0)).current; // Dropdown animation height, used in the add item modal UI
+  const [customName, setCustomName] = useState(''); // Custom item name, used in the add item modal UI for when a user wants to add a custom item
+  const [customDescription, setCustomDescription] = useState(''); // Custom item description, used in the add item modal UI for when a user wants to add a custom item
 
+  // Effect hook to fetch grocery list data and handle screen resizing
   useEffect(() => {
     const onChange = () => {
       setScreenWidth(Dimensions.get('window').width);
@@ -76,10 +78,12 @@ const GroceryList = () => {
           
           const snapshot = await getDoc(docRef);
     
+          // if a grocery list with the id specified by the local param exists
           if (snapshot.exists()) {
             const data = snapshot.data();
             const itemsFromFirestore: ListItem[] = data?.items || [];
             
+            // dates are formatted differently between expo native and firebase, so we reformat it into something readable here
             const formatDate = (isoString: string) => {
               const date = new Date(isoString);
               return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -106,8 +110,9 @@ const GroceryList = () => {
 
   }, [local.id]);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation(); // Navigation hook, allows for a back button on the top left of the header
 
+  // handler for when a user chooses to delete the list, called after user presses the delete button
   const handleDeleteList = async () => {
     try {
       await deleteDoc(docRef);
@@ -120,6 +125,8 @@ const GroceryList = () => {
     }
   };
 
+  // Function to add a custom item to the list
+  // used whenever user opens up the FAB modal and then inputs a custom name and description for an item
   const addCustomItem = async () => {
     if (!customName || !customDescription) {
       return; // Exit the function early if any field is empty
@@ -151,6 +158,8 @@ const GroceryList = () => {
     }
   };
 
+  // Function to generate a random item
+  // addRandomItem uses this to generate a grocery list item object
   const generateRandomItem = (): ListItem => {
     const randomIndex = Math.floor(Math.random() * foodItems.length);
     const randomFood = foodItems[randomIndex];
@@ -166,6 +175,8 @@ const GroceryList = () => {
     };
   };
 
+  // Function to generate a custom item
+  // addCustomItem uses this to generate a grocery list item object
   const generateCustomItem = (): ListItem => {
     const cTitle = customName;
     const cDesc = customDescription;
@@ -181,7 +192,10 @@ const GroceryList = () => {
       imageUrl: 'https://www.placekittens.com/100/100'
     }
   };
-
+  
+  // Function to generate a random item
+  // placeholder for now until we have a food database running
+  // used whenever user opens up the FAB modal and then presses the add item button
   const addRandomItem = async () => {
     const newItem = generateRandomItem();
     try {
@@ -211,6 +225,7 @@ const GroceryList = () => {
     }
   };
 
+  // Function called whenever user presses the mark as complete/incomplete button in the List UI
   const toggleCompletion = async () => {
     try {
       await updateDoc(docRef, {
@@ -225,7 +240,7 @@ const GroceryList = () => {
     }
   };
   
-
+  // Function called whenever the user onBlurs (i believe) the description text field 
   const onDescriptionChange = async (text: string) => {
     setGroceryListDescription(text);
     try {
@@ -237,6 +252,7 @@ const GroceryList = () => {
       console.error('Error updating description:', error);
     }
   };
+
   // Function to filter items based on the search text
   const filterItems = (text: string) => {
     setSearchText(text);
@@ -252,7 +268,7 @@ const GroceryList = () => {
     }
 
   };
-
+  // Function to handle the floating blue button being pressed and animate
   const onFABPress = async () => {
     // Animate FAB when clicked
     Animated.sequence([
@@ -275,16 +291,26 @@ const GroceryList = () => {
     setModalVisible(false); // Close modal
   };
   
-
-  // Render each item in the list
-  const renderItem = ({ item }: { item: ListItem }) => {
+  /**
+   render each item in the list
+   used for the items in the flatlist that renders all of the grocery list items
+   includes all the UI elements for one item cell
+  */
+   const renderItem = ({ item }: { item: ListItem }) => {
+    /**
+     toggles the completion status of the current item
+     updates the Firestore document and local state accordingly
+     */
     const toggleCompleteStatus = async () => {
       try {
+        // Create a new array with the item's completion status toggled
         const updatedItems = items.map(i =>
           i.id === item.id ? { ...i, complete: !i.complete } : i
         );
-  
+        // Update Firestore document
         await updateDoc(docRef, { items: updatedItems });
+
+        // Update local state
         setItems(updatedItems);
         setFilteredItems(updatedItems);
       } catch (error) {
@@ -292,7 +318,11 @@ const GroceryList = () => {
         alert('Failed to toggle status');
       }
     };
-  
+
+    /**
+     deletes the current item from the list
+     updates Firestore and local state
+     */
     const deleteItem = async () => {
       try {
         const updatedItems = items.filter(i => i.id !== item.id);
@@ -306,7 +336,12 @@ const GroceryList = () => {
         alert('Failed to delete item');
       }
     };
-  
+
+    /**
+     updates the quantity of the current item.
+     ensures the input is a valid number before updating Firestore and state.
+     @param {string} value - The new quantity value as a string input.
+     */
     const handleQuantityChange = async (value: string) => {
       const numericQuantity = value.trim() === '' ? 0 : parseInt(value, 10);
   
@@ -326,6 +361,10 @@ const GroceryList = () => {
       }
     };
 
+    /**
+     updates the measurement unit of the current item.
+     @param {string} measure - The new measurement unit.
+     */
     const handleUnitChange = async (measure: string) => {
       const updatedItems = items.map(i =>
         i.id === item.id ? { ...i, measurement: measure } : i
@@ -339,6 +378,7 @@ const GroceryList = () => {
       }
     };
 
+    // the rest of the code below is standard UI components using react native's framework + basic css
     return (
       <View style={[styles.unit, item.complete ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
@@ -711,7 +751,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   largeTextInput: {
-    height: 120,
+    height: 240,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,

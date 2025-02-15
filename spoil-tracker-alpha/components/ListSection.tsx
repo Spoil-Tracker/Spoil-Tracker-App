@@ -16,6 +16,10 @@ type ListSectionProps = {
   fetchLists: () => void;
 };
 
+/**
+ * ListSection component displaying categorized lists.
+ * Dynamically adjusts dimensions based on screen size.
+ */
 const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
   const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Get initial screen height
   const screenWidth = Dimensions.get('window').width; // Get screen width
@@ -64,6 +68,10 @@ const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
   );
 };
 
+/**
+ * ListButton component representing an individual list.
+ * Includes a dropdown menu with delete and view options.
+ */
 const ListButton = ({ list, handleDelete }: ListButtonProps) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
