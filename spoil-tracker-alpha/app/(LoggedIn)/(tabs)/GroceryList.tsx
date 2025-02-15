@@ -11,21 +11,32 @@ import CreateListModal from '@/components/CreateListModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dropdown } from 'react-native-element-dropdown';
 
+// Get screen width for responsive design
 const SCREEN_WIDTH = Dimensions.get('window').width;
+
+// Sorting options for lists
 const SORT_OPTIONS = [
   { label: 'Alphabetical', value: 'alphabetical' }
 ]
 
+
+/**
+ screen component for displaying a user's grocery lists
+ allows filtering, sorting, and list creation
+ */
 const ButtonListScreen = () => {
   const [completedLists, setCompletedLists] = useState<string[]>([]);
   const [incompleteLists, setIncompleteLists] = useState<string[]>([]);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Sort criteria state
-  const [searchQuery, setSearchQuery] = useState(''); // Search query state
+  const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
+  const [searchQuery, setSearchQuery] = useState(''); // User input for filtering lists
 
-  // Fetch lists from Firestore
+  /**
+   fetches the user's grocery lists from Firestore
+   lists are categorized into completed and incomplete
+   */
   const fetchLists = async () => {
     setLoading(true);
     try {
@@ -50,14 +61,18 @@ const ButtonListScreen = () => {
       const completed = [];
       const incomplete = [];
   
+      // Process fetched lists
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         if (data?.name) {
+
+          // Format date helper function
           const formatDate = (isoString: string) => {
             const date = new Date(isoString);
             return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
           };
 
+          // Categorize lists based on completion status
           if (data.completed) {
             completed.push({
               id: doc.id,
@@ -79,6 +94,7 @@ const ButtonListScreen = () => {
       });
   
       // Set the lists for completed and incomplete items
+      // Update state with fetched lists
       setCompletedLists(completed);
       setIncompleteLists(incomplete);
     } catch (error) {
@@ -88,26 +104,38 @@ const ButtonListScreen = () => {
     }
   };
 
+  /**
+   fetch lists on component mount and screen size change.
+   */
   useEffect(() => {
     fetchLists();
     const subscription = Dimensions.addEventListener('change', () => {
       setScreenWidth(Dimensions.get('window').width);
     });
 
+    // Listen for screen dimension changes
     return () => {
       subscription.remove();
     };
   }, []);
 
+  /**
+   fetch lists when the screen comes into focus
+   */
   useFocusEffect(
     React.useCallback(() => {
       fetchLists();
     }, [])
   );
 
+  // Determine if the screen width is considered small
   const isSmallScreen = screenWidth < 800;
 
-  // Function to handle sorting
+  /**
+   sorts lists based on the selected sorting criteria
+   @param {Array} lists - The list of grocery lists to be sorted
+   @returns {Array} - Sorted list.
+   */
   const sortLists = (lists) => {
     if (sortCriteria === 'alphabetical') {
       return lists.sort((a, b) => a.name.localeCompare(b.name));
@@ -115,7 +143,11 @@ const ButtonListScreen = () => {
     return lists; // Default no sort (you could add more sorting criteria here)
   };
 
-  // Filter lists based on search query
+  /**
+   filters lists based on the user's search query
+   @param {Array} lists - The list of grocery lists to filter
+   @returns {Array} - Filtered list
+   */
   const filterLists = (lists) => {
     return lists.filter(list => list.name.toLowerCase().includes(searchQuery.toLowerCase()));
   };

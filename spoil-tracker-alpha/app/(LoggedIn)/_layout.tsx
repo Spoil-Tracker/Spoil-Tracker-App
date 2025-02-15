@@ -1,3 +1,4 @@
+//Expo will use this stack to figure out how, when, and if a certain page needs a header and also requires an additional back button.
 import { Stack } from 'expo-router/stack';
 import { Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -6,6 +7,7 @@ export default function Layout() {
   const router = useRouter();
 
   return (
+    // Standard stack component; all params listed here are mainly to edit/stylize the visual components attached to the header
     <Stack
       screenOptions={{
         headerStyle: {
