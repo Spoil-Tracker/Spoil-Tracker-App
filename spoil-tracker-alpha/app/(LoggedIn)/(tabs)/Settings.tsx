@@ -8,7 +8,7 @@ import
   Image,
 } from 'react-native';
 import { auth } from '../../../services/firebaseConfig';
-import { verifyBeforeUpdateEmail } from 'firebase/auth';
+import { linkWithCredential, verifyBeforeUpdateEmail } from 'firebase/auth';
 import 
 {
   updatePassword,
@@ -174,6 +174,13 @@ const SettingsPage = (): JSX.Element =>
 
   const sendVerificationCode = async () =>
   {
+    if (!user)
+    {
+      setBannerMessage('You must be logged in to verify your phone number.');
+      setBannerType('error');
+      return;
+    }
+
     if (phoneNumber.trim() === '')
     {
       setBannerMessage('Please enter a phone number.');
@@ -208,6 +215,13 @@ const SettingsPage = (): JSX.Element =>
 
   const verifyCode = async () =>
   {
+    if (!user) 
+    {
+      setBannerMessage('You must be logged in to verify your phone number.');
+      setBannerType('error');
+      return;
+    }
+
     if (!verificationId || verificationCode.trim() === '')
     {
       setBannerMessage('Please enter the verification code.');
@@ -219,10 +233,12 @@ const SettingsPage = (): JSX.Element =>
     {
       console.log("Verifying code:", verificationCode);
       const credential = PhoneAuthProvider.credential(verificationId, verificationCode);
-      await signInWithCredential(auth, credential);
+      await linkWithCredential(user, credential);
       setPhoneVerified(true);
       setBannerMessage('Phone number verified successfully.');
       setBannerType('success');
+
+      console.log('User ID after verification:', auth.currentUser?.uid);
     } catch (error)
     {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -238,7 +254,7 @@ const SettingsPage = (): JSX.Element =>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}>
         <Image
-          source={require('C:/Users/dgkth/Downloads/Spoil-Tracker-App/spoil-tracker-alpha/assets/images/favicon.png')}
+          source={require('../../../assets/images/favicon.png')}
           style={styles.icon}
         />
         <Text style={styles.title}>Settings</Text>
