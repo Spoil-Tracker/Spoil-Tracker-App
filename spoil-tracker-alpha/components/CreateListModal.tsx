@@ -4,16 +4,25 @@ import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import { getAuth } from 'firebase/auth';
 
+// Type definition for component props
 type CreateListModalProps = {
-  visible: boolean;
-  onClose: () => void;
-  fetchLists: () => void;
+  visible: boolean; // Determines whether the modal is visible
+  onClose: () => void; // Function to close the modal
+  fetchLists: () => void; // Function to refresh the list of grocery lists after creation
 };
 
+/**
+ * Modal component for creating a new grocery list.
+ * Allows users to enter a list name and save it to Firestore.
+ */
 const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps) => {
   const [newListName, setNewListName] = useState('');
 
+  /**
+   * Handles the creation of a new grocery list in Firestore.
+   */
   const createNewList = async () => {
+    // Validate input to ensure a name is entered
     if (!newListName.trim()) {
       alert('Please enter a valid list name');
       return;
@@ -28,21 +37,23 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
     }
 
     try {
+      // Add new list to Firestore under the 'grocery_lists' collection
       await addDoc(collection(db, 'grocery_lists'), {
         name: newListName,
-        owner_id: user.uid,  // Use the current user's uid
-        created: new Date().toISOString(),
-        last_opened: new Date().toISOString(),
-        family: false,
-        shared: false,
-        description: 'A newly made list. Edit the description by clicking on this field!',
-        completed: false,
-        items: [],
+        owner_id: user.uid,  // Store the user ID for reference
+        created: new Date().toISOString(), // Store creation timestamp
+        last_opened: new Date().toISOString(), // Initial last opened timestamp
+        family: false, // Default: not a shared family list
+        shared: false, // Default: not shared with others
+        description: 'A newly made list. Edit the description by clicking on this field!', // Default description
+        completed: false, // Default: list is incomplete
+        items: [], // Default: empty list of items
       });
 
+      // Clear the input field and refresh the list display
       setNewListName('');
-      fetchLists();
-      onClose();
+      fetchLists(); // Refresh the list after creation
+      onClose(); // Close the modal
     } catch (error) {
       console.error('Error creating new list: ', error);
     }
