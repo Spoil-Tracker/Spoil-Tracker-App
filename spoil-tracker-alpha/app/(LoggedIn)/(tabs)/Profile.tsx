@@ -182,7 +182,7 @@ export default function HomeScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Are you sure?</Text>
+            <Text style={styles.modalTitle}>Warning!</Text>
             <Text style={styles.modalMessage}>
               Are you sure you want to permanently delete your account? This
               action cannot be undone.
@@ -190,9 +190,9 @@ export default function HomeScreen() {
 
             {/* Buttons for the modal */}
             <View style={styles.modalButtons}>
-              <Button title="Cancel" onPress={toggleModal} />
+              <Button title="No! I change my mind!" onPress={toggleModal} />
               <Button
-                title="Permanently Delete Account"
+                title="Yes! Delete it forever!"
                 color="red" // Red instead of usual green color to make it stand out more.
                 onPress={handleDeleteAccount}
               />
