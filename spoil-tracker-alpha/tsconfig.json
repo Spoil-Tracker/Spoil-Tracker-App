@@ -4,7 +4,9 @@
     "moduleResolution": "node",  // Use Node's module resolution
     "esModuleInterop": true,  // Ensure compatibility with ES modules
     "allowSyntheticDefaultImports": true,  // For smoother imports
-    "strict": true  // Enable strict type-checking options
+    "strict": true,  // Enable strict type-checking options
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "extends": "expo/tsconfig.base",
   "include": [
