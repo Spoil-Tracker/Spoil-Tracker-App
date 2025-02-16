@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Animated, View, Text, StyleSheet, SafeAreaView, Pressable, Image, TextInput, ScrollView, Modal } from 'react-native';
+import {
+  Animated,
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  Pressable,
+  Image,
+  TextInput,
+  ScrollView,
+  Modal,
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { AntDesign } from '@expo/vector-icons'; // For the plus and minus icons
 import { Dimensions } from 'react-native';
@@ -8,16 +19,16 @@ import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'expo-router';
 import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
-
+import { useTheme } from 'react-native-paper'; // Import useTheme for dark mode, contributed by Kevin
 
 type ListItem = {
-  id: string,
+  id: string;
   title: string;
   description: string;
   quantity: number;
   expirationDate: string;
   imageUrl: string;
-}
+};
 
 const Pantry = () => {
   const [lists, setLists] = useState([]);
@@ -30,36 +41,38 @@ const Pantry = () => {
   const [alertVisible, setAlertVisible] = useState(false); // State to control alert visibility
   const [alertMessage, setAlertMessage] = useState(''); // State to hold the alert message
   const router = useRouter();
-  
+  const [inputText, setInputText] = useState(''); // State to store the input text by Kevin
+  const { colors } = useTheme(); // dark mode by Kevin
+
   const [items, setItems] = useState<ListItem[]>([]);
   const [pantryTitle, setPantryTitle] = useState('');
 
   const local = useLocalSearchParams();
   const docRef = doc(db, 'pantries_t', local.id as string);
 
-  useEffect(() => {  
+  useEffect(() => {
     fetchPantryData();
   }, []);
 
   const handleHeaderSave = async (headerText: string, listId: string) => {
     try {
       const snapshot = await getDoc(docRef);
-  
+
       if (snapshot.exists()) {
         const sections = snapshot.data()?.sections || {};
-  
+
         if (sections[listId]) {
           sections[listId].name = headerText; // Update only the name field
-  
+
           await updateDoc(docRef, { sections });
-  
+
           setAlertMessage(`List header updated to '${headerText}'`);
           setAlertVisible(true);
-  
+
           setTimeout(() => {
             setAlertVisible(false);
           }, 3000);
-  
+
           // Force a refresh of data locally to sync UI
           fetchPantryData();
         }
@@ -70,7 +83,6 @@ const Pantry = () => {
       console.error('Error saving header name:', error);
     }
   };
-    
 
   const fetchPantryData = async () => {
     try {
@@ -86,23 +98,24 @@ const Pantry = () => {
             isEditable: true,
           }));
 
-        const sortedLists = fetchedLists.sort((a, b) => 
-          a.header === 'Unordered' ? -1 : b.header === 'Unordered' ? 1 : 0
-        );
+          const sortedLists = fetchedLists.sort((a, b) =>
+            a.header === 'Unordered' ? -1 : b.header === 'Unordered' ? 1 : 0
+          );
 
-        setLists(fetchedLists);
+          setLists(fetchedLists);
 
           // Extract items from Firestore sections
-          const extractedItems: ListItem[] = Object.keys(data.sections).flatMap(key =>
-            data.sections[key]?.items?.map(item => ({
-              id: item.id,
-              title: item.title,
-              description: item.description,
-              quantity: item.quantity,
-              expirationDate: item.expirationDate,
-              imageUrl: item.imageUrl,
-              sectionId: key,
-            })) || []
+          const extractedItems: ListItem[] = Object.keys(data.sections).flatMap(
+            (key) =>
+              data.sections[key]?.items?.map((item) => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                quantity: item.quantity,
+                expirationDate: item.expirationDate,
+                imageUrl: item.imageUrl,
+                sectionId: key,
+              })) || []
           );
 
           setItems(extractedItems);
@@ -113,8 +126,7 @@ const Pantry = () => {
       console.error('Error fetching pantry data:', error);
     }
   };
-  
-  
+
   const onFABPress = async () => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -128,33 +140,35 @@ const Pantry = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  
+
     if (lists.length === 0) {
       console.warn('No available lists to add the item to.');
       return;
     }
-  
+
     // Generate a random item
     const randomItem: ListItem = {
       id: uuidv4(),
       title: `Random Item ${Math.floor(Math.random() * 100)}`,
       description: 'Auto-generated random description',
       quantity: Math.floor(Math.random() * 10) + 1,
-      expirationDate: new Date(Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
+      expirationDate: new Date(
+        Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
+      ).toISOString(),
       imageUrl: '',
     };
-  
+
     // Select a random list
     const randomList = lists[Math.floor(Math.random() * lists.length)];
-  
+
     try {
       // Update Firestore with the new item
       const snapshot = await getDoc(docRef);
-  
+
       if (snapshot.exists()) {
         const sections = snapshot.data()?.sections || {};
         const targetListItems = sections[randomList.id]?.items || [];
-  
+
         const updatedSections = {
           ...sections,
           [randomList.id]: {
@@ -162,15 +176,18 @@ const Pantry = () => {
             items: [...targetListItems, randomItem],
           },
         };
-  
+
         await updateDoc(docRef, { sections: updatedSections });
-  
+
         // Update the local state to show the change
-        setItems(prevItems => [...prevItems, { ...randomItem, sectionId: randomList.id }]);
-  
+        setItems((prevItems) => [
+          ...prevItems,
+          { ...randomItem, sectionId: randomList.id },
+        ]);
+
         setAlertMessage(`Added item to ${randomList.header}`);
         setAlertVisible(true);
-  
+
         setTimeout(() => {
           setAlertVisible(false);
         }, 3000);
@@ -181,33 +198,36 @@ const Pantry = () => {
       console.error('Error adding random item:', error);
     }
   };
-  
 
   // Function to add a new horizontal list
   const addNewList = async () => {
     const newListName = `List ${lists.length + 1}`;
     const newListId = uuidv4(); // Generate a unique ID for the new list
-  
+
     try {
       const snapshot = await getDoc(docRef);
-  
+
       if (snapshot.exists()) {
         const currentSections = snapshot.data()?.sections || {};
-  
+
         // Add a new list only if it's dynamically created, not overwriting unordered
         const updatedSections = {
           ...currentSections,
           [newListId]: { name: newListName, items: [] },
         };
-  
+
         await updateDoc(docRef, { sections: updatedSections });
-  
-        const newList = { id: newListId, header: newListName, isEditable: true };
-        setLists(prevLists => [...prevLists, newList]);
-  
+
+        const newList = {
+          id: newListId,
+          header: newListName,
+          isEditable: true,
+        };
+        setLists((prevLists) => [...prevLists, newList]);
+
         setAlertMessage(`Successfully added ${newListName}`);
         setAlertVisible(true);
-  
+
         setTimeout(() => {
           setAlertVisible(false);
         }, 3000);
@@ -218,19 +238,20 @@ const Pantry = () => {
       console.error('Error adding new list:', error);
     }
   };
-  
-  
-  
 
   // Function to sort items by expiration date
   const sortItemsByExpiration = (items) => {
-    return items.sort((a, b) => new Date(a.expirationDate).getTime() - new Date(b.expirationDate).getTime());
+    return items.sort(
+      (a, b) =>
+        new Date(a.expirationDate).getTime() -
+        new Date(b.expirationDate).getTime()
+    );
   };
 
   // Show modal to confirm deletion
   const confirmDeleteList = (listId) => {
     setListToDelete(listId); // Set the list to be deleted
-    setIsModalVisible(true);  // Show the modal
+    setIsModalVisible(true); // Show the modal
   };
 
   // Remove the list
@@ -241,50 +262,48 @@ const Pantry = () => {
         console.error('Firestore document does not exist!');
         return;
       }
-  
+
       const sections = listToDeleteSnapshot.data()?.sections || {};
       const listToDeleteItems = sections[listToDelete]?.items || [];
-  
+
       // Ensure Unordered exists
       if (!sections['unordered']) {
         sections['unordered'] = { name: 'Unordered', items: [] };
       }
-  
+
       const updatedUnorderedItems = [
         ...(sections['unordered'].items || []),
         ...listToDeleteItems,
       ];
-  
+
       delete sections[listToDelete];
-  
+
       await updateDoc(docRef, {
         sections: {
           ...sections,
           unordered: { ...sections['unordered'], items: updatedUnorderedItems },
         },
       });
-  
+
       // Trigger a re-fetch of data
       fetchPantryData();
-  
+
       setAlertMessage(`List deleted and moved items to 'Unordered'`);
       setAlertVisible(true);
-  
+
       setTimeout(() => {
         setAlertVisible(false);
       }, 3000);
-  
+
       setIsModalVisible(false);
     } catch (error) {
       console.error('Error during list deletion:', error);
     }
   };
-  
-  
 
   // Close the modal without deleting
   const cancelDelete = () => {
-    setIsModalVisible(false);  // Just close the modal
+    setIsModalVisible(false); // Just close the modal
   };
 
   const openTransferModal = () => {
@@ -303,47 +322,58 @@ const Pantry = () => {
       alert('Please select both an item and a destination list.');
       return;
     }
-  
+
     try {
-      const itemToMove = items.find(item => item.id === selectedItemId);
+      const itemToMove = items.find((item) => item.id === selectedItemId);
       if (!itemToMove) {
         alert('Item not found!');
         return;
       }
-  
+
       const snapshot = await getDoc(docRef);
       if (!snapshot.exists()) {
         alert('No such document exists!');
         return;
       }
-  
+
       const sections = snapshot.data()?.sections || {};
       const sourceListItems = sections[itemToMove.sectionId]?.items || [];
       const destinationListItems = sections[selectedHeaderId]?.items || [];
-  
+
       // Remove the item from the source list
-      const updatedSourceItems = sourceListItems.filter(item => item.id !== itemToMove.id);
-  
+      const updatedSourceItems = sourceListItems.filter(
+        (item) => item.id !== itemToMove.id
+      );
+
       // Update the destination list with the moved item
-      const updatedDestinationItems = [...destinationListItems, { ...itemToMove, sectionId: selectedHeaderId }];
-  
+      const updatedDestinationItems = [
+        ...destinationListItems,
+        { ...itemToMove, sectionId: selectedHeaderId },
+      ];
+
       const updatedSections = {
         ...sections,
-        [itemToMove.sectionId]: { ...sections[itemToMove.sectionId], items: updatedSourceItems },
-        [selectedHeaderId]: { ...sections[selectedHeaderId], items: updatedDestinationItems },
+        [itemToMove.sectionId]: {
+          ...sections[itemToMove.sectionId],
+          items: updatedSourceItems,
+        },
+        [selectedHeaderId]: {
+          ...sections[selectedHeaderId],
+          items: updatedDestinationItems,
+        },
       };
-  
+
       await updateDoc(docRef, { sections: updatedSections });
-  
+
       // Update the local state
-      setItems(prevItems =>
-        prevItems.map(item =>
+      setItems((prevItems) =>
+        prevItems.map((item) =>
           item.id === selectedItemId
             ? { ...item, sectionId: selectedHeaderId }
             : item
         )
       );
-  
+
       alert('Item transferred successfully!');
       closeTransferModal();
     } catch (error) {
@@ -351,20 +381,30 @@ const Pantry = () => {
       alert('Failed to transfer item');
     }
   };
-  
-  
 
   // Group items by headerId dynamically
   const getItemsByHeader = (listId) => {
-    return items.filter(item => item.sectionId === listId);
-  };  
+    return items.filter((item) => item.sectionId === listId);
+  };
 
   // Render each horizontal list with an editable header
   const renderList = (list) => {
     const listItems = sortItemsByExpiration(
-      items.filter(item => item.sectionId === list.id)
+      items.filter((item) => item.sectionId === list.id)
     );
-  
+
+    const onDescriptionChange = async (text: string) => {
+      setPantryDescription(text);
+      try {
+        await updateDoc(docRef, {
+          description: text,
+        });
+        console.log('Description updated in Firestore');
+      } catch (error) {
+        console.error('Error updating description:', error);
+      }
+    };
+
     return (
       <View style={styles.listContainer} key={list.id}>
         {/* Conditional rendering based on the list's header name */}
@@ -383,22 +423,27 @@ const Pantry = () => {
             onBlur={() => handleHeaderSave(list.header, list.id)} // Ensure this runs only after user finishes editing
             editable={list.isEditable}
           />
-
         )}
-  
+
         {/* Remove button */}
         {list.isEditable && list.header !== 'Unordered' && (
-          <Pressable style={styles.removeListButton} onPress={() => confirmDeleteList(list.id)}>
+          <Pressable
+            style={styles.removeListButton}
+            onPress={() => confirmDeleteList(list.id)}
+          >
             <Text style={styles.removeListButtonText}>−</Text>
           </Pressable>
         )}
-  
+
         <ScrollView horizontal contentContainerStyle={styles.horizontalScroll}>
           {listItems.length > 0 ? (
             listItems.map((item) => (
               <View key={item.id} style={styles.unit}>
                 {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={styles.unitImage}
+                  />
                 ) : (
                   <View style={styles.unitImageFallback}>
                     <Text>No Image</Text>
@@ -408,7 +453,12 @@ const Pantry = () => {
                   <Text style={styles.unitTitle}>{item.title}</Text>
                   <Text style={styles.unitDescription}>{item.description}</Text>
                   <Text style={styles.expirationText}>
-                    EXP: {new Date(item.expirationDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', })}
+                    EXP:{' '}
+                    {new Date(item.expirationDate).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
                   </Text>
                 </View>
               </View>
@@ -419,41 +469,69 @@ const Pantry = () => {
         </ScrollView>
       </View>
     );
-  };  
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
+    // allows for dark mode, contributed by Kevin
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.mainContent}>
           {/* Left Column - Adjusted for Flex */}
           <View style={styles.fixedLeftColumn}>
-            <Text style={styles.textBoxTitle}>Grocery List Example</Text>
-            
+            {/* allows for dark mode contributed by Kevin */}
+            <Text style={[styles.textBoxTitle, { color: colors.text }]}>
+              Grocery List Example
+            </Text>
+
             <Pressable style={styles.addListButton} onPress={addNewList}>
               <Text style={styles.addListButtonText}>Add New List</Text>
             </Pressable>
-            <Pressable style={styles.addListButton} onPress={() => router.back()}>
+            <Pressable
+              style={styles.addListButton}
+              onPress={() => router.back()}
+            >
               <Text style={styles.addListButtonText}>Back</Text>
             </Pressable>
+            {/* Left Column - Text Box */}
+
+            {/* allows for dark mode contributed by Kevin */}
+            <Text style={[styles.label, { color: colors.text }]}>
+              Enter Text:
+            </Text>
+            {/* allows a description box, contributed by Kevin */}
+            <TextInput
+              style={styles.largeTextInput}
+              placeholder="Pantry Description..."
+              value={inputText}
+              onChangeText={(text) => setInputText(text)} // Update state on input change
+              multiline={true} // Allow multiple lines of input
+            />
           </View>
-  
+
           {/* Right Column - Lists */}
           <View style={styles.rightColumn}>
             {lists.map((list) => renderList(list))}
           </View>
         </View>
       </ScrollView>
-  
+
       {/* Transfer Button */}
       <Pressable style={styles.transferButton} onPress={openTransferModal}>
         <Text style={styles.transferButtonText}>Transfer Item</Text>
       </Pressable>
-  
-      <Modal visible={isTransferModalVisible} transparent={true} animationType="fade" onRequestClose={closeTransferModal}>
+
+      <Modal
+        visible={isTransferModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeTransferModal}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalText}>Transfer Item</Text>
-  
+
             {/* Dropdown for selecting an item */}
             <Picker
               selectedValue={selectedItemId}
@@ -472,25 +550,34 @@ const Pantry = () => {
             >
               <Picker.Item label="Select List" value="" />
               {lists
-                .filter(list => list.header !== 'Unordered') // Exclude Unordered
+                .filter((list) => list.header !== 'Unordered') // Exclude Unordered
                 .map((list) => (
-                  <Picker.Item key={list.id} label={list.header} value={list.id} />
+                  <Picker.Item
+                    key={list.id}
+                    label={list.header}
+                    value={list.id}
+                  />
                 ))}
             </Picker>
 
-  
             <View style={styles.modalButtons}>
-              <Pressable onPress={closeTransferModal} style={styles.modalButton}>
+              <Pressable
+                onPress={closeTransferModal}
+                style={styles.modalButton}
+              >
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </Pressable>
-              <Pressable onPress={handleTransferItem} style={styles.modalButton}>
+              <Pressable
+                onPress={handleTransferItem}
+                style={styles.modalButton}
+              >
                 <Text style={styles.modalButtonText}>Transfer</Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
-  
+
       {/* Modal for delete confirmation */}
       <Modal
         visible={isModalVisible}
@@ -500,7 +587,9 @@ const Pantry = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Are you sure you want to delete this list?</Text>
+            <Text style={styles.modalText}>
+              Are you sure you want to delete this list?
+            </Text>
             <View style={styles.modalButtons}>
               <Pressable onPress={cancelDelete} style={styles.modalButton}>
                 <Text style={styles.modalButtonText}>Cancel</Text>
@@ -512,27 +601,27 @@ const Pantry = () => {
           </View>
         </View>
       </Modal>
-  
+
       {/* Alert Banner */}
       {alertVisible && (
         <View style={styles.alertBanner}>
           <Text style={styles.alertText}>{alertMessage}</Text>
         </View>
       )}
-      <Animated.View style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View
+        style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}
+      >
         <Pressable onPress={onFABPress}>
           <AntDesign name="plus" size={24} color="white" />
         </Pressable>
-    </Animated.View>
+      </Animated.View>
     </SafeAreaView>
   );
-  
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF9F2',
     fontFamily: 'inter-bold',
   },
   scrollContainer: {
@@ -769,6 +858,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#347736',
     color: '#fff',
     borderRadius: 6,
+  },
+  textBox: {
+    backgroundColor: '#c4c4c4',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  textBoxTitle2: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  textBoxContent: {
+    fontSize: 14,
+    color: '#555',
+  },
+  largeTextInput: {
+    height: 240,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingLeft: 10,
+    paddingTop: 10,
+    textAlignVertical: 'top',
+    backgroundColor: 'white',
   },
 });
 

@@ -8,7 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 export default function NutritionScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const user = "User"; // Replace with actual user data
+  const user = 'User'; // Replace with actual user data
   const totalCalories = 2000;
   const consumedCalories = 1698;
   const remainingCalories = totalCalories - consumedCalories;
@@ -25,9 +25,9 @@ export default function NutritionScreen() {
   const formatDate = (date: Date | null) => {
     const today = new Date();
     if (date && date.toDateString() === today.toDateString()) {
-      return "Today";
+      return 'Today';
     }
-    return date ? date.toLocaleDateString() : "Today";
+    return date ? date.toLocaleDateString() : 'Today';
   };
 
   return (
@@ -40,15 +40,23 @@ export default function NutritionScreen() {
         <TouchableOpacity onPress={() => changeDay(-1)}>
           <AntDesign name="left" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.todayContainer} onPress={() => setShowDatePicker(!showDatePicker)}>
-          <FontAwesome name="calendar" size={20} color="white" style={styles.calendarIcon} />
+        <TouchableOpacity
+          style={styles.todayContainer}
+          onPress={() => setShowDatePicker(!showDatePicker)}
+        >
+          <FontAwesome
+            name="calendar"
+            size={20}
+            color="white"
+            style={styles.calendarIcon}
+          />
           <Text style={styles.todayText}>{formatDate(selectedDate)}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => changeDay(1)}>
           <AntDesign name="right" size={24} color="white" />
         </TouchableOpacity>
       </View>
-      
+
       {showDatePicker && (
         <DatePicker
           selected={selectedDate}
@@ -60,24 +68,32 @@ export default function NutritionScreen() {
         />
       )}
 
-       {/* Calories Info */}
-       <View style={styles.caloriesContainer}>
-        <Text style={styles.caloriesGoalText}>Calories Goal: {totalCalories} kcal</Text>
+      {/* Calories Info */}
+      <View style={styles.caloriesContainer}>
+        <Text style={styles.caloriesGoalText}>
+          Calories Goal: {totalCalories} kcal
+        </Text>
         <View style={styles.progressWrapper}>
           <AnimatedCircularProgress
             size={100}
             width={8}
             fill={percentage * 100}
-            tintColor='#73CFD4'
-            backgroundColor='white'
+            tintColor="#73CFD4"
+            backgroundColor="white"
           >
             {() => (
-              <Text style={styles.percentageText}>{(percentage * 100).toFixed(2)}%</Text>
+              <Text style={styles.percentageText}>
+                {(percentage * 100).toFixed(2)}%
+              </Text>
             )}
           </AnimatedCircularProgress>
           <View style={styles.caloriesInfo}>
-            <Text style={[styles.caloriesText, styles.rightAlign]}>Consumed: {consumedCalories} kcal</Text>
-            <Text style={[styles.caloriesText, styles.rightAlign]}>Remaining: {remainingCalories} kcal</Text>
+            <Text style={[styles.caloriesText, styles.rightAlign]}>
+              Consumed: {consumedCalories} kcal
+            </Text>
+            <Text style={[styles.caloriesText, styles.rightAlign]}>
+              Remaining: {remainingCalories} kcal
+            </Text>
           </View>
         </View>
       </View>
