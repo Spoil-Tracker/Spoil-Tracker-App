@@ -2,6 +2,7 @@ import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create
 ({
+    // Main container for the Settings screen.
     container: 
     {
         flex: 1,
@@ -18,12 +19,13 @@ const styles = StyleSheet.create
         backgroundColor: '#121212',
     },
 
+    // Title section with an icon.
     titleContainer:
     {
-        flexDirection: 'row',
+        flexDirection: 'row', // Aligns the icon and text.
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 30,
+        marginBottom: 30, // Adds spacing below the title.
     },
 
     title: 
@@ -39,7 +41,7 @@ const styles = StyleSheet.create
     {
         width: 50,
         height: 50,
-        marginRight: 10,
+        marginRight: 10, // Adds spacing between the icon and title.
     },
 
     lightText: 
@@ -52,10 +54,11 @@ const styles = StyleSheet.create
         color: '#FFF',
     },
 
+    // Main content container, divided into two sections.
     contentContainer:
     {
-        flexDirection: 'row',
-        flex: 1,
+        flexDirection: 'row', // Layout split between left and right sections.
+        flex: 1, // Allows content to fill available space.
     },
 
     leftSection:
@@ -77,15 +80,17 @@ const styles = StyleSheet.create
         width: 2,
         backgroundColor: '#4CAE4F',
         marginHorizontal: 15,
-        height: '100%',
+        height: '100%', // Extends the full height of the container, should users zoom out.
     },
 
+    // Container for input fields and buttons.
     formGroup: 
     {
         marginBottom: 15,
         width: '90%',
     },
 
+    // Label text for input fields.
     label: 
     {
         fontSize: 16,
@@ -93,6 +98,7 @@ const styles = StyleSheet.create
         marginBottom: 5,
     },
     
+    // General input field styling.
     input: 
     {
         borderWidth: 1,
@@ -115,7 +121,8 @@ const styles = StyleSheet.create
         color: '#FFF',
         backgroundColor: '#222',
     },
-      
+    
+    // General button styling.
     button: 
     {
         backgroundColor: '#4CAE4F',
@@ -127,7 +134,7 @@ const styles = StyleSheet.create
       
     disabledButton: 
     {
-        backgroundColor: '#6c757d',
+        backgroundColor: '#6c757d', // Gray out the button.
     },
       
     buttonText: 
@@ -137,6 +144,7 @@ const styles = StyleSheet.create
         fontWeight: 'bold',
     },
 
+    // Notification settings container.
     notificationOption: 
     {
         padding: 10,

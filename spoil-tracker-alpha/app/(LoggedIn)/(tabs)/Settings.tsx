@@ -17,7 +17,6 @@ import
   EmailAuthProvider,
   User,
   PhoneAuthProvider,
-  signInWithCredential,
   RecaptchaVerifier,
 } from 'firebase/auth';
 import Banner from '../../../components/Banner';
@@ -25,22 +24,28 @@ import styles from '../SettingsPageStyleSheet';
 
 const SettingsPage = (): JSX.Element => 
 {
+  // State for user details and authentication.
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  // Banner messages for user feedback.
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
 
+  // User interface state for miscellaneous features.
   const [notificationSetting, setNotificationSetting] = useState('Notify Everyday');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [darkMode, setDarkMode] = useState(false);
 
+  // Phone verification state.
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
 
+  // Fetch current authenticated user.
   useEffect(() => 
   {
     const currentUser = auth.currentUser;
@@ -51,6 +56,7 @@ const SettingsPage = (): JSX.Element =>
     }
   }, []);
 
+  // Initalize RecaptchaVerifier for phone authentication.
   useEffect(() => 
   {
     const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', 
@@ -61,6 +67,7 @@ const SettingsPage = (): JSX.Element =>
     setRecaptchaVerifier(verifier);
   }, []);
 
+  // Handles email change process.
   const handleEmailChange = async () => 
   {
     if (!user) 
@@ -77,6 +84,7 @@ const SettingsPage = (): JSX.Element =>
       return;
     }
 
+    // Sends a verification email upon matching user credentials.
     const credential = EmailAuthProvider.credential(user.email || '', password);
     try 
     {
@@ -92,6 +100,7 @@ const SettingsPage = (): JSX.Element =>
     }
   };
 
+  // Handles password update process.
   const handlePasswordChange = async () => 
   {
     if (!user) 
@@ -121,6 +130,7 @@ const SettingsPage = (): JSX.Element =>
     }
   };
 
+  // Handles email verification.
   const handleEmailVerification = async () =>
   {
     if (!user)
@@ -144,6 +154,7 @@ const SettingsPage = (): JSX.Element =>
       setBannerMessage('Verification email sent. Please check your inbox.');
       setBannerType('success');
 
+      // Check on occasion if email has been verified.
       const interval = setInterval(async () =>
       {
         await user.reload();
@@ -156,6 +167,7 @@ const SettingsPage = (): JSX.Element =>
         }
       }, 5000);
 
+      // Prevent spam.
       setTimeout(() => clearInterval(interval), 60000);
     } catch (error)
     {
@@ -165,6 +177,7 @@ const SettingsPage = (): JSX.Element =>
     }
   };
 
+  // Handles notification preferences being changed.
   const handleNotificationChange = (setting: string) => 
   {
     setNotificationSetting(setting);
@@ -172,6 +185,7 @@ const SettingsPage = (): JSX.Element =>
     setBannerType('success');
   };
 
+  // Sends verification code for phone authentication.
   const sendVerificationCode = async () =>
   {
     if (!user)
@@ -213,6 +227,7 @@ const SettingsPage = (): JSX.Element =>
     }
   };
 
+  // Verifies the entered code and links the phone number to the existing account.
   const verifyCode = async () =>
   {
     if (!user) 
@@ -252,6 +267,7 @@ const SettingsPage = (): JSX.Element =>
     <View style={[styles.container, darkMode ? styles.darkContainer : styles.lightContainer]}>
       {bannerMessage && <Banner message={bannerMessage} type={bannerType} />}
 
+      {/* Title and icon next to it. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 30 }}>
         <Image
           source={require('../../../assets/images/favicon.png')}
@@ -260,6 +276,7 @@ const SettingsPage = (): JSX.Element =>
         <Text style={styles.title}>Settings</Text>
       </View>
 
+      {/* Change Email feature. */}
       <View style={styles.contentContainer}>
         <View style={styles.leftSection}>
           <View style={styles.formGroup}>
@@ -276,6 +293,7 @@ const SettingsPage = (): JSX.Element =>
             </TouchableOpacity>
           </View>
 
+          {/* Email Verification feature. */}
           <View style={styles.formGroup}>
             <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>Email Verification:</Text>
             <TouchableOpacity
@@ -289,6 +307,7 @@ const SettingsPage = (): JSX.Element =>
             </TouchableOpacity>
           </View>
 
+          {/* Change Password feature. */}
           <View style={styles.formGroup}>
             <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>New Password:</Text>
             <TextInput
@@ -305,8 +324,10 @@ const SettingsPage = (): JSX.Element =>
           </View>
         </View>
 
+        {/* Divider in the middle of page. */}
         <View style={styles.divider} />
 
+        {/* Notification Preferences feature. */}
         <View style={styles.rightSection}>
           <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>Notification Settings:</Text>
           {['Notify Everyday', 'Notify Weekly', 'Notify Monthly', 'Notify Never'].map((option) => (
@@ -322,6 +343,7 @@ const SettingsPage = (): JSX.Element =>
             </TouchableOpacity>
           ))}
 
+          {/* Phone Number Authentication feature */}
           <View style={styles.formGroup}>
             <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>Phone Number (Optional):</Text>
             <TextInput
@@ -337,6 +359,7 @@ const SettingsPage = (): JSX.Element =>
             </TouchableOpacity>
           </View>
 
+          {/* Input box appears to enter validation code. */}
           {verificationId !== '' && (
             <View style={styles.formGroup}>
               <Text style={[styles.label, darkMode ? styles.darkText : styles.lightText]}>
@@ -356,12 +379,14 @@ const SettingsPage = (): JSX.Element =>
             </View>
           )}
 
+          {/* Confirmation of phone number verification. */}
           {phoneVerified && (
             <Text style={[styles.label, { color: '#4CAE4F', marginTop: 10 }]}>
               Phone Number Verified!
             </Text>
           )}
 
+          {/* Light/Dark Mode Toggle feature. */}
           <TouchableOpacity style={styles.button} onPress={() => setDarkMode(!darkMode)}>
             <Text style={styles.buttonText}>
               {darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -370,6 +395,7 @@ const SettingsPage = (): JSX.Element =>
         </View>
       </View>
 
+      {/* Contains the Recaptcha */}
       <View id="recaptcha-container"></View>
     </View>
   );

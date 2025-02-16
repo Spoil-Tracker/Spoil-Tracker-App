@@ -175,7 +175,7 @@ export default function HomeScreen() {
 
       {/* Modal for Delete Confirmation */}
       <Modal
-        animationType="slide"
+        animationType="slide" // Allows it to be displayed as a pop-up.
         transparent={true}
         visible={isModalVisible}
         onRequestClose={toggleModal} // Handle closing the modal
@@ -193,7 +193,7 @@ export default function HomeScreen() {
               <Button title="Cancel" onPress={toggleModal} />
               <Button
                 title="Permanently Delete Account"
-                color="red"
+                color="red" // Red instead of usual green color to make it stand out more.
                 onPress={handleDeleteAccount}
               />
             </View>
