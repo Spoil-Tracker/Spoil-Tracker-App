@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Animated,
   View,
@@ -20,6 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'expo-router';
 import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
 import { useTheme } from 'react-native-paper'; // Import useTheme for dark mode, contributed by Kevin
+import FoodDropdownComponent from '../../components/FoodDropdown';
 
 type ListItem = {
   id: string;
@@ -43,6 +44,12 @@ const Pantry = () => {
   const router = useRouter();
   const [inputText, setInputText] = useState(''); // State to store the input text by Kevin
   const { colors } = useTheme(); // dark mode by Kevin
+
+  const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown visibility state, used in the add item modal UI
+  const dropdownHeight = useRef(new Animated.Value(0)).current; // Dropdown animation height, used in the add item modal UI
+  const [customName, setCustomName] = useState(''); // Custom item name, used in the add item modal UI for when a user wants to add a custom item
+  const [customDescription, setCustomDescription] = useState(''); // Custom item description, used in the add item modal UI for when a user wants to add a custom item
+  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state, hook used whenever the Sort By button is used or user searches through text input
 
   const [items, setItems] = useState<ListItem[]>([]);
   const [pantryTitle, setPantryTitle] = useState('');
@@ -113,7 +120,7 @@ const Pantry = () => {
                 description: item.description,
                 quantity: item.quantity,
                 expirationDate: item.expirationDate,
-                imageUrl: item.imageUrl,
+                imageUrl: 'https://www.placekittens.com/100/100',
                 sectionId: key,
               })) || []
           );
@@ -155,7 +162,7 @@ const Pantry = () => {
       expirationDate: new Date(
         Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
       ).toISOString(),
-      imageUrl: '',
+      imageUrl: 'https://www.placekittens.com/100/100',
     };
 
     // Select a random list
@@ -471,6 +478,50 @@ const Pantry = () => {
     );
   };
 
+  const closeModal = () => {
+    setIsModalVisible(false); // Close modal
+  };
+
+  const toggleDropdown = () => {
+    setDropdownVisible(!dropdownVisible);
+    Animated.timing(dropdownHeight, {
+      toValue: dropdownVisible ? 0 : 150, // Increased height for content and delete button
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const addCustomItem = async () => {
+    if (!customName || !customDescription) {
+      return; // Exit the function early if any field is empty
+    }
+    const newItem = addCustomItem();
+    try {
+      // Fetch current document
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
+        const updatedItems = [...currentItems, newItem]; // Add the new random item
+
+        // Update Firestore
+        await updateDoc(docRef, {
+          items: updatedItems,
+        });
+
+        // Update local state to reflect the new addition
+        setItems(updatedItems);
+        setFilteredItems(updatedItems);
+        alert(`Added random item: ${newItem.title}`);
+      } else {
+        console.log('No such document!');
+        alert('Failed to load document');
+      }
+    } catch (error) {
+      console.error('Error adding random item to Firestore:', error);
+      alert('Error adding random item');
+    }
+  };
+
   return (
     // allows for dark mode, contributed by Kevin
     <SafeAreaView
@@ -615,6 +666,67 @@ const Pantry = () => {
           <AntDesign name="plus" size={24} color="white" />
         </Pressable>
       </Animated.View>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Item</Text>
+            <FoodDropdownComponent />
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => {
+                // Add item to the list
+                addRandomItem();
+                closeModal();
+              }}
+            >
+              <Text style={styles.buttonText}>Add Item</Text>
+            </Pressable>
+            <View
+              style={{
+                borderBottomColor: 'white',
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                alignSelf: 'stretch',
+                marginBottom: 10,
+              }}
+            />
+            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
+              <Text style={styles.buttonText}>Add Custom Item</Text>
+            </Pressable>
+            {/* Animated dropdown */}
+            <Animated.View
+              style={[styles.dropdown, { height: dropdownHeight }]}
+            >
+              {/* Conditionally hide the content based on dropdown visibility */}
+              <View>
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter name"
+                  value={customName}
+                  onChangeText={setCustomName} // setName should be defined with useState
+                />
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter description"
+                  value={customDescription}
+                  onChangeText={setCustomDescription} // setDescription should be defined with useState
+                />
+                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
+                  <Text style={styles.buttonText}>Submit</Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+
+            <Pressable style={styles.modalButton} onPress={closeModal}>
+              <Text style={styles.buttonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -642,6 +754,17 @@ const styles = StyleSheet.create({
   rightColumn: {
     flex: 3,
     marginTop: 10,
+  },
+  dropdown: {
+    overflow: 'hidden',
+    marginTop: 5,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   listContainer: {
     marginBottom: 12,
@@ -767,6 +890,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  modalTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
   modalContent: {
     backgroundColor: 'white',
     padding: 15,
@@ -790,6 +919,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 6,
     marginHorizontal: 8,
+  },
+  sortByButton: {
+    backgroundColor: '#1e81b0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10, // Add space between buttons
   },
   modalButtonText: {
     color: 'white',
@@ -883,6 +1021,15 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     textAlignVertical: 'top',
     backgroundColor: 'white',
+  },
+  customInputField: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 3,
+    marginTop: 3,
+    paddingLeft: 8,
+    borderRadius: 4,
   },
 });
 
