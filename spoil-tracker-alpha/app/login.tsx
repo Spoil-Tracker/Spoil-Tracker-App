@@ -11,9 +11,10 @@ import {
 import { useRouter } from 'expo-router'; // adds routing after login
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth'; // Import Firebase auth method
-import { auth } from '../services/firebaseConfig';
+import { auth } from '../services/firebaseConfig'; // imports firebase for user authentication
 
 const Login = () => {
+  // state for login and authentication
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
@@ -21,6 +22,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false); // toggle state on and off
   const router = useRouter(); // For navigation after login
 
+  // checks for all the effects needed to be brought in
   useEffect(() => {
     const loadFonts = async () => {
       await Font.loadAsync({
@@ -31,6 +33,7 @@ const Login = () => {
     loadFonts();
   }, []);
 
+  // handles login
   const handleLogin = async () => {
     setError('');
     try {
@@ -52,6 +55,7 @@ const Login = () => {
     }
   };
 
+  // loads fonts
   if (!fontsLoaded) {
     return (
       <View style={styles.container}>
@@ -60,6 +64,7 @@ const Login = () => {
     );
   }
 
+  // returns everything to the display for the user to see
   return (
     <View style={styles.container}>
       <Text style={styles.spoilTrackerText}>Spoil Tracker</Text>

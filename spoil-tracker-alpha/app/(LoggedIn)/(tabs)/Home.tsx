@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import * as Font from 'expo-font';
 import { useRouter } from 'expo-router';
-import {
-  Text,
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { useAuth } from '../../../services/authContext'; // Import the authentication context
+import { useTheme, Text } from 'react-native-paper'; // Import useTheme and Text from react-native-paper
 
 export default function HomeScreen() {
+  // State for Home screen
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const router = useRouter();
   const { logout } = useAuth(); // Get the logout function
+  const { colors } = useTheme(); // Adds dark mode
 
   useEffect(() => {
     const loadFonts = async () => {
@@ -33,6 +30,7 @@ export default function HomeScreen() {
     );
   }
 
+  // Function to logout the user
   const handleLogout = async () => {
     try {
       await logout(); // Sign out the user
@@ -42,9 +40,12 @@ export default function HomeScreen() {
     }
   };
 
+  // returns everything to the display for the user to see
   return (
-    <View style={styles.container}>
-      <Text style={styles.spoilTrackerText}>WELCOME TO THE HOME PAGE!!!</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.spoilTrackerText, { color: colors.text }]}>
+        WELCOME TO THE HOME PAGE!!!
+      </Text>
 
       <TouchableOpacity onPress={() => router.push('/Pantry')}>
         <Text style={styles.btnLogin}>Pantries</Text>
@@ -69,12 +70,12 @@ export default function HomeScreen() {
   );
 }
 
+// style sheet for fonts and colors
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FEF9F2',
   },
   spoilTrackerText: {
     fontSize: 40,
