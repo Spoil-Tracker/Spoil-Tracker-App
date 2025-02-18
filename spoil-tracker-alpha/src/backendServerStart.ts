@@ -7,6 +7,7 @@ import { AccountResolver } from "./entities/Account";
 import { FoodAbstractResolver } from "./entities/FoodAbstract";
 import { FoodConcreteResolver } from "./entities/FoodConcrete";
 import { FoodGlobalResolver } from "./entities/FoodGlobal";
+import { GroceryListResolver } from "./entities/GroceryList";
 
 const bootstrap = async () => {
   // Build GraphQL schema
@@ -17,7 +18,8 @@ const bootstrap = async () => {
       AccountResolver, 
       FoodAbstractResolver, 
       FoodConcreteResolver,
-      FoodGlobalResolver
+      FoodGlobalResolver,
+      GroceryListResolver
     ],
     validate: false,
   });

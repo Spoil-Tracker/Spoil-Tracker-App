@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Dimensions, Modal, Pressable, Alert
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
 import { deleteDoc, doc } from 'firebase/firestore'; // Import Firestore delete function
-import { db } from '../services/firebaseConfig'; // Firebase db import
+import { db } from '../../services/firebaseConfig'; // Firebase db import
 
 type ListButtonProps = {
   list: { id: string; name: string, completed: boolean, created: string, description: string };

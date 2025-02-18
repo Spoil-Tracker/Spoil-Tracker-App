@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Modal, TextInput, Pressable, View, Text, StyleSheet } from 'react-native';
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../services/firebaseConfig';
+import { db } from '../../services/firebaseConfig';
 import { getAuth } from 'firebase/auth';
+import { useAuth } from "@/services/authContext"; 
+import { 
+  createGroceryList
+} from '@/components/GroceryList/GroceryListService';
 
 // Type definition for component props
 type CreateListModalProps = {
@@ -17,10 +21,31 @@ type CreateListModalProps = {
  */
 const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps) => {
   const [newListName, setNewListName] = useState('');
+  const { user } = useAuth();
+  
+  const handleCreateList = async () => {
+    
+    if (user) {
+      try {
+        const newList = await createGroceryList(user.uid, newListName);
+        fetchLists(); // refresh the list in the parent component
+        onClose();
+        setNewListName('');
 
-  /**
+      } catch (err: any) {
+        alert(err);
+      }
+    }
+    else { 
+      alert("Not logged in.");
+      return;
+    }
+  }
+
+  /** 
+
    * Handles the creation of a new grocery list in Firestore.
-   */
+
   const createNewList = async () => {
     // Validate input to ensure a name is entered
     if (!newListName.trim()) {
@@ -58,6 +83,7 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
       console.error('Error creating new list: ', error);
     }
   };
+  */
 
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
@@ -66,12 +92,12 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
           <Text style={styles.modalTitle}>Enter New List Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter list name"
+            placeholder="Enter list name:"
             value={newListName}
             onChangeText={setNewListName}
           />
           <View style={styles.modalButtons}>
-            <Pressable style={[styles.modalButton, { backgroundColor: '#2196F3' }]} onPress={createNewList}>
+            <Pressable style={[styles.modalButton, { backgroundColor: '#2196F3' }]} onPress={handleCreateList}>
               <Text style={styles.modalButtonText}>Create</Text>
             </Pressable>
             <Pressable

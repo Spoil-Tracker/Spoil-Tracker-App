@@ -6,8 +6,8 @@ import { AntDesign } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
 import { query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../services/firebaseConfig';
-import ListSection from '../../../components/ListSection';
-import CreateListModal from '../../../components/CreateListModal';
+import ListSection from '../../../components/GroceryList/ListSection';
+import CreateListModal from '@/components/GroceryList/CreateListModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dropdown } from 'react-native-element-dropdown';
 

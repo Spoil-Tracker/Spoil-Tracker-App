@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, registerEnumType } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames"
-import db from "../firestore"; //Import Firestore instance
+import { db } from "../firestore"; //Import Firestore instance
 import { PantryResolver } from "./Pantry";
 import { FoodAbstractResolver } from "./FoodAbstract";
 

@@ -10,4 +10,4 @@ admin.initializeApp({
 // Get Firestore instance
 const db = admin.firestore();
 
-export default db;
+export {admin, db};
