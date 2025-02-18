@@ -9,7 +9,7 @@ export class GroceryList {
     id!: string;
 
     @Field()
-    account_id!: string;
+    owner_id!: string;
 
     @Field()
     createdAt!: string;
@@ -47,17 +47,17 @@ export class GroceryListResolver {
 
     @Query(() => [GroceryList])
     async getGroceryListsForAccount(
-        @Arg("account_id") account_id: string
+        @Arg("owner_id") owner_id: string
     ): Promise<GroceryList[]> {
         const snapshot = await db.collection(COLLECTIONS.GROCERYLIST)
-            .where("account_id", "==", account_id)
+            .where("owner_id", "==", owner_id)
             .get();
         return snapshot.docs.map(doc => doc.data() as GroceryList);
     }
 
     @Mutation(() => GroceryList)
     async createGroceryList(
-        @Arg("account_id") account_id: string,
+        @Arg("owner_id") owner_id: string,
         @Arg("grocerylist_name") grocerylist_name: string,
     ): Promise<GroceryList> {
         const docRef = db.collection(COLLECTIONS.GROCERYLIST).doc();
@@ -65,7 +65,7 @@ export class GroceryListResolver {
 
         const newGroceryList: GroceryList = {
             id: docRef.id,
-            account_id,
+            owner_id,
             createdAt: now,
             last_opened: now,
             grocerylist_name,
@@ -79,18 +79,28 @@ export class GroceryListResolver {
             isComplete: false,
         };
 
-        const accountRef = db.collection(COLLECTIONS.ACCOUNT).doc(account_id);
-        const accountDoc = await accountRef.get();
+        // Query for the account document where owner_id equals the provided owner_id.
+        const accountSnapshot = await db
+            .collection(COLLECTIONS.ACCOUNT)
+            .where("owner_id", "==", owner_id)
+            .limit(1)
+            .get();
 
-        if (!accountDoc.exists) {
-            throw new Error(`Account with ID ${account_id} does not exist.`);
+        if (accountSnapshot.empty) {
+            throw new Error(`Account with owner_id ${owner_id} does not exist.`);
         }
 
+        // Get the first matching document
+        const accountDoc = accountSnapshot.docs[0];
         const accountData = accountDoc.data() as Account;
-        accountData.grocery_lists.push(docRef.id);
-        
-        await accountRef.update({grocery_lists: accountData.grocery_lists})
 
+        // Update the grocery_lists array
+        accountData.grocery_lists.push(docRef.id);
+
+        // Use the document reference from the snapshot to update the account
+        await accountDoc.ref.update({ grocery_lists: accountData.grocery_lists });
+
+        // Save the new grocery list document
         await docRef.set(newGroceryList);
 
         return newGroceryList;

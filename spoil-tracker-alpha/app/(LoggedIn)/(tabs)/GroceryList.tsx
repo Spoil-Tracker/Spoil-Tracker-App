@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  View, Text, StyleSheet, SafeAreaView, Dimensions, Pressable, ActivityIndicator, TextInput, ScrollView 
+  View, 
+  Text, 
+  StyleSheet, 
+  SafeAreaView, 
+  Dimensions, 
+  Pressable, 
+  ActivityIndicator, 
+  TextInput, 
+  ScrollView 
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth';
+import { useAuth } from "@/services/authContext"; 
 import { query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../services/firebaseConfig';
 import ListSection from '../../../components/GroceryList/ListSection';
 import CreateListModal from '@/components/GroceryList/CreateListModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dropdown } from 'react-native-element-dropdown';
-
+import {
+  GroceryList,
+  fetchAllGroceryLists
+} from '@/components/GroceryList/GroceryListService';
 // Get screen width for responsive design
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -19,84 +30,65 @@ const SORT_OPTIONS = [
   { label: 'Alphabetical', value: 'alphabetical' }
 ]
 
+const formatDate = (isoString: string) => {
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+};
 
 /**
  screen component for displaying a user's grocery lists
  allows filtering, sorting, and list creation
  */
 const ButtonListScreen = () => {
-  const [completedLists, setCompletedLists] = useState<string[]>([]);
-  const [incompleteLists, setIncompleteLists] = useState<string[]>([]);
+  const [completeLists, setcompleteLists] = useState<GroceryList[]>([]);
+  const [incompleteLists, setIncompleteLists] = useState<GroceryList[]>([]);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
   const [searchQuery, setSearchQuery] = useState(''); // User input for filtering lists
-
+  const { user } = useAuth();
   /**
    fetches the user's grocery lists from Firestore
-   lists are categorized into completed and incomplete
+   lists are categorized into complete and incomplete
    */
   const fetchLists = async () => {
     setLoading(true);
     try {
       // Get the currently logged-in user
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-  
-      // Check if the user is logged in
-      if (!currentUser) {
+      if (!user) {
         alert('User is not logged in');
         setLoading(false);
         return;
       }
-  
-      // Create a query to fetch grocery lists where user_id matches the current user
-      const groceryListsQuery = query(
-        collection(db, 'grocery_lists'),
-        where('owner_id', '==', currentUser.uid) // Filter by user_id
-      );
-  
-      const querySnapshot = await getDocs(groceryListsQuery);
-      const completed = [];
+      const complete = [];
       const incomplete = [];
-  
-      // Process fetched lists
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data?.name) {
+      const groceryLists = await fetchAllGroceryLists(user.uid);
 
-          // Format date helper function
-          const formatDate = (isoString: string) => {
-            const date = new Date(isoString);
-            return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-          };
+      for (const list of groceryLists) {
+        const currList = {
+          id: list.id,
+          owner_id: list.owner_id,
+          createdAt: list.createdAt,
+          last_opened: list.last_opened,
+          grocerylist_name: list.grocerylist_name,
+          description: list.description,
+          food_global_items: list.food_global_items,
+          isFamily: list.isFamily,
+          isShared: list.isShared,
+          isComplete: list.isComplete,
+        };
 
-          // Categorize lists based on completion status
-          if (data.completed) {
-            completed.push({
-              id: doc.id,
-              name: String(data.name),
-              completed: data.completed,
-              created: data.created ? formatDate(data.created) : 'Unknown Date',
-              description: data.description
-            });
-          } else {
-            incomplete.push({
-              id: doc.id,
-              name: String(data.name),
-              completed: data.completed,
-              created: data.created ? formatDate(data.created) : 'Unknown Date',
-              description: data.description
-            });
-          }
+        if (currList.isComplete) {
+          complete.push(currList); 
+        } else {
+          incomplete.push(currList);
         }
-      });
-  
-      // Set the lists for completed and incomplete items
-      // Update state with fetched lists
-      setCompletedLists(completed);
+      }
+
+      setcompleteLists(complete);
       setIncompleteLists(incomplete);
+
     } catch (error) {
       console.error('Error fetching grocery lists: ', error);
     } finally {
@@ -136,24 +128,26 @@ const ButtonListScreen = () => {
    @param {Array} lists - The list of grocery lists to be sorted
    @returns {Array} - Sorted list.
    */
-  const sortLists = (lists) => {
+   const sortLists = (lists: GroceryList[]) => {
     if (sortCriteria === 'alphabetical') {
-      return lists.sort((a, b) => a.name.localeCompare(b.name));
+      return lists.sort((a, b) => a.grocerylist_name.localeCompare(b.grocerylist_name));
     }
     return lists; // Default no sort (you could add more sorting criteria here)
   };
-
+  
   /**
-   filters lists based on the user's search query
-   @param {Array} lists - The list of grocery lists to filter
-   @returns {Array} - Filtered list
+   * Filters lists based on the user's search query.
+   * @param {GroceryList[]} lists - The list of grocery lists to filter
+   * @returns {GroceryList[]} - Filtered list
    */
-  const filterLists = (lists) => {
-    return lists.filter(list => list.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filterLists = (lists: GroceryList[]) => {
+    return lists.filter(list =>
+      list.grocerylist_name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   // Sorted and filtered lists
-  const sortedCompletedLists = sortLists(filterLists(completedLists));
+  const sortedcompleteLists = sortLists(filterLists(completeLists));
   const sortedIncompleteLists = sortLists(filterLists(incompleteLists));
 
   return (
@@ -190,8 +184,8 @@ const ButtonListScreen = () => {
           <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
         ) : (
           <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
-            {/* Completed Lists Section */}
-            <ListSection title="Completed Lists" lists={sortedCompletedLists} fetchLists={fetchLists} />
+            {/* complete Lists Section */}
+            <ListSection title="complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
 
             {/* Incomplete Lists Section */}
             <ListSection title="Incomplete Lists" lists={sortedIncompleteLists} fetchLists={fetchLists} />

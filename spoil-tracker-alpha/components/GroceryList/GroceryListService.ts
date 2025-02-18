@@ -4,10 +4,10 @@ import client from '@/src/ApolloClient';
 
 
 const GET_ALL_GROCERY_LISTS = gql`
-  query GetGroceryListsForAccount($account_id: String!) {
-    getGroceryListsForAccount(account_id: $account_id) {
+  query GetGroceryListsForAccount($owner_id: String!) {
+    getGroceryListsForAccount(owner_id: $owner_id) {
       id
-      account_id
+      owner_id
       last_opened
       grocerylist_name
       description
@@ -21,8 +21,8 @@ const GET_ALL_GROCERY_LISTS = gql`
 
 
 const CREATE_GROCERY_LIST = gql`
-  mutation CreateGroceryList($account_id: String!, $grocerylist_name: String!) {
-    createGroceryList(account_id: $account_id, grocerylist_name: $grocerylist_name) {
+  mutation CreateGroceryList($owner_id: String!, $grocerylist_name: String!) {
+    createGroceryList(owner_id: $owner_id, grocerylist_name: $grocerylist_name) {
       id
       grocerylist_name
       description
@@ -85,14 +85,26 @@ const UPDATE_GROCERY_LIST_IS_COMPLETE = gql`
     }
 `;
 
+export interface GroceryList {
+    id: string;
+    owner_id: string;
+    createdAt: string;
+    last_opened: string;
+    grocerylist_name: string;
+    description: string;
+    food_global_items: string[];
+    isFamily: boolean;
+    isShared: boolean;
+    isComplete: boolean;
+};
 // Add more mutations/queries as needed…
 
 // Function to fetch all grocery lists
-export async function fetchAllGroceryLists(account_id: string) {
+export async function fetchAllGroceryLists(owner_id: string) {
   try {
     const result = await client.query({ 
         query: GET_ALL_GROCERY_LISTS,
-        variables: { account_id }, 
+        variables: { owner_id }, 
         fetchPolicy: 'network-only' });
 
     return result.data.getGroceryListsForAccount;
@@ -104,11 +116,11 @@ export async function fetchAllGroceryLists(account_id: string) {
 }
 
 // Function to create a new grocery list
-export async function createGroceryList(account_id: string, grocerylist_name: string) {
+export async function createGroceryList(owner_id: string, grocerylist_name: string) {
     try {
         const result = await client.mutate({
             mutation: CREATE_GROCERY_LIST,
-            variables: { account_id, grocerylist_name },
+            variables: { owner_id, grocerylist_name },
         });
 
         return result.data.createGroceryList;
