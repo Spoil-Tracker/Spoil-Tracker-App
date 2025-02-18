@@ -64,7 +64,7 @@ export class FoodConcreteResolver {
             expiration_date,
             quantity,
             quantity_type
-        }
+        };
 
         //Update the Pantry associated with this FoodConcrete
         const pantryRef = db.collection(COLLECTIONS.PANTRY).doc(pantry_id);
