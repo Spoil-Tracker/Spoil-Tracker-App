@@ -27,7 +27,7 @@ export class FoodGlobalResolver {
         return snapshot.docs.map(doc => doc.data() as FoodGlobal);
     }
 
-    @Query(() => FoodGlobal)
+    @Query(() => FoodGlobal, {nullable: true})
     async getFoodGlobalbyFoodName (
         @Arg("food_name") food_name: string
     ): Promise<FoodGlobal | null> {
@@ -50,13 +50,27 @@ export class FoodGlobalResolver {
         @Arg("food_picture_url") food_picture_url: string
     ): Promise<FoodGlobal> {
         //Check if an existing FoodGlobal has the given name
-        const existingFoodGlobal = this.getFoodGlobalbyFoodName(food_name);
+        const existingFoodGlobal = await this.getFoodGlobalbyFoodName(food_name);
         if (existingFoodGlobal != null) {
             throw new Error(`A FoodGlobal item with the name "${food_name}" already exists.`)
         }
 
-        const newFoodGlobal = {food_name, food_category, food_picture_url};
-        const docRef = await db.collection(COLLECTIONS.ACCOUNT).add(newFoodGlobal);
+        const docRef = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc();
+
+
+        const newFoodGlobal: FoodGlobal = {
+            id: docRef.id,
+            food_name, 
+            food_category, 
+            food_picture_url
+        };
+
+        //Save new FoodGlobal
+        await docRef.set(newFoodGlobal);
+
+        const savedDoc = await docRef.get();
+        console.log("Saved FoodGlobal In Firestore:", savedDoc.data());
+        
         return newFoodGlobal as FoodGlobal;
     }
 
