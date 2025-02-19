@@ -12,33 +12,25 @@ import {
 type CreateListModalProps = {
   visible: boolean; // Determines whether the modal is visible
   onClose: () => void; // Function to close the modal
-  fetchLists: () => void; // Function to refresh the list of grocery lists after creation
+  id: string;
 };
 
 /**
  * Modal component for creating a new grocery list.
  * Allows users to enter a list name and save it to Firestore.
  */
-const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps) => {
+const CreateListModal = ({ visible, onClose, id }: CreateListModalProps) => {
   const [newListName, setNewListName] = useState('');
-  const { user } = useAuth();
   
   const handleCreateList = async () => {
     
-    if (user) {
-      try {
-        await createGroceryList(user.uid, newListName);
-        fetchLists(); // refresh the list in the parent component
-        onClose();
-        setNewListName('');
+    try {
+      await createGroceryList(id, newListName);
+      onClose();
+      setNewListName('');
 
-      } catch (err: any) {
-        alert(err);
-      }
-    }
-    else { 
-      alert("Not logged in.");
-      return;
+    } catch (err: any) {
+      alert(err);
     }
   }
 

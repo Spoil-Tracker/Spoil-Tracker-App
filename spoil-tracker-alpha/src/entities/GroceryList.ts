@@ -9,7 +9,7 @@ export class GroceryList {
     id!: string;
 
     @Field()
-    owner_id!: string;
+    account_id!: string;
 
     @Field()
     createdAt!: string;
@@ -47,17 +47,17 @@ export class GroceryListResolver {
 
     @Query(() => [GroceryList])
     async getGroceryListsForAccount(
-        @Arg("owner_id") owner_id: string
+        @Arg("account_id") account_id: string
     ): Promise<GroceryList[]> {
         const snapshot = await db.collection(COLLECTIONS.GROCERYLIST)
-            .where("owner_id", "==", owner_id)
+            .where("account_id", "==", account_id)
             .get();
         return snapshot.docs.map(doc => doc.data() as GroceryList);
     }
 
     @Mutation(() => GroceryList)
     async createGroceryList(
-        @Arg("owner_id") owner_id: string,
+        @Arg("account_id") account_id: string,
         @Arg("grocerylist_name") grocerylist_name: string,
     ): Promise<GroceryList> {
         const docRef = db.collection(COLLECTIONS.GROCERYLIST).doc();
@@ -65,7 +65,7 @@ export class GroceryListResolver {
 
         const newGroceryList: GroceryList = {
             id: docRef.id,
-            owner_id,
+            account_id,
             createdAt: now,
             last_opened: now,
             grocerylist_name,
@@ -79,15 +79,15 @@ export class GroceryListResolver {
             isComplete: false,
         };
 
-        // Query for the account document where owner_id equals the provided owner_id.
+        // Query for the account document where account_id equals the provided account_id.
         const accountSnapshot = await db
             .collection(COLLECTIONS.ACCOUNT)
-            .where("owner_id", "==", owner_id)
+            .where("account_id", "==", account_id)
             .limit(1)
             .get();
 
         if (accountSnapshot.empty) {
-            throw new Error(`Account with owner_id ${owner_id} does not exist.`);
+            throw new Error(`Account with account_id ${account_id} does not exist.`);
         }
 
         // Get the first matching document
