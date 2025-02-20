@@ -1,18 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, Modal, Pressable, Alert, TouchableOpacity, Animated } from 'react-native';
-import { Link } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
 import { deleteDoc, doc } from 'firebase/firestore'; // Import Firestore delete function
 import { db } from '../../services/firebaseConfig'; // Firebase db import
-
-type ListButtonProps = {
-  list: { id: string; name: string, completed: boolean, created: string, description: string };
-  handleDelete: (listId: string) => void; // Accept handleDelete as a prop
-};
+import { GroceryList } from '@/components/GroceryList/GroceryListService';
+import  ListButton  from '@/components/GroceryList/ListButton';
 
 type ListSectionProps = {
   title: string;
-  lists: { id: string; name: string, completed: boolean, created: string, description: string }[];
+  lists: GroceryList[];
   fetchLists: () => void;
 };
 
@@ -59,100 +54,11 @@ const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
   return (
     <View style={[styles.listSection, { width: listSectionWidth, height: listSectionHeight }]}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsHorizontalScrollIndicator={false}>
         {lists.map((list) => (
-          <ListButton key={list.id} list={list} handleDelete={handleDelete} />
+          <ListButton key={list.id} id={list.id} onDelete={handleDelete} />
         ))}
       </ScrollView>
-    </View>
-  );
-};
-
-/**
- * ListButton component representing an individual list.
- * Includes a dropdown menu with delete and view options.
- */
-const ListButton = ({ list, handleDelete }: ListButtonProps) => {
-  const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const dropdownHeight = useRef(new Animated.Value(0)).current;
-
-  const toggleDropdown = () => {
-    setDropdownVisible(!dropdownVisible);
-    Animated.timing(dropdownHeight, {
-      toValue: dropdownVisible ? 0 : 150, // Increased height for content and delete button
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={toggleDropdown} style={styles.button}>
-        <Ionicons name="person" size={20} color="white" style={styles.icon} />
-        <View style={styles.textContainer}>
-          <Text style={styles.buttonText}>{list.name}</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Dropdown Content */}
-      <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
-        <View style={styles.dropdownContent}>
-          {/* Container to hold buttons and text */}
-          <View style={styles.rowContainer}>
-            {/* Buttons on the left */}
-            <View style={styles.buttonsContainer}>
-              <View>
-                <Link href={`../ListUI?id=${list.id}`} style={[styles.button, styles.viewButton]}>
-                  <Text style={styles.buttonText}>View</Text>
-                </Link>
-
-                <TouchableOpacity
-                  style={[styles.button, styles.deleteButton]}
-                  onPress={() => setShowDeleteModal(true)}
-                >
-                  <Text style={styles.buttonText}>Delete</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Text on the right */}
-            <View style={styles.dropdownTextContainer}>  
-              <Text style={styles.dropdownText}>Created: {list.created}</Text>
-              <Text style={styles.dropdownText}>Description: {list.description}</Text>
-            </View>
-          </View>
-        </View>
-      </Animated.View>
-
-
-      {/* Custom Delete Confirmation Modal */}
-      <Modal
-        transparent={true}
-        visible={showDeleteModal}
-        animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to delete this list?</Text>
-            <View style={styles.modalButtonsContainer}>
-              <Pressable onPress={() => setShowDeleteModal(false)} style={[styles.modalButton, styles.cancelButton]}>
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable 
-                onPress={() => {
-                  handleDelete(list.id); // Use handleDelete from parent
-                  setShowDeleteModal(false);
-                }} 
-                style={[styles.modalButton, styles.deleteButton]}
-              >
-                <Text style={styles.modalButtonText}>Delete</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };

@@ -7,28 +7,40 @@ import { useAuth } from "@/services/authContext";
 import { 
   createGroceryList
 } from '@/components/GroceryList/GroceryListService';
-
+import {
+  getAccountByOwnerID
+} from '@/components/Account/AccountService';
 // Type definition for component props
 type CreateListModalProps = {
   visible: boolean; // Determines whether the modal is visible
   onClose: () => void; // Function to close the modal
-  id: string;
+  fetchLists: () => Promise<void>
 };
 
 /**
  * Modal component for creating a new grocery list.
  * Allows users to enter a list name and save it to Firestore.
  */
-const CreateListModal = ({ visible, onClose, id }: CreateListModalProps) => {
+const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps) => {
   const [newListName, setNewListName] = useState('');
+  const { user } = useAuth();
+  const id = user?.uid;
+
+  if (id) {
+    console.log("User UID:", id);
+  } else {
+    console.log("No user is logged in.");
+    return;
+  }
   
   const handleCreateList = async () => {
     
     try {
-      await createGroceryList(id, newListName);
+      const account = await getAccountByOwnerID(id);
+      await createGroceryList(account.id, newListName);
       onClose();
       setNewListName('');
-
+      fetchLists();
     } catch (err: any) {
       alert(err);
     }

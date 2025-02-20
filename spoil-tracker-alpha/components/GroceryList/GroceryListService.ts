@@ -19,15 +19,37 @@ const GET_ALL_GROCERY_LISTS = gql`
   }
 `;
 
+const GET_GROCERY_LIST_BY_ID = gql`
+  query GetGroceryListByID($grocery_list_id: String!) {
+    getGroceryListByID(grocery_list_id: $grocery_list_id) {
+      id
+      account_id
+      createdAt
+      last_opened
+      grocerylist_name
+      description
+      food_global_items
+      isFamily
+      isShared
+      isComplete
+    }
+  }
+`;
 
 const CREATE_GROCERY_LIST = gql`
   mutation CreateGroceryList($account_id: String!, $grocerylist_name: String!) {
     createGroceryList(account_id: $account_id, grocerylist_name: $grocerylist_name) {
-      id
-      grocerylist_name
-      description
-      last_opened
+        id
+        grocerylist_name
+        description
+        last_opened
     }
+  }
+`;
+
+const DELETE_GROCERY_LIST = gql`
+    mutation DeleteGroceryList($grocerylist_id: String!) {
+        deleteGroceryList(grocerylist_id: $grocerylist_id)
   }
 `;
 
@@ -115,6 +137,21 @@ export async function fetchAllGroceryLists(account_id: string) {
   }
 }
 
+export async function fetchGroceryListByID(grocery_list_id: string): Promise<GroceryList | null> {
+    try {
+      const result = await client.query({
+        query: GET_GROCERY_LIST_BY_ID,
+        variables: { grocery_list_id },
+        fetchPolicy: 'network-only',
+      });
+      // Since the resolver returns a single GroceryList or null, we return that directly.
+      return result.data.getGroceryListByID;
+    } catch (error) {
+      console.error('Error fetching grocery list by ID:', error);
+      throw error;
+    }
+  }
+
 // Function to create a new grocery list
 export async function createGroceryList(account_id: string, grocerylist_name: string) {
     try {
@@ -126,6 +163,21 @@ export async function createGroceryList(account_id: string, grocerylist_name: st
         return result.data.createGroceryList;
     } catch (error) {
         console.error('Error creating grocery list:', error);
+        
+        throw error;
+    }
+}
+
+export async function deleteGroceryList(grocerylist_id: string) {
+    try {
+        const result = await client.mutate({
+            mutation: DELETE_GROCERY_LIST,
+            variables: { grocerylist_id },
+        });
+
+        return result.data.deleteGroceryList;
+    } catch (error) {
+        console.error('Error deleting grocery list:', error);
         
         throw error;
     }

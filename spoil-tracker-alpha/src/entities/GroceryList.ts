@@ -55,6 +55,20 @@ export class GroceryListResolver {
         return snapshot.docs.map(doc => doc.data() as GroceryList);
     }
 
+    @Query(() => GroceryList, { nullable: true })
+    async getGroceryListByID(
+        @Arg("grocery_list_id") grocery_list_id: string
+    ): Promise<GroceryList | null> {
+        const snapshot = await db.collection(COLLECTIONS.GROCERYLIST)
+            .where("id", "==", grocery_list_id)
+            .limit(1)
+            .get();
+        if (snapshot.empty) {
+            return null;
+        }
+        return snapshot.docs[0].data() as GroceryList;
+    }
+
     @Mutation(() => GroceryList)
     async createGroceryList(
         @Arg("account_id") account_id: string,
@@ -70,9 +84,7 @@ export class GroceryListResolver {
             last_opened: now,
             grocerylist_name,
             description: 
-            "This is a brand new list. Update \
-            the description by clicking on this \
-            text field!",
+            "This is a brand new list. Update the description by clicking on this text field!",
             food_global_items: [],
             isFamily: false,
             isShared: false,
@@ -82,7 +94,7 @@ export class GroceryListResolver {
         // Query for the account document where account_id equals the provided account_id.
         const accountSnapshot = await db
             .collection(COLLECTIONS.ACCOUNT)
-            .where("account_id", "==", account_id)
+            .where("id", "==", account_id)
             .limit(1)
             .get();
 
@@ -104,6 +116,44 @@ export class GroceryListResolver {
         await docRef.set(newGroceryList);
 
         return newGroceryList;
+    }
+
+    @Mutation(() => Boolean)
+    async deleteGroceryList(
+        @Arg("grocerylist_id") grocerylist_id: string
+    ): Promise<boolean> {
+        // Reference the grocery list document
+        const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const listDoc = await listRef.get();
+
+        if (!listDoc.exists) {
+            throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
+        }
+
+        // Retrieve the grocery list data to know the owner_id
+        const listData = listDoc.data() as GroceryList;
+
+        // Delete the grocery list document
+        await listRef.delete();
+
+        const accountSnapshot = await db
+            .collection(COLLECTIONS.ACCOUNT)
+            .where("id", "==", listData.account_id)
+            .limit(1)
+            .get();
+
+        if (!accountSnapshot.empty) {
+            const accountDoc = accountSnapshot.docs[0];
+            const accountData = accountDoc.data() as Account;
+            
+            // Remove the deleted grocerylist's ID from the grocery_lists array.
+            const updatedGroceryLists = accountData.grocery_lists.filter(
+            (id) => id !== grocerylist_id
+            );
+            await accountDoc.ref.update({ grocery_lists: updatedGroceryLists });
+        }
+
+        return true;
     }
 
 

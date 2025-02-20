@@ -22,6 +22,11 @@ import {
   GroceryList,
   fetchAllGroceryLists
 } from '@/components/GroceryList/GroceryListService';
+import {
+  getAccountByOwnerID
+} from '@/components/Account/AccountService';
+
+
 // Get screen width for responsive design
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -61,14 +66,16 @@ const ButtonListScreen = () => {
         setLoading(false);
         return;
       }
+      const account = await getAccountByOwnerID(user?.uid);
       const complete = [];
       const incomplete = [];
-      const groceryLists = await fetchAllGroceryLists(user.uid);
+      const groceryLists = await fetchAllGroceryLists(account.id);
 
       for (const list of groceryLists) {
+        console.log(list);
         const currList = {
           id: list.id,
-          owner_id: list.owner_id,
+          account_id: list.account_id,
           createdAt: list.createdAt,
           last_opened: list.last_opened,
           grocerylist_name: list.grocerylist_name,
@@ -91,15 +98,15 @@ const ButtonListScreen = () => {
 
     } catch (error) {
       console.error('Error fetching grocery lists: ', error);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   /**
    fetch lists on component mount and screen size change.
    */
   useEffect(() => {
+    
     fetchLists();
     const subscription = Dimensions.addEventListener('change', () => {
       setScreenWidth(Dimensions.get('window').width);
