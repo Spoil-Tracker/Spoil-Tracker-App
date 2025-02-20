@@ -102,7 +102,7 @@ const ListButton: React.FC<ListButtonProps> = ({ id, onDelete }) => {
               </Text>
               <Text>
                 <Text style={styles.dropdownTextTitle}>Item Amount: </Text>
-                <Text style={styles.dropdownText}>{list.food_global_items.length}</Text>
+                <Text style={styles.dropdownText}>{list.grocery_list_items.length}</Text>
               </Text>
               <Text>
                 <Text style={styles.dropdownTextTitle}>Description: </Text>

@@ -1,7 +1,17 @@
-import {Resolver, Query, Mutation, Arg, Field, ObjectType, ID} from "type-graphql";
+import { 
+    Resolver, 
+    Query, 
+    Mutation, 
+    Arg, 
+    Field, 
+    ObjectType, 
+    ID } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
-import { admin, db } from "../firestore";
+import { 
+    admin, 
+    db } from "../firestore";
 import { Account } from "./Account";
+import { GroceryListItem } from "./GroceryListItem";
 
 @ObjectType()
 export class GroceryList {
@@ -23,9 +33,10 @@ export class GroceryList {
     @Field()
     description!: string;
 
-    @Field(type => [String])
-    food_global_items!: string[];
-    
+    // Now an array of GroceryListItem objects rather than strings
+    @Field(() => [GroceryListItem])
+    grocery_list_items!: GroceryListItem[];
+
     @Field()
     isFamily!: boolean;
 
@@ -38,7 +49,7 @@ export class GroceryList {
 
 @Resolver(GroceryList)
 export class GroceryListResolver {
-
+    
     @Query(() => [GroceryList])
     async getAllGroceryLists(): Promise<GroceryList[]> {
         const snapshot = await db.collection(COLLECTIONS.GROCERYLIST).get();
@@ -72,7 +83,7 @@ export class GroceryListResolver {
     @Mutation(() => GroceryList)
     async createGroceryList(
         @Arg("account_id") account_id: string,
-        @Arg("grocerylist_name") grocerylist_name: string,
+        @Arg("grocerylist_name") grocerylist_name: string
     ): Promise<GroceryList> {
         const docRef = db.collection(COLLECTIONS.GROCERYLIST).doc();
         const now = new Date().toISOString();
@@ -83,15 +94,15 @@ export class GroceryListResolver {
             createdAt: now,
             last_opened: now,
             grocerylist_name,
-            description: 
+            description:
             "This is a brand new list. Update the description by clicking on this text field!",
-            food_global_items: [],
+            grocery_list_items: [], // Empty array of GroceryListItem
             isFamily: false,
             isShared: false,
             isComplete: false,
         };
 
-        // Query for the account document where account_id equals the provided account_id.
+        // Query for the account document using the account id.
         const accountSnapshot = await db
             .collection(COLLECTIONS.ACCOUNT)
             .where("id", "==", account_id)
@@ -99,17 +110,15 @@ export class GroceryListResolver {
             .get();
 
         if (accountSnapshot.empty) {
-            throw new Error(`Account with account_id ${account_id} does not exist.`);
+            throw new Error(`Account with id ${account_id} does not exist.`);
         }
 
         // Get the first matching document
         const accountDoc = accountSnapshot.docs[0];
         const accountData = accountDoc.data() as Account;
 
-        // Update the grocery_lists array
+        // Update the account's grocery_lists array
         accountData.grocery_lists.push(docRef.id);
-
-        // Use the document reference from the snapshot to update the account
         await accountDoc.ref.update({ grocery_lists: accountData.grocery_lists });
 
         // Save the new grocery list document
@@ -122,7 +131,6 @@ export class GroceryListResolver {
     async deleteGroceryList(
         @Arg("grocerylist_id") grocerylist_id: string
     ): Promise<boolean> {
-        // Reference the grocery list document
         const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
         const listDoc = await listRef.get();
 
@@ -130,10 +138,8 @@ export class GroceryListResolver {
             throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
         }
 
-        // Retrieve the grocery list data to know the owner_id
         const listData = listDoc.data() as GroceryList;
 
-        // Delete the grocery list document
         await listRef.delete();
 
         const accountSnapshot = await db
@@ -145,10 +151,8 @@ export class GroceryListResolver {
         if (!accountSnapshot.empty) {
             const accountDoc = accountSnapshot.docs[0];
             const accountData = accountDoc.data() as Account;
-            
-            // Remove the deleted grocerylist's ID from the grocery_lists array.
             const updatedGroceryLists = accountData.grocery_lists.filter(
-            (id) => id !== grocerylist_id
+                (id) => id !== grocerylist_id
             );
             await accountDoc.ref.update({ grocery_lists: updatedGroceryLists });
         }
@@ -156,117 +160,161 @@ export class GroceryListResolver {
         return true;
     }
 
-
     @Mutation(() => GroceryList)
     async updateGroceryListName(
         @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("grocerylist_name") grocerylist_name: string,
+        @Arg("grocerylist_name") grocerylist_name: string
     ): Promise<GroceryList> {
-        await db.collection("GroceryLists").doc(grocerylist_id).update({ grocerylist_name });
-        const updatedDoc = await db.collection("GroceryLists").doc(grocerylist_id).get();
+        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({ grocerylist_name });
+        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
         return updatedDoc.data() as GroceryList;
     }
 
     @Mutation(() => GroceryList)
     async updateGroceryListDescription(
         @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("description") description: string,
+        @Arg("description") description: string
     ): Promise<GroceryList> {
-        await db.collection("GroceryLists").doc(grocerylist_id).update({ description });
-        const updatedDoc = await db.collection("GroceryLists").doc(grocerylist_id).get();
+        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({ description });
+        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
         return updatedDoc.data() as GroceryList;
     }
 
     @Mutation(() => GroceryList)
     async updateGroceryListLastOpened(
         @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("last_opened") last_opened: string,
+        @Arg("last_opened") last_opened: string
     ): Promise<GroceryList> {
-        await db.collection("GroceryLists").doc(grocerylist_id).update({ last_opened });
-        const updatedDoc = await db.collection("GroceryLists").doc(grocerylist_id).get();
-        return updatedDoc.data() as GroceryList;
-    }
-
-    @Mutation(() => GroceryList)
-    async updateFoodGlobalItems(
-        @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("food_global_items", () => [String]) food_global_items: string[],
-    ): Promise<GroceryList> {
-        await db.collection("GroceryLists").doc(grocerylist_id).update({ food_global_items });
-        const updatedDoc = await db.collection("GroceryLists").doc(grocerylist_id).get();
+        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({ last_opened });
+        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
         return updatedDoc.data() as GroceryList;
     }
 
     @Mutation(() => GroceryList)
     async updateGroceryListIsFamily(
         @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("isFamily") isFamily: boolean,
+        @Arg("isFamily") isFamily: boolean
     ): Promise<GroceryList> {
-        await db.collection("GroceryLists").doc(grocerylist_id).update({ isFamily });
-        const updatedDoc = await db.collection("GroceryLists").doc(grocerylist_id).get();
+        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({ isFamily });
+        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
         return updatedDoc.data() as GroceryList;
     }
 
     @Mutation(() => GroceryList)
     async updateGroceryListIsShared(
         @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("isShared") isShared: boolean,
+        @Arg("isShared") isShared: boolean
     ): Promise<GroceryList> {
-        await db.collection("GroceryLists").doc(grocerylist_id).update({ isShared });
-        const updatedDoc = await db.collection("GroceryLists").doc(grocerylist_id).get();
+        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({ isShared });
+        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
         return updatedDoc.data() as GroceryList;
     }
 
     @Mutation(() => GroceryList)
     async updateGroceryListIsComplete(
         @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("isComplete") isComplete: boolean,
+        @Arg("isComplete") isComplete: boolean
     ): Promise<GroceryList> {
-        await db.collection("GroceryLists").doc(grocerylist_id).update({ isComplete });
-        const updatedDoc = await db.collection("GroceryLists").doc(grocerylist_id).get();
+        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({ isComplete });
+        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
+        return updatedDoc.data() as GroceryList;
+    }
+
+    // Mutation to add a GroceryListItem to the grocery_list_items array.
+    @Mutation(() => Boolean)
+    async addGroceryListItem(
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("food_global_id") food_global_id: string,
+        @Arg("food_name") food_name: string,
+    ): Promise<boolean> {
+        // Check that the FoodGlobal item exists
+        const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
+        if (!foodGlobalDoc.exists) {
+            throw new Error(`FoodGlobal with id ${food_global_id} does not exist.`);
+        }
+
+        // Generate a unique ID for the new embedded GroceryListItem.
+        const newItemId = db.collection(COLLECTIONS.GROCERYLIST).doc().id;
+
+        const newItem: GroceryListItem = {
+            id: newItemId,
+            food_name,
+            food_global_id,
+            measurement: 'unit',
+            quantity: 1,
+            isBought: false,
+        };
+
+        // Add the new item to the grocery_list_items array using arrayUnion.
+        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({
+            grocery_list_items: admin.firestore.FieldValue.arrayUnion(newItem)
+        });
+
+        return true;
+    }
+
+    @Mutation(() => Boolean)
+    async deleteGroceryListItem(
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("item_id") item_id: string
+    ): Promise<boolean> {
+        const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const listDoc = await listRef.get();
+
+        if (!listDoc.exists) {
+            throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
+        }
+
+        const listData = listDoc.data() as GroceryList;
+        const updatedItems = listData.grocery_list_items.filter((item) => item.id !== item_id);
+        await listRef.update({ grocery_list_items: updatedItems });
+        return true;
+    }
+
+    // Mutation to update the measurement field of a specific embedded grocery list item
+    @Mutation(() => GroceryList)
+    async updateGroceryListItemMeasurement(
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("item_id") item_id: string,
+        @Arg("measurement") measurement: string
+    ): Promise<GroceryList> {
+        const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const listDoc = await listRef.get();
+        if (!listDoc.exists) {
+            throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
+        }
+        const listData = listDoc.data() as GroceryList;
+        const updatedItems = listData.grocery_list_items.map(item => {
+        if (item.id === item_id) {
+            return { ...item, measurement };
+        }
+        return item;
+        });
+        await listRef.update({ grocery_list_items: updatedItems });
+        const updatedDoc = await listRef.get();
         return updatedDoc.data() as GroceryList;
     }
 
     @Mutation(() => GroceryList)
-    async addFoodGlobalToGroceryList(
+    async updateGroceryListItemQuantity(
         @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("food_global_id") food_global_id: string
+        @Arg("item_id") item_id: string,
+        @Arg("quantity") quantity: number
     ): Promise<GroceryList> {
-        // Optional: Check that the FoodGlobal item exists
-        const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
-        if (!foodGlobalDoc.exists) {
-            throw new Error(`FoodGlobal with id ${food_global_id} does not exist.`);
+        const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const listDoc = await listRef.get();
+        if (!listDoc.exists) {
+            throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
         }
-        
-        // Use Firestore's arrayUnion to add the food_global_id to the food_global_items array
-        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({
-            food_global_items: admin.firestore.FieldValue.arrayUnion(food_global_id)
+        const listData = listDoc.data() as GroceryList;
+        const updatedItems = listData.grocery_list_items.map(item => {
+            if (item.id === item_id) {
+                return { ...item, quantity };
+            }
+            return item;
         });
-        
-        // Return the updated GroceryList
-        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
-        return updatedDoc.data() as GroceryList;
-    }
-    
-    @Mutation(() => GroceryList)
-    async removeFoodGlobalFromGroceryList(
-        @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("food_global_id") food_global_id: string
-    ): Promise<GroceryList> {
-        // Optional: Validate that the FoodGlobal document exists.
-        const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
-        if (!foodGlobalDoc.exists) {
-            throw new Error(`FoodGlobal with id ${food_global_id} does not exist.`);
-        }
-        
-        // Atomically remove the food_global_id from the food_global_items array
-        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({
-            food_global_items: admin.firestore.FieldValue.arrayRemove(food_global_id),
-        });
-        
-        // Return the updated GroceryList document
-        const updatedDoc = await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).get();
+        await listRef.update({ grocery_list_items: updatedItems });
+        const updatedDoc = await listRef.get();
         return updatedDoc.data() as GroceryList;
     }
 }
-

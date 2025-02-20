@@ -80,7 +80,7 @@ const ButtonListScreen = () => {
           last_opened: list.last_opened,
           grocerylist_name: list.grocerylist_name,
           description: list.description,
-          food_global_items: list.food_global_items,
+          grocery_list_items: list.grocery_list_items,
           isFamily: list.isFamily,
           isShared: list.isShared,
           isComplete: list.isComplete,
