@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
-import { AntDesign, Ionicons } from '@expo/vector-icons'; // For the plus icon
+import { useWindowDimensions, Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { AntDesign } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
-import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
 import { Dropdown } from 'react-native-element-dropdown';
-import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
 import { v4 as uuidv4 } from 'uuid';
 import FoodDropdownComponent from '../../components/FoodDropdown';
 import {
@@ -42,6 +40,7 @@ const GroceryList = () => {
   const [items, setItems] = useState<GroceryListItem[]>([]); // List of grocery items
   const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
+  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Store screen width
   const [searchText, setSearchText] = useState(''); // Search text state
   const [filteredItems, setFilteredItems] = useState<GroceryListItem[]>([]); // Filtered items state, hook used whenever the Sort By button is used or user searches through text input
   const [groceryListTitle, setGroceryListTitle] = useState(''); // Grocery list title
@@ -68,6 +67,7 @@ const GroceryList = () => {
   useEffect(() => {
     const onChange = () => {
       setScreenWidth(Dimensions.get('window').width);
+      setScreenHeight(Dimensions.get('window').height);
     };
 
     const fetchGroceryList = async () => {
@@ -398,83 +398,34 @@ const GroceryList = () => {
     setFilteredItems(newFilteredItems);
   };
 
+  const { height, width } = useWindowDimensions();
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      
+      <ScrollView contentContainerStyle={{marginHorizontal: 525, top: 15, alignContent: 'center'}}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={{fontFamily: 'inter-bold', fontSize: 20, color: '#007bff', marginBottom: 20, paddingRight: 10}}>Search: </Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder=" . . . "
+          value={searchText}
+          onChangeText={filterItems}
+        />
+        <Pressable style={[styles.topBarButton, {marginHorizontal: 40, marginBottom: 18 }]} onPress={onFABPress}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AntDesign name="plus" size={15} color="#007bff"  />
+            {width > 1800 && (
+              <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                Add New Item
+              </Text>
+            )}
+          </View>
+        </Pressable>
+      </View>
+        
         <View style={[styles.mainContent, { flexDirection: smallScreen ? 'column' : 'row' }]}>
           {/* Left column (fixed position) */}
-          <View style={[styles.fixedLeftColumn, {maxWidth : smallScreen ? screenWidth : 300}]}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search items..."
-              value={searchText}
-              onChangeText={filterItems}
-            />
-
-            {/* Box with text */}
-            <View style={styles.textBox}>
-              <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
-              <Text style={styles.textBoxContent}>Created: {groceryListDate}</Text>
-            </View>
-
-            {/* Large Text Input below the text box */}
-            <TextInput
-              style={styles.largeTextInput}
-              placeholder="Grocery List Description..."
-              value={groceryListDescription}
-              onChangeText={setGroceryListDescription}
-              onBlur={() => onDescriptionChange(groceryListDescription)}
-              multiline={true}
-            />
-
-            {/* Buttons below the text input */}
-            <View style={styles.buttonsContainer}>
-            <Pressable style={styles.markAsDoneButton} onPress={toggleCompletion}>
-                <Text style={styles.buttonText}>{groceryListCompletion ? 'Mark as Incomplete' : 'Mark as Done'}</Text>
-            </Pressable>
-                <Pressable style={styles.deleteButton} onPress={handleDeleteList}>
-                <Text style={styles.buttonText}>Delete</Text>
-              </Pressable>
-              <Pressable style={styles.exportButton} onPress={() => alert('Export clicked!')}>
-              <Text style={styles.buttonText}>Export</Text>
-              </Pressable>
-              <Pressable style={styles.sortByButton} onPress={() => setSortModalVisible(true)}>
-              <Text style={styles.buttonText}>Sort By</Text>
-              </Pressable>
-              <Modal
-                transparent={true}
-                visible={sortModalVisible}
-                animationType="fade"
-                onRequestClose={() => setSortModalVisible(false)}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Sort By</Text>
-                    <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
-                      <TouchableOpacity 
-                        style={[styles.sortByButton]} 
-                        onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
-                        <Text style={styles.buttonText}>Alphabetical</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.sortByButton]} 
-                        onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
-                        <Text style={styles.buttonText}>Quantity</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.sortByButton]} 
-                        onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
-                        <Text style={styles.buttonText}>Completed</Text>
-                      </TouchableOpacity>
-                    </ScrollView>
-                      <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
-                        <Text style={styles.closeButtonText}>Close</Text>
-                      </TouchableOpacity>
-                  </View>
-                </View>
-              </Modal>
-          </View>
-          </View>
 
           {/* Right column (scrollable list) */}
           <View style={styles.listContainer}>
@@ -487,7 +438,9 @@ const GroceryList = () => {
               contentContainerStyle={[styles.listContent, { paddingBottom: 260 }]}
             />
           </View>
+
         </View>
+      
       </ScrollView>
 
       {/* Floating plus button */}
@@ -495,7 +448,92 @@ const GroceryList = () => {
         <Pressable onPress={onFABPress}>
           <AntDesign name="plus" size={24} color="white" />
         </Pressable>
-    </Animated.View>
+      </Animated.View>
+      
+      <ScrollView style={[styles.leftSideBar, {height: height - 100}]}>  
+          {/* Box with text */}
+          <View style={styles.textBox}>
+            <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
+            <Text style={styles.textBoxContent}>Created: {groceryListDate}</Text>
+          </View>
+
+
+          {/* Buttons below the text input */}
+          <View style={styles.buttonsContainer}>
+            <Pressable style={styles.sidebarButton} onPress={toggleCompletion}>
+              <Text style={styles.buttonText}>{groceryListCompletion ? 'Mark as Incomplete' : 'Mark as Done'}</Text>
+            </Pressable>
+              <Pressable style={styles.sidebarButton} onPress={handleDeleteList}>
+              <Text style={styles.buttonText}>Delete</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => alert('Export clicked!')}>
+              <Text style={styles.buttonText}>Export</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => setSortModalVisible(true)}>
+              <Text style={styles.buttonText}>Sort By</Text>
+            </Pressable>
+          </View>
+
+
+        {/* Large Text Input below the text box */}
+          <TextInput
+              style={[styles.largeTextInput, {height: height - 750, minHeight: 200}]}
+              placeholder="Grocery List Description..."
+              value={groceryListDescription}
+              onChangeText={setGroceryListDescription}
+              onBlur={() => onDescriptionChange(groceryListDescription)}
+              multiline={true}
+          />
+
+          <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
+            
+          <FoodDropdownComponent/>
+          <Pressable style={[styles.sidebarButton, styles.transferButton]} onPress={() => alert('Export clicked!')}>
+            <Text style={[styles.buttonText, {fontSize: 28, color: "#39913b"}]}>Transfer</Text>
+          </Pressable>
+  
+      </ScrollView>
+
+      <ScrollView style={[styles.rightSideBar, {height: height - 100}]}>
+      <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#007bff'}}>Grocery List Value: </Text>
+      </ScrollView> 
+
+
+    {/* Modals below (primarily for clicking on buttons*/}
+
+
+    <Modal
+      transparent={true}
+      visible={sortModalVisible}
+      animationType="fade"
+      onRequestClose={() => setSortModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Sort By</Text>
+          <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Alphabetical</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Quantity</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Completed</Text>
+            </TouchableOpacity>
+          </ScrollView>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
 
     <Modal
         animationType="fade"
@@ -564,6 +602,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1, // Allow the scroll view to grow and fill the available space
+    marginHorizontal: 100
   },
   mainContent: {
     justifyContent: 'flex-start',
@@ -671,74 +710,70 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  fixedLeftColumn: {
-    padding: 20,
-    zIndex: 999, // Ensure it stays on top of other content
-    marginBottom: 20, // Space below when screen is small
-  },
   searchInput: {
     height: 40,
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingLeft: 10,
     marginBottom: 20,
     backgroundColor: 'white',
+    fontSize: 15,
+    width: 300
   },
   textBox: {
     backgroundColor: '#c4c4c4',
     padding: 15,
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   textBoxTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'inter-bold',
     marginBottom: 5,
   },
   textBoxContent: {
     fontSize: 14,
+    fontFamily: 'inter-bold',
     color: '#555',
   },
   largeTextInput: {
-    height: 240,
     borderColor: '#ccc',
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: 8,
     paddingLeft: 10,
     paddingTop: 10,
     textAlignVertical: 'top',
     backgroundColor: 'white',
+    fontSize: 18
   },
   buttonsContainer: {
     marginTop: 20,
+    marginBottom: 20,
   },
-  markAsDoneButton: {
-    backgroundColor: '#007bff', // Blue color for Mark as Done
+  sidebarButton: {
+    backgroundColor: '#e2e6ea', // Blue color for Mark as Done
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 15,
+    borderStyle: 'solid',
+    borderWidth: 5,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10, // Add space between buttons
+    borderColor: '#007bff',
   },
-  deleteButton: {
-    backgroundColor: '#dc3545', // Red color for Delete
+  topBarButton: {
+    backgroundColor: '#e2e6ea', // Blue color for Mark as Done
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 20,
+    borderStyle: 'solid',
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10, // Add space between buttons
-  },
-  exportButton: {
-    backgroundColor: 'green',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10, // Add space between buttons
+    borderColor: '#007bff',
   },
   sortByButton: {
     backgroundColor: '#1e81b0',
@@ -750,8 +785,8 @@ const styles = StyleSheet.create({
     marginBottom: 10, // Add space between buttons
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#007bff',
+    fontFamily: 'inter-bold',
     textAlign: 'center'
   },
   inputContainer: {
@@ -897,7 +932,41 @@ const styles = StyleSheet.create({
   },
   measurementText: {
     textAlign: 'left',
-  }
+  },
+  leftSideBar: {
+    position: 'absolute',
+    top: 15,
+    left: 100,
+    padding: 20,
+    zIndex: 999, // Ensure it stays on top of other content
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+    width: 400,
+  },
+  rightSideBar: {
+    position: 'absolute',
+    top: 15,
+    right: 100,
+    padding: 20,
+    zIndex: 999, // Ensure it stays on top of other content
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+    width: 400,
+  },
+  transferButton: {
+    marginTop: 10,
+    borderColor: '#39913b',
+    height: 60, 
+    backgroundColor: '#e0e9e0'
+  },
 });
 
 export default GroceryList;
