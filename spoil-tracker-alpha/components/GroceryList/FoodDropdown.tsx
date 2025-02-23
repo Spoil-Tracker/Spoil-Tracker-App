@@ -1,33 +1,63 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { getAllFoodGlobal } from '@/components/Food/FoodGlobalService'; // adjust path as needed
 
-const data = [
-  { label: 'Item 1', value: '1' },
-  { label: 'Item 2', value: '2' },
-  { label: 'Item 3', value: '3' },
-  { label: 'Item 4', value: '4' },
-  { label: 'Item 5', value: '5' },
-  { label: 'Item 6', value: '6' },
-  { label: 'Item 7', value: '7' },
-  { label: 'Item 8', value: '8' },
-];
+interface FoodDropdownOption {
+  label: string;
+  value: string;
+}
 
-const FoodDropdownComponent = () => {
-  const [value, setValue] = useState(null);
+interface FoodDropdownProps {
+  // Callback receives the entire selected item (or null if nothing selected)
+  onValueChange: (selectedItem: FoodDropdownOption | null) => void;
+}
+
+const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ onValueChange }) => {
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
   const [isFocus, setIsFocus] = useState(false);
+  const [data, setData] = useState<FoodDropdownOption[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFoodData = async () => {
+      try {
+        const foods = await getAllFoodGlobal();
+        // Map the fetched food items to the dropdown format.
+        const mappedFoods = foods.map((food: any) => ({
+          label: food.food_name,
+          value: food.id,
+        }));
+        setData(mappedFoods);
+      } catch (error) {
+        console.error('Error fetching food data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFoodData();
+  }, []);
 
   const renderLabel = () => {
-    if (value || isFocus) {
+    if (selectedValue || isFocus) {
       return (
         <Text style={[styles.label, isFocus && { color: 'blue' }]}>
-          Dropdown label
+          Select Food
         </Text>
       );
     }
     return null;
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="blue" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -43,13 +73,15 @@ const FoodDropdownComponent = () => {
         maxHeight={300}
         labelField="label"
         valueField="value"
-        placeholder={!isFocus ? 'Select item' : '...'}
+        placeholder={!isFocus ? 'Select food' : '...'}
         searchPlaceholder="Search..."
-        value={value}
+        value={selectedValue}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
         onChange={item => {
-          setValue(item.value);
+          setSelectedValue(item.value);
+          // Pass the entire item (both label and value) to the parent
+          onValueChange(item);
           setIsFocus(false);
         }}
         renderLeftIcon={() => (

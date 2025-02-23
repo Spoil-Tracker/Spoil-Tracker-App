@@ -5,7 +5,7 @@ import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { useNavigation } from 'expo-router';
 import { Dropdown } from 'react-native-element-dropdown';
 import { v4 as uuidv4 } from 'uuid';
-import FoodDropdownComponent from '../../components/FoodDropdown';
+import FoodDropdownComponent from '../../components/GroceryList/FoodDropdown';
 import {
   fetchGroceryListByID,
   deleteGroceryList,
@@ -60,6 +60,8 @@ const GroceryList = () => {
   const dropdownAnimMobile = useRef(new Animated.Value(-dropdownHeightMobile)).current;
   const groceryListId = local.id as string;
   const navigation = useNavigation(); // Navigation hook, allows for a back button on the top left of the header
+  const [selectedFood, setSelectedFood] = useState<{ label: string; value: string } | null>(null);
+
 
   const formatDate = (isoString: string) => {
     const date = new Date(isoString);
@@ -131,21 +133,6 @@ const GroceryList = () => {
     }
   };
 
-  // Function to generate a random item
-  // addRandomItem uses this to generate a grocery list item object
-  const generateRandomItem = (): GroceryListItem => {
-    const randomIndex = Math.floor(Math.random() * foodItems.length);
-    const randomFood = foodItems[randomIndex];
-    return {
-      id: uuidv4(),
-      food_name: randomFood.title,
-      food_global_id: randomFood.title.toLowerCase(), // example mapping
-      measurement: 'unit',
-      quantity: 1,
-      isBought: false,
-    };
-  };
-
   // Function to generate a custom item
   // addCustomItem uses this to generate a grocery list item object
   const generateCustomItem = (): GroceryListItem => {
@@ -162,28 +149,6 @@ const GroceryList = () => {
     return newItem;
   };
   
-  // Function to generate a random item
-  // placeholder for now until we have a food database running
-  // used whenever user opens up the FAB modal and then presses the add item button
-  const addRandomItem = async () => {
-    const newItem = generateRandomItem();
-    try {
-      // Call the service function. (Your service expects food_global_id and food_name.)
-      const success = await addGroceryListItem(groceryListId, newItem.food_global_id, newItem.food_name);
-      if (success) {
-        // Optionally, refetch the grocery list to update local state.
-        const snapshot = await fetchGroceryListByID(groceryListId);
-        if (snapshot) {
-          setItems(snapshot.grocery_list_items);
-          setFilteredItems(snapshot.grocery_list_items);
-        }
-        alert(`Added random item: ${newItem.food_name}`);
-      }
-    } catch (error) {
-      console.error('Error adding random item:', error);
-      alert('Error adding random item');
-    }
-  };
 
   // Function called whenever user presses the mark as complete/incomplete button in the List UI
   const toggleCompletion = async () => {
@@ -272,8 +237,11 @@ const GroceryList = () => {
       const updatedItems = items.map(i =>
         i.id === item.id ? { ...i, isBought: !i.isBought } : i
       );
+      const updatedFilterItems = filteredItems.map(i =>
+        i.id === item.id ? { ...i, isBought: !i.isBought } : i
+      );
       setItems(updatedItems);
-      setFilteredItems(updatedItems);
+      setFilteredItems(updatedFilterItems);
       // Optionally refetch the grocery list from the backend.
     };
 
@@ -303,12 +271,13 @@ const GroceryList = () => {
       if (isNaN(numericQuantity)) return;
       try {
         const updated = await updateGroceryListItemQuantity(groceryListId, item.id, numericQuantity);
-        // Optionally update local state from updated result
         if (updated) {
           const snapshot = await fetchGroceryListByID(groceryListId);
           if (snapshot) {
             setItems(snapshot.grocery_list_items);
           }
+        } else {
+          console.error("Update returned false");
         }
       } catch (error) {
         console.error('Error updating quantity:', error);
@@ -369,7 +338,7 @@ const GroceryList = () => {
   }
   
   const smallScreen = screenWidth < 690;
-  const numColumns = screenWidth < 1090 ? 1 : 2;
+  const numColumns = width > 1420 ? 2 : 1;
 
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
@@ -424,7 +393,7 @@ const GroceryList = () => {
   return (
     <SafeAreaView style={styles.container}>
       
-      <ScrollView contentContainerStyle={{marginHorizontal: (screenWidth * 0.17) > 350 ? screenWidth * 0.17: 350, top: 15, alignContent: 'center'}}>
+      <ScrollView showsHorizontalScrollIndicator={false} contentContainerStyle={{marginHorizontal: (screenWidth * 0.17) > 350 ? screenWidth * 0.17: 350, top: 15, alignContent: 'center'}}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={{fontFamily: 'inter-bold', fontSize: 20, color: '#007bff', marginBottom: 20, paddingRight: 10}}>Search: </Text>
         <TextInput
@@ -501,9 +470,21 @@ const GroceryList = () => {
 
           <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
             
-          <FoodDropdownComponent/>
-          <Pressable style={[styles.sidebarButton, styles.transferButton]} onPress={() => alert('Export clicked!')}>
-            <Text style={[styles.buttonText, {fontSize: 28, color: "#39913b"}]}>Transfer</Text>
+          <FoodDropdownComponent onValueChange={setSelectedFood} />
+          <Pressable
+            style={[styles.sidebarButton, styles.transferButton]}
+            onPress={async () => {
+              if (selectedFood) {
+                await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                // Do additional things if needed
+              } else {
+                alert('Please select a food item first.');
+              }
+            }}
+          >
+            <Text style={[styles.buttonText, { fontSize: 28, color: '#39913b' }]}>
+              Transfer
+            </Text>
           </Pressable>
   
       </ScrollView>
@@ -575,11 +556,16 @@ const GroceryList = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Item</Text>
-            <FoodDropdownComponent/>
-            <Pressable style={styles.modalButton} onPress={() => {
-              // Add item to the list
-              addRandomItem();
-              closeModal();
+            <FoodDropdownComponent onValueChange={setSelectedFood} />
+            <Pressable 
+              style={styles.modalButton}
+              onPress={async () => {
+                if (selectedFood) {
+                  await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                  closeModal();
+                } else {
+                  alert('Please select a food item first.');
+                }
             }}>
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
@@ -629,14 +615,16 @@ const GroceryList = () => {
     return (
       <SafeAreaView style={styles.container}>
       {/* Animated Dropdown - positioned above the sticky button */}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, marginHorizontal: 10, marginTop: 65 }}>
         <FlatList
+          style={{ flex: 1, paddingHorizontal: 10 }}
           data={filteredItems}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           // No marginTop or marginHorizontal
           // If you want an empty-state message:
           ListEmptyComponent={<Text>No items available</Text>}
+          showsHorizontalScrollIndicator={false}
         />
       </View>
 
@@ -678,9 +666,21 @@ const GroceryList = () => {
           />
           <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
             
-          <FoodDropdownComponent/>
-          <Pressable style={[styles.sidebarButton, styles.transferButton]} onPress={() => alert('Export clicked!')}>
-            <Text style={[styles.buttonText, {fontSize: 28, color: "#39913b"}]}>Transfer</Text>
+          <FoodDropdownComponent onValueChange={setSelectedFood} />
+          <Pressable
+            style={[styles.sidebarButton, styles.transferButton]}
+            onPress={async () => {
+              if (selectedFood) {
+                await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                // Do additional things if needed
+              } else {
+                alert('Please select a food item first.');
+              }
+            }}
+          >
+            <Text style={[styles.buttonText, { fontSize: 28, color: '#39913b' }]}>
+              Transfer
+            </Text>
           </Pressable>
         </ScrollView>
       </Animated.View>
@@ -755,11 +755,16 @@ const GroceryList = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Item</Text>
-            <FoodDropdownComponent/>
-            <Pressable style={styles.modalButton} onPress={() => {
-              // Add item to the list
-              addRandomItem();
-              closeModal();
+            <FoodDropdownComponent onValueChange={setSelectedFood} />
+            <Pressable 
+              style={styles.modalButton}
+              onPress={async () => {
+                if (selectedFood) {
+                  await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                  closeModal();
+                } else {
+                  alert('Please select a food item first.');
+                }
             }}>
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
@@ -859,6 +864,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
+    color: '#007bff'
   },
   unitDescription: {
     fontSize: 14,
@@ -1069,12 +1075,12 @@ const styles = StyleSheet.create({
   },
   incompleteItem: {
     flex: 1,
-    backgroundColor: '#f5e9d9', // Light blue
+    backgroundColor: '#e2e6ea', // Light blue
     padding: 15,
     marginBottom: 15,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#f5e9d9',
+    borderColor: 'white',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 1,

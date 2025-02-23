@@ -5,7 +5,9 @@ import {
     Arg, 
     Field, 
     ObjectType, 
-    ID } from "type-graphql";
+    ID,
+    InputType,
+    Int } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
 import { 
     admin, 
@@ -295,26 +297,37 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
-    @Mutation(() => GroceryList)
+    @Mutation(() => Boolean)
     async updateGroceryListItemQuantity(
-        @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("item_id") item_id: string,
-        @Arg("quantity") quantity: number
-    ): Promise<GroceryList> {
+    @Arg("grocerylist_id") grocerylist_id: string,
+    @Arg("item_id") item_id: string,
+    @Arg("quantity", () => Int) quantity: number
+    ): Promise<boolean> {
+    try {
         const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
         const listDoc = await listRef.get();
         if (!listDoc.exists) {
-            throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
+        throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
         }
         const listData = listDoc.data() as GroceryList;
+
+        if (!Array.isArray(listData.grocery_list_items)) {
+        throw new Error("grocery_list_items is not an array");
+        }
+
         const updatedItems = listData.grocery_list_items.map(item => {
-            if (item.id === item_id) {
-                return { ...item, quantity };
-            }
-            return item;
+        if (item.id === item_id) {
+            return { ...item, quantity };
+        }
+        return item;
         });
+
         await listRef.update({ grocery_list_items: updatedItems });
-        const updatedDoc = await listRef.get();
-        return updatedDoc.data() as GroceryList;
+        console.log("Successfully updated grocery list item quantity");
+        return true;
+    } catch (error) {
+        console.error("Error updating grocery list item quantity:", error);
+        return false;
+    }
     }
 }

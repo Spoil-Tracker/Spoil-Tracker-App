@@ -141,10 +141,18 @@ const UPDATE_GROCERY_LIST_ITEM_MEASUREMENT = gql`
 `;
 
 const UPDATE_GROCERY_LIST_ITEM_QUANTITY = gql`
-    mutation UpdateGroceryListItemQuantity($grocerylist_id: String!, $item_id: String!, $quantity: Int!) {
-        updateGroceryListItemQuantity(grocerylist_id: $grocerylist_id, item_id: $item_id, quantity: $quantity)
-    }
-`; 
+  mutation UpdateGroceryListItemQuantity(
+    $grocerylist_id: String!
+    $item_id: String!
+    $quantity: Int!
+  ) {
+    updateGroceryListItemQuantity(
+      grocerylist_id: $grocerylist_id,
+      item_id: $item_id,
+      quantity: $quantity
+    )
+  }
+`;
 
 export interface GroceryList {
     id: string;
@@ -359,17 +367,21 @@ export async function updateGroceryListItemMeasurement(grocerylist_id: string, i
     }
   }
   
-export async function updateGroceryListItemQuantity(grocerylist_id: string, item_id: string, quantity: number) {
+  export async function updateGroceryListItemQuantity(
+    grocerylist_id: string,
+    item_id: string,
+    quantity: number
+  ) {
     try {
-        const result = await client.mutate({
-            mutation: UPDATE_GROCERY_LIST_ITEM_QUANTITY,
-            variables: { grocerylist_id, item_id, quantity },
-        });
-        return result.data.updateGroceryListItemQuantity;
+      const result = await client.mutate({
+        mutation: UPDATE_GROCERY_LIST_ITEM_QUANTITY,
+        variables: { grocerylist_id, item_id, quantity },
+      });
+      console.log("Mutation result:", result.data);
+      return result.data.updateGroceryListItemQuantity as boolean;
     } catch (error) {
-        console.error('Error updating grocery list item quantity:', error);
-        throw error;
+      console.error('Error updating grocery list item quantity:', error);
+      throw error;
     }
-}
-
+  }
 // Export additional functions for updating, deleting, etc., in a similar fashion.
