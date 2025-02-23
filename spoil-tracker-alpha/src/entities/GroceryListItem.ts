@@ -22,4 +22,11 @@ export class GroceryListItem {
 
     @Field()
     isBought!: boolean;
+
+    // New fields:
+    @Field()
+    description!: string;
+
+    @Field()
+    imageUrl!: string;
 }

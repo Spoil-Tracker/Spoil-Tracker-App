@@ -19,6 +19,8 @@ const GET_ALL_GROCERY_LISTS = gql`
             measurement
             quantity
             isBought
+            description
+            imageUrl
         }
         isFamily
         isShared
@@ -43,6 +45,8 @@ const GET_GROCERY_LIST_BY_ID = gql`
             measurement
             quantity
             isBought
+            description
+            imageUrl
         }
         isFamily
         isShared
@@ -180,7 +184,9 @@ export interface GroceryListItem {
     measurement: string;
     quantity: number;
     isBought: boolean;
-}
+    description: string;
+    imageUrl: string;
+  }
 // Add more mutations/queries as needed…
 
 // Function to fetch all grocery lists

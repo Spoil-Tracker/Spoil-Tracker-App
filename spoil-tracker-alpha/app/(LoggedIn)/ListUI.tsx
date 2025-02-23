@@ -145,6 +145,8 @@ const GroceryList = () => {
       measurement: 'unit',
       quantity: 1,
       isBought: false,
+      description: '',
+      imageUrl: ''
     };
     setCustomName('');
     setCustomDescription('');
@@ -308,7 +310,7 @@ const GroceryList = () => {
       <View style={[styles.unit, item.isBought ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
           <Text style={styles.unitTitle}>{item.food_name}</Text>
-          <Text style={styles.unitDescription}>{}</Text>
+          <Text style={styles.unitDescription}>{item.description}</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.itemTextInput}
@@ -336,7 +338,7 @@ const GroceryList = () => {
             </Pressable>
           </View>
         </View>
-        <Image source={{ uri: "https://placecats.com/300/200" }} style={styles.unitImage} />
+        <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
       </View>
     );
   }

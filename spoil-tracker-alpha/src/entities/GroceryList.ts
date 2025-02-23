@@ -14,6 +14,7 @@ import {
     db } from "../firestore";
 import { Account } from "./Account";
 import { GroceryListItem } from "./GroceryListItem";
+import { FoodGlobal } from "./FoodGlobal";
 
 @ObjectType()
 export class GroceryList {
@@ -225,34 +226,37 @@ export class GroceryListResolver {
     // Mutation to add a GroceryListItem to the grocery_list_items array.
     @Mutation(() => Boolean)
     async addGroceryListItem(
-        @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("food_global_id") food_global_id: string,
-        @Arg("food_name") food_name: string,
+    @Arg("grocerylist_id") grocerylist_id: string,
+    @Arg("food_global_id") food_global_id: string,
+    @Arg("food_name") food_name: string
     ): Promise<boolean> {
-        // Check that the FoodGlobal item exists
-        const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
-        if (!foodGlobalDoc.exists) {
-            throw new Error(`FoodGlobal with id ${food_global_id} does not exist.`);
-        }
+    // Check that the FoodGlobal item exists
+    const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
+    if (!foodGlobalDoc.exists) {
+        throw new Error(`FoodGlobal with id ${food_global_id} does not exist.`);
+    }
+    const foodGlobalData = foodGlobalDoc.data() as FoodGlobal;
+    
+    // Generate a unique ID for the new GroceryListItem.
+    const newItemId = db.collection(COLLECTIONS.GROCERYLIST).doc().id;
 
-        // Generate a unique ID for the new embedded GroceryListItem.
-        const newItemId = db.collection(COLLECTIONS.GROCERYLIST).doc().id;
+    const newItem: GroceryListItem = {
+        id: newItemId,
+        food_name,
+        food_global_id,
+        measurement: 'unit', // Default measurement; adjust as needed
+        quantity: 1,
+        isBought: false,
+        description: foodGlobalData.description ?? "No description available",
+        imageUrl: foodGlobalData.food_picture_url ?? "",
+    };
 
-        const newItem: GroceryListItem = {
-            id: newItemId,
-            food_name,
-            food_global_id,
-            measurement: 'unit',
-            quantity: 1,
-            isBought: false,
-        };
+    // Add the new item using arrayUnion
+    await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({
+        grocery_list_items: admin.firestore.FieldValue.arrayUnion(newItem)
+    });
 
-        // Add the new item to the grocery_list_items array using arrayUnion.
-        await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({
-            grocery_list_items: admin.firestore.FieldValue.arrayUnion(newItem)
-        });
-
-        return true;
+    return true;
     }
 
     @Mutation(() => Boolean)
