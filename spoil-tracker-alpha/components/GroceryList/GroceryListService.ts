@@ -154,6 +154,12 @@ const UPDATE_GROCERY_LIST_ITEM_QUANTITY = gql`
   }
 `;
 
+const UPDATE_GROCERY_LIST_ITEM_IS_BOUGHT = gql`
+  mutation UpdateGroceryListItemIsBought($grocerylist_id: String!, $item_id: String!) {
+    updateGroceryListItemIsBought(grocerylist_id: $grocerylist_id, item_id: $item_id)
+  }
+`;
+
 export interface GroceryList {
     id: string;
     account_id: string;
@@ -381,6 +387,19 @@ export async function updateGroceryListItemMeasurement(grocerylist_id: string, i
       return result.data.updateGroceryListItemQuantity as boolean;
     } catch (error) {
       console.error('Error updating grocery list item quantity:', error);
+      throw error;
+    }
+  }
+
+  export async function updateGroceryListItemIsBought(grocerylist_id: string, item_id: string) {
+    try {
+      const result = await client.mutate({
+        mutation: UPDATE_GROCERY_LIST_ITEM_IS_BOUGHT,
+        variables: { grocerylist_id, item_id },
+      });
+      return result.data.updateGroceryListItemIsBought as boolean;
+    } catch (error) {
+      console.error('Error toggling grocery list item isBought:', error);
       throw error;
     }
   }

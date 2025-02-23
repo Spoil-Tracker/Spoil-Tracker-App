@@ -16,7 +16,9 @@ import {
   GroceryListItem,
   updateGroceryListIsComplete,
   updateGroceryListDescription,
+  updateGroceryListItemIsBought
 } from '@/components/GroceryList/GroceryListService';
+import { getFoodGlobalById } from '@/components/Food/FoodGlobalService';
 
 
 // Mock data to simulate Firestore documents
@@ -177,7 +179,7 @@ const GroceryList = () => {
   const onDescriptionChange = async (text: string) => {
     setGroceryListDescription(text);
     try {
-      const updatedList = await updateGroceryListDescription(groceryListId, text);
+      await updateGroceryListDescription(groceryListId, text);
       console.log('Description updated in Firestore');
     } catch (error) {
       console.error('Error updating description:', error);
@@ -232,8 +234,10 @@ const GroceryList = () => {
      toggles the completion status of the current item
      updates the Firestore document and local state accordingly
      */
+
     const toggleCompleteStatus = async () => {
       // This example toggles locally; you might later add a service call to update the item.
+      await updateGroceryListItemIsBought(groceryListId, item.id);
       const updatedItems = items.map(i =>
         i.id === item.id ? { ...i, isBought: !i.isBought } : i
       );
@@ -304,7 +308,7 @@ const GroceryList = () => {
       <View style={[styles.unit, item.isBought ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
           <Text style={styles.unitTitle}>{item.food_name}</Text>
-          <Text style={styles.unitDescription}>[description here]</Text>
+          <Text style={styles.unitDescription}>{}</Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.itemTextInput}
@@ -393,7 +397,7 @@ const GroceryList = () => {
   return (
     <SafeAreaView style={styles.container}>
       
-      <ScrollView showsHorizontalScrollIndicator={false} contentContainerStyle={{marginHorizontal: (screenWidth * 0.17) > 350 ? screenWidth * 0.17: 350, top: 15, alignContent: 'center'}}>
+      <View style={{marginHorizontal: (screenWidth * 0.17) > 350 ? screenWidth * 0.17: 350, top: 15, alignContent:'center', flex: 1}}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={{fontFamily: 'inter-bold', fontSize: 20, color: '#007bff', marginBottom: 20, paddingRight: 10}}>Search: </Text>
         <TextInput
@@ -414,11 +418,11 @@ const GroceryList = () => {
         </Pressable>
       </View>
         
-        <View style={[styles.mainContent, { flexDirection: smallScreen ? 'column' : 'row' }]}>
+        <View style={[styles.mainContent, { flexDirection: smallScreen ? 'column' : 'row', flex: 1 }]}>
           {/* Left column (fixed position) */}
 
           {/* Right column (scrollable list) */}
-          <View style={styles.listContainer}>
+          <View style={[styles.listContainer, {flex: 1}]}>
             <FlatList
               data={filteredItems} // Use filtered items based on search
               renderItem={renderItem}
@@ -426,12 +430,13 @@ const GroceryList = () => {
               key={numColumns}
               numColumns={numColumns}
               contentContainerStyle={[styles.listContent, { paddingBottom: 260 }]}
+              showsHorizontalScrollIndicator={false}
             />
           </View>
 
         </View>
       
-      </ScrollView>
+      </View>
       
       <ScrollView style={[styles.leftSideBar, {height: height - 100, width: width * 0.15, minWidth: 300}]}>  
           {/* Box with text */}
@@ -476,7 +481,13 @@ const GroceryList = () => {
             onPress={async () => {
               if (selectedFood) {
                 await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
-                // Do additional things if needed
+                const newFood = await fetchGroceryListByID(groceryListId);
+                if(newFood){
+                  setItems(newFood.grocery_list_items);
+                  setFilteredItems(newFood.grocery_list_items);
+                  setSearchText('');
+                  setSelectedFood(null);
+                }
               } else {
                 alert('Please select a food item first.');
               }
@@ -562,6 +573,13 @@ const GroceryList = () => {
               onPress={async () => {
                 if (selectedFood) {
                   await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                  const newFood = await fetchGroceryListByID(groceryListId);
+                  if(newFood){
+                    setItems(newFood.grocery_list_items);
+                    setFilteredItems(newFood.grocery_list_items);
+                    setSearchText('');
+                    setSelectedFood(null);
+                  }
                   closeModal();
                 } else {
                   alert('Please select a food item first.');
@@ -672,7 +690,13 @@ const GroceryList = () => {
             onPress={async () => {
               if (selectedFood) {
                 await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
-                // Do additional things if needed
+                const newFood = await fetchGroceryListByID(groceryListId);
+                if(newFood){
+                  setItems(newFood.grocery_list_items);
+                  setFilteredItems(newFood.grocery_list_items);
+                  setSearchText('');
+                  setSelectedFood(null);
+                }
               } else {
                 alert('Please select a food item first.');
               }
@@ -761,6 +785,13 @@ const GroceryList = () => {
               onPress={async () => {
                 if (selectedFood) {
                   await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                  const newFood = await fetchGroceryListByID(groceryListId);
+                  if(newFood){
+                    setItems(newFood.grocery_list_items);
+                    setFilteredItems(newFood.grocery_list_items);
+                    setSearchText('');
+                    setSelectedFood(null);
+                  }
                   closeModal();
                 } else {
                   alert('Please select a food item first.');

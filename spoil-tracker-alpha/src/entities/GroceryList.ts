@@ -274,27 +274,37 @@ export class GroceryListResolver {
     }
 
     // Mutation to update the measurement field of a specific embedded grocery list item
-    @Mutation(() => GroceryList)
+    @Mutation(() => Boolean)
     async updateGroceryListItemMeasurement(
-        @Arg("grocerylist_id") grocerylist_id: string,
-        @Arg("item_id") item_id: string,
-        @Arg("measurement") measurement: string
-    ): Promise<GroceryList> {
+    @Arg("grocerylist_id") grocerylist_id: string,
+    @Arg("item_id") item_id: string,
+    @Arg("measurement") measurement: string
+    ): Promise<boolean> {
+    try {
         const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
         const listDoc = await listRef.get();
         if (!listDoc.exists) {
-            throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
+        throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
         }
         const listData = listDoc.data() as GroceryList;
+        
+        if (!Array.isArray(listData.grocery_list_items)) {
+        throw new Error("grocery_list_items is not an array");
+        }
+        
         const updatedItems = listData.grocery_list_items.map(item => {
         if (item.id === item_id) {
             return { ...item, measurement };
         }
         return item;
         });
+        
         await listRef.update({ grocery_list_items: updatedItems });
-        const updatedDoc = await listRef.get();
-        return updatedDoc.data() as GroceryList;
+        return true;
+    } catch (error) {
+        console.error("Error updating grocery list item measurement:", error);
+        return false;
+    }
     }
 
     @Mutation(() => Boolean)
@@ -329,5 +339,38 @@ export class GroceryListResolver {
         console.error("Error updating grocery list item quantity:", error);
         return false;
     }
+    }
+
+    @Mutation(() => Boolean)
+    async updateGroceryListItemIsBought(
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("item_id") item_id: string
+    ): Promise<boolean> {
+    try {
+        const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const listDoc = await listRef.get();
+        if (!listDoc.exists) {
+        throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
+        }
+        const listData = listDoc.data() as GroceryList;
+
+        if (!Array.isArray(listData.grocery_list_items)) {
+        throw new Error("grocery_list_items is not an array");
+        }
+
+        // Toggle isBought for the matching item
+        const updatedItems = listData.grocery_list_items.map(item => {
+        if (item.id === item_id) {
+            return { ...item, isBought: !item.isBought };
+        }
+        return item;
+        });
+
+        await listRef.update({ grocery_list_items: updatedItems });
+        return true;
+        } catch (error) {
+            console.error("Error toggling grocery list item isBought:", error);
+            return false;
+        }
     }
 }
