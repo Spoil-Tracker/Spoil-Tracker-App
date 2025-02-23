@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
-import { db } from "../firestore";
+import db from "../firestore";
 import { FoodAbstractResolver } from "./FoodAbstract";
 
 // New object types for nutrients
