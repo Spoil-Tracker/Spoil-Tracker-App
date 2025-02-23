@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
-import db from "../firestore";
+import db  from "../firestore";
 import { FoodAbstractResolver } from "./FoodAbstract";
 
 // New object types for nutrients
@@ -181,6 +181,9 @@ export class FoodGlobalResolver {
             throw new Error(`A FoodGlobal item with the name "${food_name}" already exists.`);
         }
 
+        const plainMacronutrients = JSON.parse(JSON.stringify(macronutrients));
+        const plainMicronutrients = JSON.parse(JSON.stringify(micronutrients));
+
         // Explicitly type newFoodGlobal as FoodGlobal (include a placeholder for id)
         const newFoodGlobal: FoodGlobal = {
             id: "", // temporary; will be set below
@@ -189,12 +192,14 @@ export class FoodGlobalResolver {
             food_picture_url,
             amount_per_serving,
             description,
-            macronutrients,
-            micronutrients,
+            macronutrients: plainMacronutrients,
+            micronutrients: plainMicronutrients,
         };
 
-        const docRef = await db.collection(COLLECTIONS.FOOD_GLOBAL).add(newFoodGlobal);
-        newFoodGlobal.id = docRef.id; // Now assign the generated id
+        const docRef = db.collection(COLLECTIONS.FOOD_GLOBAL).doc();
+        newFoodGlobal.id = docRef.id;
+        // Use set() to store the document including the id field
+        await docRef.set(newFoodGlobal);
         return newFoodGlobal;
     }
 
