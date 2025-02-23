@@ -37,6 +37,7 @@ import {
   ];
 
 const GroceryList = () => {
+  const { height, width } = useWindowDimensions();
   const [items, setItems] = useState<GroceryListItem[]>([]); // List of grocery items
   const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
@@ -52,9 +53,11 @@ const GroceryList = () => {
   const [sortModalVisible, setSortModalVisible] = useState(false); // Modal visibility state
   const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown visibility state, used in the add item modal UI
   const dropdownHeight = useRef(new Animated.Value(0)).current; // Dropdown animation height, used in the add item modal UI
+  const [dropdownVisibleMobile, setDropdownVisibleMobile] = useState(false); // Dropdown visibility state, used in the add item modal UI
+  const dropdownHeightMobile = 400;
   const [customName, setCustomName] = useState(''); // Custom item name, used in the add item modal UI for when a user wants to add a custom item
   const [customDescription, setCustomDescription] = useState(''); // Custom item description, used in the add item modal UI for when a user wants to add a custom item
-
+  const dropdownAnimMobile = useRef(new Animated.Value(-dropdownHeightMobile)).current;
   const groceryListId = local.id as string;
   const navigation = useNavigation(); // Navigation hook, allows for a back button on the top left of the header
 
@@ -377,6 +380,22 @@ const GroceryList = () => {
     }).start();
   };
 
+  const buttonTranslateY = dropdownAnimMobile.interpolate({
+    inputRange: [-dropdownHeightMobile, 0],
+    outputRange: [0, dropdownHeightMobile],
+  });
+
+  const toggleDropdownMobile = () => {
+    const toValue = dropdownVisibleMobile ? -dropdownHeightMobile : 0;
+    Animated.timing(dropdownAnimMobile, {
+      toValue,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setDropdownVisibleMobile(!dropdownVisibleMobile);
+  };
+
+
   const sortItems = (text: string) => {
     let sorted = [...items];
   
@@ -398,12 +417,14 @@ const GroceryList = () => {
     setFilteredItems(newFilteredItems);
   };
 
-  const { height, width } = useWindowDimensions();
+  const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+  if(width > 1100){
 
   return (
     <SafeAreaView style={styles.container}>
       
-      <ScrollView contentContainerStyle={{marginHorizontal: 525, top: 15, alignContent: 'center'}}>
+      <ScrollView contentContainerStyle={{marginHorizontal: (screenWidth * 0.17) > 350 ? screenWidth * 0.17: 350, top: 15, alignContent: 'center'}}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={{fontFamily: 'inter-bold', fontSize: 20, color: '#007bff', marginBottom: 20, paddingRight: 10}}>Search: </Text>
         <TextInput
@@ -442,15 +463,8 @@ const GroceryList = () => {
         </View>
       
       </ScrollView>
-
-      {/* Floating plus button */}
-      <Animated.View style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}>
-        <Pressable onPress={onFABPress}>
-          <AntDesign name="plus" size={24} color="white" />
-        </Pressable>
-      </Animated.View>
       
-      <ScrollView style={[styles.leftSideBar, {height: height - 100}]}>  
+      <ScrollView style={[styles.leftSideBar, {height: height - 100, width: width * 0.15, minWidth: 300}]}>  
           {/* Box with text */}
           <View style={styles.textBox}>
             <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
@@ -477,7 +491,7 @@ const GroceryList = () => {
 
         {/* Large Text Input below the text box */}
           <TextInput
-              style={[styles.largeTextInput, {height: height - 750, minHeight: 200}]}
+              style={[styles.largeTextInput, {height: height - 750, minHeight: 100}]}
               placeholder="Grocery List Description..."
               value={groceryListDescription}
               onChangeText={setGroceryListDescription}
@@ -494,8 +508,25 @@ const GroceryList = () => {
   
       </ScrollView>
 
-      <ScrollView style={[styles.rightSideBar, {height: height - 100}]}>
-      <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#007bff'}}>Grocery List Value: </Text>
+      <ScrollView style={[styles.rightSideBar, {height: height - 100, width: width * 0.15, minWidth: 300}]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
+        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
+          Grocery List Value
+        </Text>
+        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
+        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
+          Summary
+        </Text>
+        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
+        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
+          Settings
+        </Text>
+        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
+      </View>
       </ScrollView> 
 
 
@@ -593,6 +624,188 @@ const GroceryList = () => {
       </Modal>
     </SafeAreaView>
   );
+  }
+  else{
+    return (
+      <SafeAreaView style={styles.container}>
+      {/* Animated Dropdown - positioned above the sticky button */}
+      <View style={{ flex: 1 }}>
+        <FlatList
+          data={filteredItems}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          // No marginTop or marginHorizontal
+          // If you want an empty-state message:
+          ListEmptyComponent={<Text>No items available</Text>}
+        />
+      </View>
+
+      <Animated.View
+        style={[
+          styles.dropdownMobile,
+          { position: 'absolute', height: dropdownHeightMobile, width: width, justifyContent: 'center', alignItems: 'center',  transform: [{ translateY: dropdownAnimMobile }] },
+        ]}
+      >
+        <ScrollView contentContainerStyle={[styles.dropdownScrollMobile, {width: width - 40, marginTop: 20}]} showsHorizontalScrollIndicator={false}>
+          <View style={styles.textBox}>
+            <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
+            <Text style={styles.textBoxContent}>Created: {groceryListDate}</Text>
+          </View>
+
+
+          {/* Buttons below the text input */}
+          <View style={styles.buttonsContainer}>
+            <Pressable style={styles.sidebarButton} onPress={toggleCompletion}>
+              <Text style={styles.buttonText}>{groceryListCompletion ? 'Mark as Incomplete' : 'Mark as Done'}</Text>
+            </Pressable>
+              <Pressable style={styles.sidebarButton} onPress={handleDeleteList}>
+              <Text style={styles.buttonText}>Delete</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => alert('Export clicked!')}>
+              <Text style={styles.buttonText}>Export</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => setSortModalVisible(true)}>
+              <Text style={styles.buttonText}>Sort By</Text>
+            </Pressable>
+          </View>
+          <TextInput
+              style={[styles.largeTextInput, {height: height - 750, minHeight: 100}]}
+              placeholder="Grocery List Description..."
+              value={groceryListDescription}
+              onChangeText={setGroceryListDescription}
+              onBlur={() => onDescriptionChange(groceryListDescription)}
+              multiline={true}
+          />
+          <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
+            
+          <FoodDropdownComponent/>
+          <Pressable style={[styles.sidebarButton, styles.transferButton]} onPress={() => alert('Export clicked!')}>
+            <Text style={[styles.buttonText, {fontSize: 28, color: "#39913b"}]}>Transfer</Text>
+          </Pressable>
+        </ScrollView>
+      </Animated.View>
+
+      {/* Animated Sticky Button */}
+      <AnimatedPressable
+        style={[styles.stickyButton, { transform: [{ translateY: buttonTranslateY }] }]}
+        onPress={toggleDropdownMobile}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <AntDesign
+            name={dropdownVisibleMobile ? 'up' : 'down'}
+            size={16}
+            color="#007bff"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.buttonText}>Toggle Dropdown</Text>
+          <AntDesign
+            name={dropdownVisibleMobile ? 'up' : 'down'}
+            size={16}
+            color="#007bff"
+            style={{ marginLeft: 8 }}
+          />
+        </View>
+      </AnimatedPressable>
+      
+      <Animated.View style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}>
+        <Pressable onPress={onFABPress}>
+          <AntDesign name="plus" size={24} color="white" />
+        </Pressable>
+      </Animated.View>
+
+      <Modal
+      transparent={true}
+      visible={sortModalVisible}
+      animationType="fade"
+      onRequestClose={() => setSortModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Sort By</Text>
+          <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Alphabetical</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Quantity</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Completed</Text>
+            </TouchableOpacity>
+          </ScrollView>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+
+    <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Item</Text>
+            <FoodDropdownComponent/>
+            <Pressable style={styles.modalButton} onPress={() => {
+              // Add item to the list
+              addRandomItem();
+              closeModal();
+            }}>
+              <Text style={styles.buttonText}>Add Item</Text>
+            </Pressable>
+            <View
+              style={{
+                borderBottomColor: 'white',
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                alignSelf: 'stretch',
+                marginBottom: 10
+              }}
+            />
+            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
+              <Text style={styles.buttonText}>Add Custom Item</Text>
+            </Pressable>
+            {/* Animated dropdown */}
+            <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
+              {/* Conditionally hide the content based on dropdown visibility */}
+              <View>
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter name"
+                  value={customName}
+                  onChangeText={setCustomName} // setName should be defined with useState
+                />
+                <TextInput
+                  style={styles.customInputField}
+                  placeholder="Enter description"
+                  value={customDescription}
+                  onChangeText={setCustomDescription} // setDescription should be defined with useState
+                />
+                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
+                    <Text style={styles.buttonText}>Submit</Text>
+                </Pressable>
+              </View>
+            </Animated.View>
+
+            <Pressable style={styles.modalButton} onPress={closeModal}>
+              <Text style={styles.buttonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+    </SafeAreaView>
+    );
+  }
 };
 
 const styles = StyleSheet.create({
@@ -725,7 +938,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#c4c4c4',
     padding: 15,
     borderRadius: 8,
-    marginBottom: 10,
   },
   textBoxTitle: {
     fontSize: 16,
@@ -936,7 +1148,7 @@ const styles = StyleSheet.create({
   leftSideBar: {
     position: 'absolute',
     top: 15,
-    left: 100,
+    left: 15,
     padding: 20,
     zIndex: 999, // Ensure it stays on top of other content
     backgroundColor: 'white',
@@ -950,7 +1162,7 @@ const styles = StyleSheet.create({
   rightSideBar: {
     position: 'absolute',
     top: 15,
-    right: 100,
+    right: 15,
     padding: 20,
     zIndex: 999, // Ensure it stays on top of other content
     backgroundColor: 'white',
@@ -967,6 +1179,34 @@ const styles = StyleSheet.create({
     height: 60, 
     backgroundColor: '#e0e9e0'
   },
+  stickyButton: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: 15,
+    alignItems: 'center',
+    zIndex: 999, // higher than dropdown and list
+    borderColor: '#007bff',
+    backgroundColor: 'white',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 25,  // adjust value for more/less curvature
+    borderBottomRightRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1},
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+  },
+  dropdownMobile: {
+    backgroundColor: 'white',
+    zIndex: 1000,
+    flex: 1
+  },
+  dropdownScrollMobile: {
+    flex: 1
+  }
+
 });
 
 export default GroceryList;
