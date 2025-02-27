@@ -84,6 +84,7 @@ const Registration = () => {
     );
   }
 
+  // displays everything on the screen
   return (
     <View style={styles.container}>
       <Text style={styles.spoilTrackerText}>Create your account</Text>
