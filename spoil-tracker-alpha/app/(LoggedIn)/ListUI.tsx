@@ -19,6 +19,7 @@ import {
   updateGroceryListItemIsBought
 } from '@/components/GroceryList/GroceryListService';
 import { getFoodGlobalById } from '@/components/Food/FoodGlobalService';
+import ProductPage from '@/app/(LoggedIn)/FoodUI';
 
 
 // Mock data to simulate Firestore documents
@@ -63,6 +64,8 @@ const GroceryList = () => {
   const groceryListId = local.id as string;
   const navigation = useNavigation(); // Navigation hook, allows for a back button on the top left of the header
   const [selectedFood, setSelectedFood] = useState<{ label: string; value: string } | null>(null);
+  const [productModalVisible, setProductModalVisible] = useState(false);
+  const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
 
 
   const formatDate = (isoString: string) => {
@@ -226,6 +229,17 @@ const GroceryList = () => {
     setModalVisible(false); // Close modal
   };
   
+  const openProductModal = (foodGlobalId: string) => {
+    setSelectedFoodId(foodGlobalId);
+    setProductModalVisible(true);
+  };
+
+  // Handler to close ProductPage modal
+  const closeProductModal = () => {
+    setSelectedFoodId(null);
+    setProductModalVisible(false);
+  };
+
   /**
    render each item in the list
    used for the items in the flatlist that renders all of the grocery list items
@@ -309,8 +323,12 @@ const GroceryList = () => {
     return (
       <View style={[styles.unit, item.isBought ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
+          <Pressable
+            onPress={() => openProductModal(item.food_global_id)}
+          >
           <Text style={styles.unitTitle}>{item.food_name}</Text>
           <Text style={styles.unitDescription}>{item.description}</Text>
+          </Pressable>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.itemTextInput}
@@ -597,7 +615,7 @@ const GroceryList = () => {
                 marginBottom: 10
               }}
             />
-            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
+            <Pressable onPress={toggleDropdown} style={styles.modalButton}>
               <Text style={styles.buttonText}>Add Custom Item</Text>
             </Pressable>
             {/* Animated dropdown */}
@@ -616,7 +634,7 @@ const GroceryList = () => {
                   value={customDescription}
                   onChangeText={setCustomDescription} // setDescription should be defined with useState
                 />
-                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
+                <Pressable onPress={addCustomItem} style={styles.modalButton}>
                     <Text style={styles.buttonText}>Submit</Text>
                 </Pressable>
               </View>
@@ -625,6 +643,29 @@ const GroceryList = () => {
             <Pressable style={styles.modalButton} onPress={closeModal}>
               <Text style={styles.buttonText}>Close</Text>
             </Pressable>
+          </View>
+        </View>
+      </Modal>
+    
+      <Modal
+        visible={productModalVisible}     
+        transparent={true}               
+        animationType= "fade"          
+        onRequestClose={closeProductModal} 
+      >
+        <View style={styles.modalOverlay}>
+          <View>
+              {/* Circular Close Button */}
+              <Pressable onPress={closeProductModal} style={styles.closeButtonModal}>
+                  <Text style={styles.closeButtonTextModal}>✕</Text>
+              </Pressable>
+
+              {/* Only render ProductPage if we have a selectedFoodId */}
+              {selectedFoodId && (
+                  <ScrollView style={{ flex: 1 }}>
+                      <ProductPage foodId={selectedFoodId} />
+                  </ScrollView>
+              )}
           </View>
         </View>
       </Modal>
@@ -809,7 +850,7 @@ const GroceryList = () => {
                 marginBottom: 10
               }}
             />
-            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
+            <Pressable onPress={toggleDropdown} style={styles.modalButton}>
               <Text style={styles.buttonText}>Add Custom Item</Text>
             </Pressable>
             {/* Animated dropdown */}
@@ -828,7 +869,7 @@ const GroceryList = () => {
                   value={customDescription}
                   onChangeText={setCustomDescription} // setDescription should be defined with useState
                 />
-                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
+                <Pressable onPress={addCustomItem} style={styles.modalButton}>
                     <Text style={styles.buttonText}>Submit</Text>
                 </Pressable>
               </View>
@@ -841,6 +882,28 @@ const GroceryList = () => {
         </View>
       </Modal>
 
+      <Modal
+        visible={productModalVisible}     
+        transparent={true}               
+        animationType= "fade"          
+        onRequestClose={closeProductModal} 
+      >
+        <View style={styles.modalOverlay}>
+          <View>
+              {/* Circular Close Button */}
+              <Pressable onPress={closeProductModal} style={styles.closeButtonModal}>
+                  <Text style={styles.closeButtonTextModal}>✕</Text>
+              </Pressable>
+
+              {/* Only render ProductPage if we have a selectedFoodId */}
+              {selectedFoodId && (
+                  <ScrollView style={{ flex: 1 }}>
+                      <ProductPage foodId={selectedFoodId} />
+                  </ScrollView>
+              )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
     );
   }
@@ -932,7 +995,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#4CAE4F',
+    backgroundColor: '#1e81b0',
     padding: 20,
     borderRadius: 8,
     width: '30%',
@@ -954,7 +1017,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e2e6ea',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -1156,6 +1219,7 @@ const styles = StyleSheet.create({
   customInputField: {
     height: 40,
     borderColor: '#ccc',
+    backgroundColor: 'white',
     borderWidth: 1,
     marginBottom: 3,
     marginTop: 3,
@@ -1244,6 +1308,22 @@ const styles = StyleSheet.create({
   },
   dropdownScrollMobile: {
     flex: 1
+  },
+  closeButtonModal: {
+    position: 'absolute',
+    right: 0,
+    width: 50,
+    height: 50,
+    borderRadius: 25, // Makes it circular
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999
+  },
+  closeButtonTextModal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
   }
 
 });

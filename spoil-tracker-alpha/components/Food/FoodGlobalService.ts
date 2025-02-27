@@ -158,7 +158,35 @@ const DELETE_FOOD_GLOBAL = gql`
   }
 `;
 
-// Service functions
+interface Macronutrients {
+  total_fat: number;
+  sat_fat: number;
+  trans_fat: number;
+  carbohydrate: number;
+  fiber: number;
+  total_sugars: number;
+  added_sugars: number;
+  protein: number;
+}
+
+interface Micronutrients {
+  cholesterol: number;
+  sodium: number;
+  vitamin_d: number;
+  calcium: number;
+  iron: number;
+  potassium: number;
+}
+
+export interface FoodGlobal {
+  id: string;
+  food_name: string;
+  food_picture_url: string;
+  amount_per_serving: string;
+  description: string;
+  macronutrients: Macronutrients;
+  micronutrients: Micronutrients;
+}
 
 export async function getAllFoodGlobal() {
   try {

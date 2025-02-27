@@ -87,8 +87,8 @@ const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ onValueChange }) =
         renderLeftIcon={() => (
           <AntDesign
             style={styles.icon}
-            color={isFocus ? 'blue' : 'black'}
-            name="Safety"
+            color='blue'
+            name="shoppingcart"
             size={20}
           />
         )}
@@ -101,12 +101,15 @@ export default FoodDropdownComponent;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
     padding: 16,
+    width: '100%'
   },
   dropdown: {
+    width: '100%',
     height: 50,
     borderColor: 'gray',
+    backgroundColor: 'white',
     borderWidth: 0.5,
     borderRadius: 8,
     paddingHorizontal: 8,
