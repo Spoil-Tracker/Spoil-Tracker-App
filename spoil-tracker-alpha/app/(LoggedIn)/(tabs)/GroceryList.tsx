@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, SafeAreaView, Dimensions, Pressable, ActivityIndicator, TextInput, ScrollView 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  Dimensions,
+  Pressable,
+  ActivityIndicator,
+  TextInput,
+  ScrollView,
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
@@ -10,15 +18,13 @@ import ListSection from '../../../components/ListSection';
 import CreateListModal from '../../../components/CreateListModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dropdown } from 'react-native-element-dropdown';
+import { useTheme } from 'react-native-paper'; // allows for dark mode
 
 // Get screen width for responsive design
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // Sorting options for lists
-const SORT_OPTIONS = [
-  { label: 'Alphabetical', value: 'alphabetical' }
-]
-
+const SORT_OPTIONS = [{ label: 'Alphabetical', value: 'alphabetical' }];
 
 /**
  screen component for displaying a user's grocery lists
@@ -27,11 +33,14 @@ const SORT_OPTIONS = [
 const ButtonListScreen = () => {
   const [completedLists, setCompletedLists] = useState<string[]>([]);
   const [incompleteLists, setIncompleteLists] = useState<string[]>([]);
-  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [screenWidth, setScreenWidth] = useState(
+    Dimensions.get('window').width
+  );
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
   const [searchQuery, setSearchQuery] = useState(''); // User input for filtering lists
+  const { colors } = useTheme();
 
   /**
    fetches the user's grocery lists from Firestore
@@ -43,33 +52,36 @@ const ButtonListScreen = () => {
       // Get the currently logged-in user
       const auth = getAuth();
       const currentUser = auth.currentUser;
-  
+
       // Check if the user is logged in
       if (!currentUser) {
         alert('User is not logged in');
         setLoading(false);
         return;
       }
-  
+
       // Create a query to fetch grocery lists where user_id matches the current user
       const groceryListsQuery = query(
         collection(db, 'grocery_lists'),
         where('owner_id', '==', currentUser.uid) // Filter by user_id
       );
-  
+
       const querySnapshot = await getDocs(groceryListsQuery);
       const completed = [];
       const incomplete = [];
-  
+
       // Process fetched lists
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         if (data?.name) {
-
           // Format date helper function
           const formatDate = (isoString: string) => {
             const date = new Date(isoString);
-            return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            return date.toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            });
           };
 
           // Categorize lists based on completion status
@@ -79,7 +91,7 @@ const ButtonListScreen = () => {
               name: String(data.name),
               completed: data.completed,
               created: data.created ? formatDate(data.created) : 'Unknown Date',
-              description: data.description
+              description: data.description,
             });
           } else {
             incomplete.push({
@@ -87,12 +99,12 @@ const ButtonListScreen = () => {
               name: String(data.name),
               completed: data.completed,
               created: data.created ? formatDate(data.created) : 'Unknown Date',
-              description: data.description
+              description: data.description,
             });
           }
         }
       });
-  
+
       // Set the lists for completed and incomplete items
       // Update state with fetched lists
       setCompletedLists(completed);
@@ -149,7 +161,9 @@ const ButtonListScreen = () => {
    @returns {Array} - Filtered list
    */
   const filterLists = (lists) => {
-    return lists.filter(list => list.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return lists.filter((list) =>
+      list.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
 
   // Sorted and filtered lists
@@ -157,16 +171,20 @@ const ButtonListScreen = () => {
   const sortedIncompleteLists = sortLists(filterLists(incompleteLists));
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollViewContent} 
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
         style={styles.scrollView}
       >
         <Text style={styles.title}>Grocery Lists</Text>
 
         {/* Dropdown for sorting */}
         <View style={styles.sortContainer}>
-          <Text style={styles.sortText}>Sort By:</Text>
+          <Text style={[styles.sortText, { color: colors.text }]}>
+            Sort By:
+          </Text>
           <Dropdown
             style={styles.dropdown}
             data={SORT_OPTIONS}
@@ -187,35 +205,56 @@ const ButtonListScreen = () => {
         />
 
         {loading ? (
-          <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
+          <ActivityIndicator
+            size="large"
+            color="#2196F3"
+            style={{ marginTop: 20 }}
+          />
         ) : (
-          <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
+          <View
+            style={[
+              styles.contentContainer,
+              isSmallScreen ? styles.columnLayout : styles.rowLayout,
+            ]}
+          >
             {/* Completed Lists Section */}
-            <ListSection title="Completed Lists" lists={sortedCompletedLists} fetchLists={fetchLists} />
+            <ListSection
+              title="Completed Lists"
+              lists={sortedCompletedLists}
+              fetchLists={fetchLists}
+            />
 
             {/* Incomplete Lists Section */}
-            <ListSection title="Incomplete Lists" lists={sortedIncompleteLists} fetchLists={fetchLists} />
+            <ListSection
+              title="Incomplete Lists"
+              lists={sortedIncompleteLists}
+              fetchLists={fetchLists}
+            />
           </View>
         )}
 
         {/* Create List Modal */}
-        <CreateListModal visible={modalVisible} onClose={() => setModalVisible(false)} fetchLists={fetchLists} />
+        <CreateListModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          fetchLists={fetchLists}
+        />
       </ScrollView>
 
       {/* Floating Button */}
-      <Pressable onPress={() => setModalVisible(true)} style={styles.floatingButton}>
+      <Pressable
+        onPress={() => setModalVisible(true)}
+        style={styles.floatingButton}
+      >
         <AntDesign name="plus" size={28} color="white" />
       </Pressable>
     </SafeAreaView>
   );
 };
 
-export default ButtonListScreen;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF9F2',
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingTop: 20,
@@ -262,7 +301,7 @@ const styles = StyleSheet.create({
     marginTop: 10, // Space between the sort dropdown and the search bar
   },
   contentContainer: {
-    flex: 1
+    flex: 1,
   },
   columnLayout: {
     flexDirection: 'column',
@@ -339,3 +378,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 });
+
+export default ButtonListScreen;
