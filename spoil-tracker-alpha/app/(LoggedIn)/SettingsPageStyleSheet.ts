@@ -175,6 +175,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
+
+  removeButton: {
+    backgroundColor: '#d9534f',
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 10,
+    alignItems: 'center',
+  },
 });
 
 export default styles;

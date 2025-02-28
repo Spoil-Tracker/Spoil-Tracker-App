@@ -17,6 +17,7 @@ import {
   User,
   PhoneAuthProvider,
   RecaptchaVerifier,
+  unlink,
 } from 'firebase/auth';
 import Banner from '../../../components/Banner';
 import styles from '../SettingsPageStyleSheet';
@@ -234,6 +235,49 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
+  const handleRemovePhoneNumber = async () => {
+    if (!user) {
+      setBannerMessage('You must be logged in to remove your phone number.');
+      setBannerType('error');
+      return;
+    }
+    try {
+      await unlink(user, 'phone');
+      setPhoneVerified(false);
+      setPhoneNumber('');
+      setVerificationId('');
+      setVerificationCode('');
+      setBannerMessage('Phone number removed successfully.');
+      setBannerType('success');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to remove phone number: ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
+  const handleChangePhoneNumber = async () => {
+    if (!user) {
+      setBannerMessage('You must be logged in to change your phone number.');
+      setBannerType('error');
+      return;
+    }
+    try {
+      await unlink(user, 'phone');
+      setPhoneVerified(false);
+      setVerificationId('');
+      setVerificationCode('');
+      setBannerMessage('You can now change your phone number. Please enter the new phone number and verify it.');
+      setBannerType('success');
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to change phone number: ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
   // Displays everything to the user, all the isDarkMode messages contributed by Kevin
   return (
     <View
@@ -434,9 +478,25 @@ const SettingsPage = (): JSX.Element => {
 
           {/* Confirmation of phone number verification. */}
           {phoneVerified && (
-            <Text style={[styles.label, { color: '#4CAE4F', marginTop: 10 }]}>
-              Phone Number Verified!
-            </Text>
+            <>
+              <Text style={[styles.label, { color: '#4CAE4F', marginTop: 10 }]}>
+                Phone Number Verified!
+              </Text>
+              <View style={styles.formGroup}>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={handleChangePhoneNumber}
+                >
+                  <Text style={styles.buttonText}>Change Phone Number</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={handleRemovePhoneNumber}
+                >
+                  <Text style={styles.buttonText}>Remove Phone Number</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
 
           {/*Dark mode toggle contributed by Kevin*/}
