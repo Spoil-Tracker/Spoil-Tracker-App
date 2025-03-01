@@ -6,6 +6,7 @@ import {
   Text,
   Image,
   Switch,
+  ScrollView,
 } from 'react-native';
 import { auth } from '../../../services/firebaseConfig';
 import { linkWithCredential, verifyBeforeUpdateEmail } from 'firebase/auth';
@@ -19,6 +20,8 @@ import {
   RecaptchaVerifier,
   unlink,
 } from 'firebase/auth';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+
 import Banner from '../../../components/Banner';
 import styles from '../SettingsPageStyleSheet';
 import { useTheme } from '../../../services/themeContext'; // allows for dark mode, contributed by Kevin
@@ -37,6 +40,9 @@ const SettingsPage = (): JSX.Element => {
     useState('Notify Everyday');
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedback, setFeedback] = useState('');
+
   // Dark mode
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark'; // checks to see if dark mode is active, contributed by Kevin
@@ -48,11 +54,14 @@ const SettingsPage = (): JSX.Element => {
   const [recaptchaVerifier, setRecaptchaVerifier] =
     useState<RecaptchaVerifier | null>(null);
 
+  const db = getFirestore();
+
   useEffect(() => {
     const currentUser = auth.currentUser;
     if (currentUser) {
       setUser(currentUser);
       setEmailVerified(currentUser.emailVerified);
+      setPhoneVerified(!!currentUser.phoneNumber);
     }
   }, []);
 
@@ -243,12 +252,19 @@ const SettingsPage = (): JSX.Element => {
     }
     try {
       await unlink(user, 'phone');
-      setPhoneVerified(false);
-      setPhoneNumber('');
-      setVerificationId('');
-      setVerificationCode('');
-      setBannerMessage('Phone number removed successfully.');
-      setBannerType('success');
+      await user.reload();
+      const updatedUser = auth.currentUser;
+      if (!updatedUser?.phoneNumber) {
+        setPhoneVerified(false);
+        setPhoneNumber('');
+        setVerificationId('');
+        setVerificationCode('');
+        setBannerMessage('Phone number removed successfully.');
+        setBannerType('success');
+      }   else {
+        setBannerMessage('Failed to remove phone number.');
+        setBannerType('error');
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'An unknown error occurred';
@@ -265,11 +281,18 @@ const SettingsPage = (): JSX.Element => {
     }
     try {
       await unlink(user, 'phone');
-      setPhoneVerified(false);
-      setVerificationId('');
-      setVerificationCode('');
-      setBannerMessage('You can now change your phone number. Please enter the new phone number and verify it.');
-      setBannerType('success');
+      await user.reload();
+      const updatedUser = auth.currentUser;
+      if (!updatedUser?.phoneNumber) {
+        setPhoneVerified(false);
+        setVerificationId('');
+        setVerificationCode('');
+        setBannerMessage('You can now change your phone number. Please enter the new phone number and verify it.');
+        setBannerType('success');
+      } else {
+        setBannerMessage('Failed to change phone number.');
+        setBannerType('error');
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'An unknown error occurred';
@@ -278,13 +301,35 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
+  const sendFeedback = async () => {
+    if (feedback.trim() === '') {
+      setBannerMessage('Feedback cannot be empty.');
+      setBannerType('error');
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'feedback'), {
+        feedback,
+        userId: user?.uid || 'anonymous',
+        createdAt: new Date(),
+      });
+      setBannerMessage('Feedback sent successfully.');
+      setBannerType('success');
+      setFeedback('');
+      setShowFeedback(false);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to send feedback: ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
   // Displays everything to the user, all the isDarkMode messages contributed by Kevin
   return (
-    <View
-      style={[
-        styles.container,
-        isDarkMode ? styles.darkContainer : styles.lightContainer,
-      ]}
+    <ScrollView
+      style={isDarkMode ? styles.darkContainer : styles.lightContainer}
+      contentContainerStyle={styles.container}
     >
       {bannerMessage && <Banner message={bannerMessage} type={bannerType} />}
 
@@ -300,14 +345,7 @@ const SettingsPage = (): JSX.Element => {
           source={require('../../../assets/images/favicon.png')}
           style={styles.icon}
         />
-        <Text
-          style={[
-            styles.title,
-            isDarkMode ? styles.darkText : styles.lightText,
-          ]}
-        >
-          Settings
-        </Text>
+        <Text style={styles.title}>Settings</Text>
       </View>
 
       {/* Change Email feature. */}
@@ -386,6 +424,30 @@ const SettingsPage = (): JSX.Element => {
               <Text style={styles.buttonText}>Change Password</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.formGroup}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => setShowFeedback(!showFeedback)}
+            >
+              <Text style={styles.buttonText}>Give Feedback</Text>
+            </TouchableOpacity>
+            {showFeedback && (
+              <View>
+                <TextInput
+                  style={[styles.feedbackInput, isDarkMode ? styles.darkInput : styles.lightInput]}
+                  placeholder="Enter your feedback here..."
+                  placeholderTextColor={isDarkMode ? '#ddd' : '#555'}
+                  multiline
+                  value={feedback}
+                  onChangeText={setFeedback}
+                />
+                <TouchableOpacity style={styles.button} onPress={sendFeedback}>
+                  <Text style={styles.buttonText}>Send Feedback</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Divider in the middle of page. */}
@@ -415,7 +477,17 @@ const SettingsPage = (): JSX.Element => {
               ]}
               onPress={() => handleNotificationChange(option)}
             >
-              <Text style={styles.notificationText}>{option}</Text>
+              <Text
+                style={
+                  isDarkMode
+                    ? styles.notificationText
+                    : notificationSetting === option
+                    ? styles.notificationText
+                    : {color: '#000', fontSize: 16, fontWeight: 'bold'}
+                }
+              >
+                {option}
+              </Text>
             </TouchableOpacity>
           ))}
 
@@ -478,7 +550,7 @@ const SettingsPage = (): JSX.Element => {
 
           {/* Confirmation of phone number verification. */}
           {phoneVerified && (
-            <>
+            <View>
               <Text style={[styles.label, { color: '#4CAE4F', marginTop: 10 }]}>
                 Phone Number Verified!
               </Text>
@@ -496,7 +568,7 @@ const SettingsPage = (): JSX.Element => {
                   <Text style={styles.buttonText}>Remove Phone Number</Text>
                 </TouchableOpacity>
               </View>
-            </>
+            </View>
           )}
 
           {/*Dark mode toggle contributed by Kevin*/}
@@ -521,7 +593,7 @@ const SettingsPage = (): JSX.Element => {
 
       {/* Contains the Recaptcha */}
       <View id="recaptcha-container"></View>
-    </View>
+    </ScrollView>
   );
 };
 

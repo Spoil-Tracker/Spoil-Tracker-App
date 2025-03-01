@@ -1,4 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { Appearance, StyleSheet } from 'react-native';
+
+const scheme = Appearance.getColorScheme();
 
 const styles = StyleSheet.create({
   container: {
@@ -131,8 +133,9 @@ const styles = StyleSheet.create({
   },
 
   notificationText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#000',
+    fontWeight: 'bold',
   },
 
   phoneInput: {
@@ -182,6 +185,26 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
     alignItems: 'center',
+  },
+
+  feedbackButton: {
+    backgroundColor: '#4CAE4F',
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+
+  feedbackInput: {
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+    width: '100%',
+    height: 100,
+    textAlignVertical: 'top',
+    marginTop: 10,
+    color: scheme === 'dark' ? '#FFF' : '#000',
   },
 });
 
