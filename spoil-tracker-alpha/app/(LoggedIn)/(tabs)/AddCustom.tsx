@@ -9,6 +9,8 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
+import { addCustomItem, getAccountByOwnerID } from '@/components/Account/AccountService'; // Adjust the path as needed
+import { useAuth } from '@/services/authContext';
 
 const MACROS_EXPANDED_HEIGHT = 410;
 const MICROS_EXPANDED_HEIGHT = 300;
@@ -19,7 +21,7 @@ const CustomGroceryItemScreen = () => {
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
 
-  // Macronutrients state
+  // Macronutrients state (stored as strings, to be converted)
   const [totalFat, setTotalFat] = useState('');
   const [satFat, setSatFat] = useState('');
   const [transFat, setTransFat] = useState('');
@@ -29,7 +31,7 @@ const CustomGroceryItemScreen = () => {
   const [addedSugars, setAddedSugars] = useState('');
   const [protein, setProtein] = useState('');
 
-  // Micronutrients state
+  // Micronutrients state (stored as strings)
   const [cholesterol, setCholesterol] = useState('');
   const [sodium, setSodium] = useState('');
   const [vitaminD, setVitaminD] = useState('');
@@ -43,6 +45,8 @@ const CustomGroceryItemScreen = () => {
 
   const [showMicros, setShowMicros] = useState(false);
   const microsHeight = useRef(new Animated.Value(0)).current;
+
+  const { user } = useAuth();
 
   const toggleMacros = () => {
     if (!showMacros) {
@@ -78,34 +82,53 @@ const CustomGroceryItemScreen = () => {
     }
   };
 
-  const handleSubmit = () => {
-    const itemData = {
-      name,
-      description,
-      category,
-      amount,
-      macronutrients: {
-        total_fat: totalFat,
-        sat_fat: satFat,
-        trans_fat: transFat,
-        carbohydrate,
-        fiber,
-        total_sugars: totalSugars,
-        added_sugars: addedSugars,
-        protein,
-      },
-      micronutrients: {
-        cholesterol,
-        sodium,
-        vitamin_d: vitaminD,
-        calcium,
-        iron,
-        potassium,
-      },
+  const handleSubmit = async () => {
+    // Convert nutrient values from strings to numbers
+    const macronutrients = {
+      total_fat: Number(totalFat),
+      sat_fat: Number(satFat),
+      trans_fat: Number(transFat),
+      carbohydrate: Number(carbohydrate),
+      fiber: Number(fiber),
+      total_sugars: Number(totalSugars),
+      added_sugars: Number(addedSugars),
+      protein: Number(protein),
     };
 
-    console.log(itemData);
-    // Reset the form and collapse dropdowns
+    const micronutrients = {
+      cholesterol: Number(cholesterol),
+      sodium: Number(sodium),
+      vitamin_d: Number(vitaminD),
+      calcium: Number(calcium),
+      iron: Number(iron),
+      potassium: Number(potassium),
+    };
+
+    try {
+      // Replace this with your actual account ID (from context, props, etc.)
+      if (!user){
+        return
+      }
+
+      const account = await getAccountByOwnerID(user?.uid);
+      
+      // Call the AccountService addCustomItem function.
+      const response = await addCustomItem(
+        account.id,
+        name,
+        category,
+        '', // Provide the food_picture_url if available; here an empty string is used.
+        amount,
+        description,
+        macronutrients,
+        micronutrients
+      );
+      console.log('Custom item added successfully:', response);
+    } catch (error) {
+      console.error('Error adding custom item:', error);
+    }
+
+    // Reset the form fields and collapse dropdowns
     setName('');
     setDescription('');
     setCategory('');
@@ -124,7 +147,6 @@ const CustomGroceryItemScreen = () => {
     setCalcium('');
     setIron('');
     setPotassium('');
-    // Collapse both sections
     Animated.timing(macrosHeight, {
       toValue: 0,
       duration: 300,

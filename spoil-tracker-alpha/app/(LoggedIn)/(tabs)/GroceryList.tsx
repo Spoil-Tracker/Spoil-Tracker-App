@@ -192,7 +192,7 @@ const ButtonListScreen = () => {
         ) : (
           <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
             {/* complete Lists Section */}
-            <ListSection title="complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
+            <ListSection title="Complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
 
             {/* Incomplete Lists Section */}
             <ListSection title="Incomplete Lists" lists={sortedIncompleteLists} fetchLists={fetchLists} />

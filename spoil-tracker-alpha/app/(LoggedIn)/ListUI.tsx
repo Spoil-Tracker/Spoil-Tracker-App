@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useWindowDimensions, Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import { useWindowDimensions, Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity, Platform } from 'react-native';
 import { AntDesign } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { useNavigation } from 'expo-router';
 import { Dropdown } from 'react-native-element-dropdown';
 import { v4 as uuidv4 } from 'uuid';
-import FoodDropdownComponent from '../../components/GroceryList/FoodDropdown';
+import FoodDropdownComponent from '../../components/Food/FoodDropdown';
 import {
   fetchGroceryListByID,
   deleteGroceryList,
@@ -18,15 +18,8 @@ import {
   updateGroceryListDescription,
   updateGroceryListItemIsBought
 } from '@/components/GroceryList/GroceryListService';
-import { getFoodGlobalById } from '@/components/Food/FoodGlobalService';
+import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPDF, exportGroceryListToPDFWeb } from '@/components/ExportService';
 import ProductPage from '@/app/(LoggedIn)/FoodUI';
-
-
-// Mock data to simulate Firestore documents
-  const foodItems = [
-    { title: 'Apples', description: 'Fresh and juicy apples', imageUrl: 'https://via.placeholder.com/100?text=Apples' },
-  { title: 'Bananas', description: 'Sweet and ripe bananas', imageUrl: 'https://via.placeholder.com/100?text=Bananas' },
-  ];
 
   // list used for the dropdown located with each grocery list item in the flatlist
   const FOOD_UNITS = [
@@ -66,6 +59,7 @@ const GroceryList = () => {
   const [selectedFood, setSelectedFood] = useState<{ label: string; value: string } | null>(null);
   const [productModalVisible, setProductModalVisible] = useState(false);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
 
 
   const formatDate = (isoString: string) => {
@@ -409,6 +403,22 @@ const GroceryList = () => {
     setItems(sorted);
     setFilteredItems(newFilteredItems);
   };
+  
+  function handleExportCSV(items: GroceryListItem[]) {
+    if (Platform.OS === 'web') {
+      exportGroceryListToCSVWeb(items);
+    } else {
+      exportGroceryListToCSV(items);
+    }
+  }
+  
+  function handleExportPDF(items: GroceryListItem[]) {
+    if (Platform.OS === 'web') {
+      exportGroceryListToPDFWeb(items, groceryListTitle, groceryListDescription);
+    } else {
+      exportGroceryListToPDF(items, groceryListTitle, groceryListDescription);
+    }
+  }
 
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -474,7 +484,7 @@ const GroceryList = () => {
               <Pressable style={styles.sidebarButton} onPress={handleDeleteList}>
               <Text style={styles.buttonText}>Delete</Text>
             </Pressable>
-            <Pressable style={styles.sidebarButton} onPress={() => alert('Export clicked!')}>
+            <Pressable style={styles.sidebarButton} onPress={() => setExportModalVisible(true)}>
               <Text style={styles.buttonText}>Export</Text>
             </Pressable>
             <Pressable style={styles.sidebarButton} onPress={() => setSortModalVisible(true)}>
@@ -669,6 +679,27 @@ const GroceryList = () => {
           </View>
         </View>
       </Modal>
+      <Modal
+          transparent={true}
+          visible={exportModalVisible}
+          animationType="fade"
+          onRequestClose={() => setExportModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Export Options</Text>
+              <Pressable style={styles.modalButton} onPress={() => handleExportPDF(items)}>
+                <Text style={styles.buttonText}>Export as PDF</Text>
+              </Pressable>
+              <Pressable style={styles.modalButton} onPress={() => handleExportCSV(items)}>
+                <Text style={styles.buttonText}>Export as CSV</Text>
+              </Pressable>
+              <Pressable style={styles.closeButton} onPress={() => setExportModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
     </SafeAreaView>
   );
   }
@@ -710,7 +741,7 @@ const GroceryList = () => {
               <Pressable style={styles.sidebarButton} onPress={handleDeleteList}>
               <Text style={styles.buttonText}>Delete</Text>
             </Pressable>
-            <Pressable style={styles.sidebarButton} onPress={() => alert('Export clicked!')}>
+            <Pressable style={styles.sidebarButton} onPress={() => setExportModalVisible(true)}>
               <Text style={styles.buttonText}>Export</Text>
             </Pressable>
             <Pressable style={styles.sidebarButton} onPress={() => setSortModalVisible(true)}>
@@ -904,6 +935,27 @@ const GroceryList = () => {
           </View>
         </View>
       </Modal>
+      <Modal
+          transparent={true}
+          visible={exportModalVisible}
+          animationType="fade"
+          onRequestClose={() => setExportModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Export Options</Text>
+              <Pressable style={styles.modalButton} onPress={() => handleExportPDF(items)}>
+                <Text style={styles.buttonText}>Export as PDF</Text>
+              </Pressable>
+              <Pressable style={styles.modalButton} onPress={() => handleExportCSV(items)}>
+                <Text style={styles.buttonText}>Export as CSV</Text>
+              </Pressable>
+              <Pressable style={styles.closeButton} onPress={() => setExportModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
     </SafeAreaView>
     );
   }

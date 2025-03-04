@@ -55,7 +55,7 @@ class Micronutrients {
 
 // Input types for mutations
 
-@InputType()
+export @InputType()
 class MacronutrientsInput {
     @Field()
     total_fat!: number;
@@ -82,7 +82,7 @@ class MacronutrientsInput {
     protein!: number;
 }
 
-@InputType()
+export @InputType()
 class MicronutrientsInput {
     @Field()
     cholesterol!: number;
