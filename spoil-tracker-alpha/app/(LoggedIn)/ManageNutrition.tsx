@@ -23,6 +23,7 @@ export default function ManageNutritionScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Manage Nutrition</Text>
+
       <TextInput
         style={styles.input}
         keyboardType="numeric"
@@ -30,53 +31,116 @@ export default function ManageNutritionScreen() {
         value={dailyCalories}
         onChangeText={setDailyCalories}
       />
+
       <TouchableOpacity style={styles.button} onPress={calculateMacros}>
         <Text style={styles.buttonText}>Calculate</Text>
       </TouchableOpacity>
 
       {calculated && (
         <View style={styles.resultWrapper}>
-          <View style={styles.nutritionBox}>
-            <Text style={styles.macroTargetText}>
-              My macronutrient targets are providing {dailyCalories} cals per day:
-            </Text>
-            <View style={styles.resultContainer}>
-              <View style={styles.circleContainer}>
-                <Svg height="200" width="200" viewBox="0 0 100 100">
-                  <Circle cx="50" cy="50" r="40" stroke="#FF6666" strokeWidth="10" fill="none" strokeDasharray="251.2" strokeDashoffset="0" strokeLinecap="round" />
-                  <Circle cx="50" cy="50" r="40" stroke="#FFBB33" strokeWidth="10" fill="none" strokeDasharray="251.2" strokeDashoffset={(0.45) * 251.2} strokeLinecap="round" />
-                  <Circle cx="50" cy="50" r="40" stroke="#66CC99" strokeWidth="10" fill="none" strokeDasharray="251.2" strokeDashoffset={(0.65) * 251.2} strokeLinecap="round" />
-                </Svg>
-                <View style={styles.nutrientRow}>
-                  <Text style={[styles.label, styles.carbs]}>Carbs:</Text>
-                  <Text style={styles.value}>{carbs.toFixed(1)}g</Text>
+          {/* If toggle is OFF, show the left box */}
+          {!customMacros && (
+            <View style={styles.nutritionBox}>
+              <Text style={styles.macroTargetText}>
+                My macronutrient targets are providing {dailyCalories} cals per day:
+              </Text>
+              <Text style={styles.description}>
+                Your daily macronutrient distribution is calculated based on the recommended 45:20:35 ratio for Carbs, Protein, and Fats.
+              </Text>
+              <View style={styles.resultContainer}>
+                <View style={styles.circleContainer}>
+                  <Svg height="200" width="200" viewBox="0 0 100 100">
+                    <Circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#FF6666"
+                      strokeWidth={10}
+                      fill="none"
+                      strokeDasharray="251.2"
+                      strokeDashoffset="0"
+                      strokeLinecap="round"
+                    />
+                    <Circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#FFBB33"
+                      strokeWidth={10}
+                      fill="none"
+                      strokeDasharray="251.2"
+                      strokeDashoffset={0.45 * 251.2}
+                      strokeLinecap="round"
+                    />
+                    <Circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#66CC99"
+                      strokeWidth={10}
+                      fill="none"
+                      strokeDasharray="251.2"
+                      strokeDashoffset={0.65 * 251.2}
+                      strokeLinecap="round"
+                    />
+                  </Svg>
+                  <View style={styles.nutrientRow}>
+                    <Text style={[styles.label, styles.carbs]}>Carbs:</Text>
+                    <Text style={styles.value}>{carbs.toFixed(1)}g</Text>
+                  </View>
+                  <View style={styles.nutrientRow}>
+                    <Text style={[styles.label, styles.protein]}>Protein:</Text>
+                    <Text style={styles.value}>{protein.toFixed(1)}g</Text>
+                  </View>
+                  <View style={styles.nutrientRow}>
+                    <Text style={[styles.label, styles.fat]}>Fat:</Text>
+                    <Text style={styles.value}>{fat.toFixed(1)}g</Text>
+                  </View>
                 </View>
-                <View style={styles.nutrientRow}>
-                  <Text style={[styles.label, styles.protein]}>Protein:</Text>
-                  <Text style={styles.value}>{protein.toFixed(1)}g</Text>
+
+                <View style={styles.macroContainer}>
+                  <Text style={styles.macroTitle}>Macro Distribution:</Text>
+                  <Text style={styles.macroText}>Calories, %: 45:20:35</Text>
                 </View>
-                <View style={styles.nutrientRow}>
-                  <Text style={[styles.label, styles.fat]}>Fat:</Text>
-                  <Text style={styles.value}>{fat.toFixed(1)}g</Text>
-                </View>
-              </View>
-              <View style={styles.macroContainer}>
-                <Text style={styles.macroTitle}>Macro Distribution:</Text>
-                <Text style={styles.macroText}>Calories, %: 45:20:35</Text>
               </View>
             </View>
-          </View>
-          <View style={styles.rightBox}>
+          )}
+
+          {/* Right Box - center if toggle is ON */}
+          <View
+            style={[
+              styles.rightBox,
+              customMacros && styles.centeredRightBox, // if toggle ON, we expand/center the box
+            ]}
+          >
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleTitle}>Customizing Macros Target</Text>
               <Switch value={customMacros} onValueChange={setCustomMacros} />
             </View>
+
             <Text style={styles.description}>
-              Customize macros by setting fixed grams for each macro. Your daily Total Macro target is a fixed number of grams and will not change with calories budget changes. You will need to update target grams yourself, as needed.
+              Customize macros by setting fixed grams for each macro. Your daily Total Macro target is a fixed number of grams and will not change with
+              calories budget changes. You will need to update target grams yourself, as needed.
             </Text>
-            <TextInput style={styles.input} keyboardType="numeric" placeholder="Total Carbs, g" />
-            <TextInput style={styles.input} keyboardType="numeric" placeholder="Total Protein, g" />
-            <TextInput style={styles.input} keyboardType="numeric" placeholder="Total Fat, g" />
+
+            <TextInput
+              style={styles.macroInput}
+              keyboardType="numeric"
+              placeholder="Total Carbs, g"
+              editable={customMacros}
+            />
+            <TextInput
+              style={styles.macroInput}
+              keyboardType="numeric"
+              placeholder="Total Protein, g"
+              editable={customMacros}
+            />
+            <TextInput
+              style={styles.macroInput}
+              keyboardType="numeric"
+              placeholder="Total Fat, g"
+              editable={customMacros}
+            />
           </View>
         </View>
       )}
@@ -85,6 +149,7 @@ export default function ManageNutritionScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Screen Layout
   container: {
     flex: 1,
     alignItems: 'center',
@@ -121,25 +186,47 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+
+  // Wrapper
   resultWrapper: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '80%',
     marginTop: 20,
   },
+
+  // Left Box
   nutritionBox: {
+    width: '48%',
     alignItems: 'center',
     backgroundColor: '#FFF1DB',
     padding: 20,
     borderRadius: 10,
-    width: '48%',
   },
+
+  // Right Box
   rightBox: {
-    backgroundColor: '#FFF1DB',
     width: '48%',
+    backgroundColor: '#FFF1DB',
     borderRadius: 10,
     padding: 25,
     justifyContent: 'center',
+  },
+  centeredRightBox: {
+    width: '80%',
+    alignSelf: 'center',
+  },
+
+  // Nutrient Box
+  macroTargetText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  description: {
+    fontSize: 14,
+    marginBottom: 15,
   },
   resultContainer: {
     flexDirection: 'row',
@@ -149,12 +236,6 @@ const styles = StyleSheet.create({
   circleContainer: {
     alignItems: 'center',
     marginRight: 20,
-  },
-  macroTargetText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
   },
   macroContainer: {
     alignItems: 'flex-start',
@@ -166,11 +247,37 @@ const styles = StyleSheet.create({
   macroText: {
     fontSize: 14,
   },
+
+  // Toggle
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  toggleTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Macros Input
+  macroInput: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    marginBottom: 10,
+    textAlign: 'center',
+    backgroundColor: 'white',
+  },
+
+  // Nutrient Rows
   nutrientRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 5,
+    justifyContent: 'center',
   },
   label: {
     fontWeight: 'bold',
@@ -179,27 +286,18 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
   },
+
+  // Colors
   carbs: {
+    fontWeight: 'bold',
     color: '#FF6666',
   },
   protein: {
+    fontWeight: 'bold',
     color: '#FFBB33',
   },
   fat: {
-    color: '#66CC99',
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  toggleTitle: {
-    fontSize: 16,
     fontWeight: 'bold',
-  },
-  description: {
-    fontSize: 14,
-    marginBottom: 15,
+    color: '#66CC99',
   },
 });
