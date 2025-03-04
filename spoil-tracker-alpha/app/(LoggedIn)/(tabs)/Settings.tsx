@@ -6,6 +6,7 @@ import {
   Text,
   Image,
   Switch,
+  ScrollView,
 } from 'react-native';
 import { auth } from '../../../services/firebaseConfig';
 import { linkWithCredential, verifyBeforeUpdateEmail } from 'firebase/auth';
@@ -16,9 +17,11 @@ import {
   EmailAuthProvider,
   User,
   PhoneAuthProvider,
-  signInWithCredential,
   RecaptchaVerifier,
+  unlink,
 } from 'firebase/auth';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+
 import Banner from '../../../components/Banner';
 import styles from '../SettingsPageStyleSheet';
 import { useTheme } from '../../../services/themeContext'; // allows for dark mode, contributed by Kevin
@@ -28,6 +31,8 @@ const SettingsPage = (): JSX.Element => {
   const [password, setPassword] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+
+  // Banner messages for user feedback.
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
 
@@ -35,21 +40,28 @@ const SettingsPage = (): JSX.Element => {
     useState('Notify Everyday');
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedback, setFeedback] = useState('');
+
   // Dark mode
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark'; // checks to see if dark mode is active, contributed by Kevin
 
+  // Phone verification state.
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationId, setVerificationId] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [recaptchaVerifier, setRecaptchaVerifier] =
     useState<RecaptchaVerifier | null>(null);
 
+  const db = getFirestore();
+
   useEffect(() => {
     const currentUser = auth.currentUser;
     if (currentUser) {
       setUser(currentUser);
       setEmailVerified(currentUser.emailVerified);
+      setPhoneVerified(!!currentUser.phoneNumber);
     }
   }, []);
 
@@ -74,6 +86,7 @@ const SettingsPage = (): JSX.Element => {
       return;
     }
 
+    // Sends a verification email upon matching user credentials.
     const credential = EmailAuthProvider.credential(user.email || '', password);
     try {
       await reauthenticateWithCredential(user, credential);
@@ -142,6 +155,7 @@ const SettingsPage = (): JSX.Element => {
         }
       }, 5000);
 
+      // Prevent spam.
       setTimeout(() => clearInterval(interval), 60000);
     } catch (error) {
       const errorMessage =
@@ -230,13 +244,92 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
+  const handleRemovePhoneNumber = async () => {
+    if (!user) {
+      setBannerMessage('You must be logged in to remove your phone number.');
+      setBannerType('error');
+      return;
+    }
+    try {
+      await unlink(user, 'phone');
+      await user.reload();
+      const updatedUser = auth.currentUser;
+      if (!updatedUser?.phoneNumber) {
+        setPhoneVerified(false);
+        setPhoneNumber('');
+        setVerificationId('');
+        setVerificationCode('');
+        setBannerMessage('Phone number removed successfully.');
+        setBannerType('success');
+      }   else {
+        setBannerMessage('Failed to remove phone number.');
+        setBannerType('error');
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to remove phone number: ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
+  const handleChangePhoneNumber = async () => {
+    if (!user) {
+      setBannerMessage('You must be logged in to change your phone number.');
+      setBannerType('error');
+      return;
+    }
+    try {
+      await unlink(user, 'phone');
+      await user.reload();
+      const updatedUser = auth.currentUser;
+      if (!updatedUser?.phoneNumber) {
+        setPhoneVerified(false);
+        setVerificationId('');
+        setVerificationCode('');
+        setBannerMessage('You can now change your phone number. Please enter the new phone number and verify it.');
+        setBannerType('success');
+      } else {
+        setBannerMessage('Failed to change phone number.');
+        setBannerType('error');
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to change phone number: ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
+  const sendFeedback = async () => {
+    if (feedback.trim() === '') {
+      setBannerMessage('Feedback cannot be empty.');
+      setBannerType('error');
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'feedback'), {
+        feedback,
+        userId: user?.uid || 'anonymous',
+        createdAt: new Date(),
+      });
+      setBannerMessage('Feedback sent successfully.');
+      setBannerType('success');
+      setFeedback('');
+      setShowFeedback(false);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unknown error occurred';
+      setBannerMessage('Failed to send feedback: ' + errorMessage);
+      setBannerType('error');
+    }
+  };
+
   // Displays everything to the user, all the isDarkMode messages contributed by Kevin
   return (
-    <View
-      style={[
-        styles.container,
-        isDarkMode ? styles.darkContainer : styles.lightContainer,
-      ]}
+    <ScrollView
+      style={isDarkMode ? styles.darkContainer : styles.lightContainer}
+      contentContainerStyle={styles.container}
     >
       {bannerMessage && <Banner message={bannerMessage} type={bannerType} />}
 
@@ -252,16 +345,10 @@ const SettingsPage = (): JSX.Element => {
           source={require('../../../assets/images/favicon.png')}
           style={styles.icon}
         />
-        <Text
-          style={[
-            styles.title,
-            isDarkMode ? styles.darkText : styles.lightText,
-          ]}
-        >
-          Settings
-        </Text>
+        <Text style={styles.title}>Settings</Text>
       </View>
 
+      {/* Change Email feature. */}
       <View style={styles.contentContainer}>
         <View style={styles.leftSection}>
           <View style={styles.formGroup}>
@@ -288,6 +375,7 @@ const SettingsPage = (): JSX.Element => {
             </TouchableOpacity>
           </View>
 
+          {/* Email Verification feature. */}
           <View style={styles.formGroup}>
             <Text
               style={[
@@ -308,6 +396,7 @@ const SettingsPage = (): JSX.Element => {
             </TouchableOpacity>
           </View>
 
+          {/* Change Password feature. */}
           <View style={styles.formGroup}>
             <Text
               style={[
@@ -335,10 +424,36 @@ const SettingsPage = (): JSX.Element => {
               <Text style={styles.buttonText}>Change Password</Text>
             </TouchableOpacity>
           </View>
+
+          <View style={styles.formGroup}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => setShowFeedback(!showFeedback)}
+            >
+              <Text style={styles.buttonText}>Give Feedback</Text>
+            </TouchableOpacity>
+            {showFeedback && (
+              <View>
+                <TextInput
+                  style={[styles.feedbackInput, isDarkMode ? styles.darkInput : styles.lightInput]}
+                  placeholder="Enter your feedback here..."
+                  placeholderTextColor={isDarkMode ? '#ddd' : '#555'}
+                  multiline
+                  value={feedback}
+                  onChangeText={setFeedback}
+                />
+                <TouchableOpacity style={styles.button} onPress={sendFeedback}>
+                  <Text style={styles.buttonText}>Send Feedback</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
 
+        {/* Divider in the middle of page. */}
         <View style={styles.divider} />
 
+        {/* Notification Preferences feature. */}
         <View style={styles.rightSection}>
           <Text
             style={[
@@ -362,10 +477,21 @@ const SettingsPage = (): JSX.Element => {
               ]}
               onPress={() => handleNotificationChange(option)}
             >
-              <Text style={styles.notificationText}>{option}</Text>
+              <Text
+                style={
+                  isDarkMode
+                    ? styles.notificationText
+                    : notificationSetting === option
+                    ? styles.notificationText
+                    : {color: '#000', fontSize: 16, fontWeight: 'bold'}
+                }
+              >
+                {option}
+              </Text>
             </TouchableOpacity>
           ))}
 
+          {/* Phone Number Authentication feature */}
           <View style={styles.formGroup}>
             <Text
               style={[
@@ -394,6 +520,7 @@ const SettingsPage = (): JSX.Element => {
             </TouchableOpacity>
           </View>
 
+          {/* Input box appears to enter validation code. */}
           {verificationId !== '' && (
             <View style={styles.formGroup}>
               <Text
@@ -421,10 +548,27 @@ const SettingsPage = (): JSX.Element => {
             </View>
           )}
 
+          {/* Confirmation of phone number verification. */}
           {phoneVerified && (
-            <Text style={[styles.label, { color: '#4CAE4F', marginTop: 10 }]}>
-              Phone Number Verified!
-            </Text>
+            <View>
+              <Text style={[styles.label, { color: '#4CAE4F', marginTop: 10 }]}>
+                Phone Number Verified!
+              </Text>
+              <View style={styles.formGroup}>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={handleChangePhoneNumber}
+                >
+                  <Text style={styles.buttonText}>Change Phone Number</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={handleRemovePhoneNumber}
+                >
+                  <Text style={styles.buttonText}>Remove Phone Number</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
 
           {/*Dark mode toggle contributed by Kevin*/}
@@ -447,8 +591,9 @@ const SettingsPage = (): JSX.Element => {
         </View>
       </View>
 
+      {/* Contains the Recaptcha */}
       <View id="recaptcha-container"></View>
-    </View>
+    </ScrollView>
   );
 };
 
