@@ -1,6 +1,6 @@
 import {Resolver, Query, Mutation, Arg, Field, ObjectType, ID} from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
-import db from "../firestore";
+import { db } from "../firestore";
 import { Pantry } from "./Pantry";
 
 @ObjectType()
@@ -64,7 +64,7 @@ export class FoodConcreteResolver {
             expiration_date,
             quantity,
             quantity_type
-        };
+        }
 
         //Update the Pantry associated with this FoodConcrete
         const pantryRef = db.collection(COLLECTIONS.PANTRY).doc(pantry_id);
