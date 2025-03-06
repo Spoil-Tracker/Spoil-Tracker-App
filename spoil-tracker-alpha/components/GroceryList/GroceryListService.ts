@@ -127,9 +127,19 @@ const UPDATE_GROCERY_LIST_IS_COMPLETE = gql`
 `;
 
 const ADD_GROCERY_LIST_ITEM = gql`
-    mutation AddGroceryListItem($grocerylist_id: String!, $food_global_id: String!, $food_name: String!) {
-        addGroceryListItem(grocerylist_id: $grocerylist_id, food_global_id: $food_global_id, food_name: $food_name)
-    }
+    mutation AddGroceryListItem(
+        $grocerylist_id: String!,
+        $account_id: String!,
+        $food_global_id: String!,
+        $food_name: String!
+    ) {
+    addGroceryListItem(
+        grocerylist_id: $grocerylist_id,
+        account_id: $account_id,
+        food_global_id: $food_global_id,
+        food_name: $food_name
+    )
+}
 `;
 
 const DELETE_GROCERY_LIST_ITEM = gql`
@@ -336,11 +346,16 @@ export async function updateGroceryListIsComplete(grocerylist_id: string, isComp
     }
 }
 
-export async function addGroceryListItem(grocerylist_id: string, food_global_id: string, food_name: string) {
+export async function addGroceryListItem(
+    grocerylist_id: string,
+    account_id: string,
+    food_global_id: string,
+    food_name: string
+) {
     try {
         const result = await client.mutate({
-            mutation: ADD_GROCERY_LIST_ITEM,
-            variables: { grocerylist_id, food_global_id, food_name},
+        mutation: ADD_GROCERY_LIST_ITEM,
+        variables: { grocerylist_id, account_id, food_global_id, food_name },
         });
 
         return result.data.addGroceryListItem;
@@ -349,6 +364,7 @@ export async function addGroceryListItem(grocerylist_id: string, food_global_id:
         throw error;
     }
 }
+  
 
 export async function deleteGroceryListItem(grocerylist_id: string, item_id: string) {
     try {

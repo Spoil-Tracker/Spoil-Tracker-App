@@ -223,41 +223,66 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
-    // Mutation to add a GroceryListItem to the grocery_list_items array.
+
     @Mutation(() => Boolean)
     async addGroceryListItem(
-    @Arg("grocerylist_id") grocerylist_id: string,
-    @Arg("food_global_id") food_global_id: string,
-    @Arg("food_name") food_name: string
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("account_id") account_id: string,
+        @Arg("food_global_id") food_global_id: string,
+        @Arg("food_name") food_name: string
     ): Promise<boolean> {
-    // Check that the FoodGlobal item exists
-    const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
-    if (!foodGlobalDoc.exists) {
-        throw new Error(`FoodGlobal with id ${food_global_id} does not exist.`);
+        let foodData: FoodGlobal | undefined;
+
+        // Check in the global collection first.
+        const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
+        if (foodGlobalDoc.exists) {
+            foodData = foodGlobalDoc.data() as FoodGlobal;
+        } else {
+            // Fall back to the account's custom items.
+            const accountDoc = await db.collection(COLLECTIONS.ACCOUNT).doc(account_id).get();
+            if (accountDoc.exists) {
+            const accountData = accountDoc.data() as Account;
+            foodData = accountData.custom_items.find(item => item.id === food_global_id);
+            }
+        }
+
+        if (!foodData) {
+            throw new Error(`Food item with id ${food_global_id} does not exist in either global or custom items.`);
+        }
+
+        // Generate a unique ID for the new GroceryListItem.
+        const newItemId = db.collection(COLLECTIONS.GROCERYLIST).doc().id;
+
+        const newItem: GroceryListItem = {
+            id: newItemId,
+            food_name,
+            food_global_id,
+            measurement: 'unit', // Default measurement; adjust as needed
+            quantity: 1,
+            isBought: false,
+            description: foodData.description ?? "No description available",
+            imageUrl: foodData.food_picture_url ?? "",
+        };
+
+        // Log newItem for debugging purposes.
+        console.log("New GroceryListItem:", newItem);
+
+        // Ensure the grocery list document exists.
+        const groceryListRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const groceryListDoc = await groceryListRef.get();
+        if (!groceryListDoc.exists) {
+            throw new Error(`Grocery list document with id ${grocerylist_id} does not exist.`);
+        }
+
+        // Add the new item to the grocery list using admin.firestore.FieldValue.arrayUnion.
+        await groceryListRef.update({
+            grocery_list_items: admin.firestore.FieldValue.arrayUnion(newItem)
+        });
+
+        return true;
     }
-    const foodGlobalData = foodGlobalDoc.data() as FoodGlobal;
-    
-    // Generate a unique ID for the new GroceryListItem.
-    const newItemId = db.collection(COLLECTIONS.GROCERYLIST).doc().id;
 
-    const newItem: GroceryListItem = {
-        id: newItemId,
-        food_name,
-        food_global_id,
-        measurement: 'unit', // Default measurement; adjust as needed
-        quantity: 1,
-        isBought: false,
-        description: foodGlobalData.description ?? "No description available",
-        imageUrl: foodGlobalData.food_picture_url ?? "",
-    };
 
-    // Add the new item using arrayUnion
-    await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({
-        grocery_list_items: admin.firestore.FieldValue.arrayUnion(newItem)
-    });
-
-    return true;
-    }
 
     @Mutation(() => Boolean)
     async deleteGroceryListItem(

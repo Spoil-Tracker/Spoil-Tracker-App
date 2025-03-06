@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useWindowDimensions, Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity, Platform } from 'react-native';
+import { useWindowDimensions, Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { AntDesign } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { useNavigation } from 'expo-router';
@@ -19,7 +19,9 @@ import {
   updateGroceryListItemIsBought
 } from '@/components/GroceryList/GroceryListService';
 import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPDF, exportGroceryListToPDFWeb } from '@/components/ExportService';
-import ProductPage from '@/app/(LoggedIn)/FoodUI';
+import ProductPage from '@/components/Food/FoodUI';
+import { useAuth } from '@/services/authContext';
+import { getAccountByOwnerID } from '@/components/Account/AccountService';
 
   // list used for the dropdown located with each grocery list item in the flatlist
   const FOOD_UNITS = [
@@ -60,6 +62,9 @@ const GroceryList = () => {
   const [productModalVisible, setProductModalVisible] = useState(false);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const { user } = useAuth();
+  
 
 
   const formatDate = (isoString: string) => {
@@ -75,29 +80,40 @@ const GroceryList = () => {
     };
 
     const fetchGroceryList = async () => {
-        try {
-          
-          const snapshot = await fetchGroceryListByID(local.id as string);    
-          // if a grocery list with the id specified by the local param exists
-          if (snapshot) {
-            setItems(snapshot.grocery_list_items);
-            setFilteredItems(snapshot.grocery_list_items);
-            setGroceryListTitle(snapshot.grocerylist_name || 'Untitled List');
-            setGroceryListDate(snapshot.createdAt ? formatDate(snapshot.createdAt) : 'Unknown Date');
-            setGroceryListDescription(snapshot.description || '');
-            setGroceryListCompletion(snapshot.isComplete || false);
-            console.log('Fetched grocery list:', snapshot);
-          }
-        } catch (error) {
-          console.error('Error fetching grocery list data:', error);
+      try {
+        
+        const snapshot = await fetchGroceryListByID(local.id as string);    
+        // if a grocery list with the id specified by the local param exists
+        if (snapshot) {
+          setItems(snapshot.grocery_list_items);
+          setFilteredItems(snapshot.grocery_list_items);
+          setGroceryListTitle(snapshot.grocerylist_name || 'Untitled List');
+          setGroceryListDate(snapshot.createdAt ? formatDate(snapshot.createdAt) : 'Unknown Date');
+          setGroceryListDescription(snapshot.description || '');
+          setGroceryListCompletion(snapshot.isComplete || false);
+          console.log('Fetched grocery list:', snapshot);
         }
-      };
-
+      } catch (error) {
+        console.error('Error fetching grocery list data:', error);
+      }
+    };
     
+    const fetchAccountId = async () => {
+      if (user) {
+        const account = await getAccountByOwnerID(user.uid);
+        setAccountId(account.id);
+      }
+    };
+
+    fetchAccountId();
     fetchGroceryList();
     Dimensions.addEventListener('change', onChange);
 
-  }, [groceryListId]);
+  }, [groceryListId, user]);
+
+  if (!accountId) {
+    return <ActivityIndicator size="large" color="blue" />;
+  }
 
   // handler for when a user chooses to delete the list, called after user presses the delete button
   const handleDeleteList = async () => {
@@ -117,7 +133,7 @@ const GroceryList = () => {
     if (!customName) return;
     const newItem = generateCustomItem();
     try {
-      const success = await addGroceryListItem(groceryListId, newItem.food_global_id, newItem.food_name);
+      const success = await addGroceryListItem(groceryListId, accountId, newItem.food_global_id, newItem.food_name);
       if (success) {
         const snapshot = await fetchGroceryListByID(groceryListId);
         if (snapshot) {
@@ -505,12 +521,14 @@ const GroceryList = () => {
 
           <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
             
-          <FoodDropdownComponent onValueChange={setSelectedFood} />
+          <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
           <Pressable
             style={[styles.sidebarButton, styles.transferButton]}
             onPress={async () => {
               if (selectedFood) {
-                await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
                 const newFood = await fetchGroceryListByID(groceryListId);
                 if(newFood){
                   setItems(newFood.grocery_list_items);
@@ -597,12 +615,14 @@ const GroceryList = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Item</Text>
-            <FoodDropdownComponent onValueChange={setSelectedFood} />
+            <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
             <Pressable 
               style={styles.modalButton}
               onPress={async () => {
                 if (selectedFood) {
-                  await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                  await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
                   const newFood = await fetchGroceryListByID(groceryListId);
                   if(newFood){
                     setItems(newFood.grocery_list_items);
@@ -617,40 +637,9 @@ const GroceryList = () => {
             }}>
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
-            <View
-              style={{
-                borderBottomColor: 'white',
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                alignSelf: 'stretch',
-                marginBottom: 10
-              }}
-            />
-            <Pressable onPress={toggleDropdown} style={styles.modalButton}>
-              <Text style={styles.buttonText}>Add Custom Item</Text>
-            </Pressable>
-            {/* Animated dropdown */}
-            <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
-              {/* Conditionally hide the content based on dropdown visibility */}
-              <View>
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter name"
-                  value={customName}
-                  onChangeText={setCustomName} // setName should be defined with useState
-                />
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter description"
-                  value={customDescription}
-                  onChangeText={setCustomDescription} // setDescription should be defined with useState
-                />
-                <Pressable onPress={addCustomItem} style={styles.modalButton}>
-                    <Text style={styles.buttonText}>Submit</Text>
-                </Pressable>
-              </View>
-            </Animated.View>
-
-            <Pressable style={styles.modalButton} onPress={closeModal}>
+            <Pressable 
+              style={styles.modalButton}
+              onPress={closeModal}>
               <Text style={styles.buttonText}>Close</Text>
             </Pressable>
           </View>
@@ -758,12 +747,14 @@ const GroceryList = () => {
           />
           <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
             
-          <FoodDropdownComponent onValueChange={setSelectedFood} />
+          <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
           <Pressable
             style={[styles.sidebarButton, styles.transferButton]}
             onPress={async () => {
               if (selectedFood) {
-                await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
                 const newFood = await fetchGroceryListByID(groceryListId);
                 if(newFood){
                   setItems(newFood.grocery_list_items);
@@ -853,12 +844,14 @@ const GroceryList = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Item</Text>
-            <FoodDropdownComponent onValueChange={setSelectedFood} />
+            <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
             <Pressable 
               style={styles.modalButton}
               onPress={async () => {
                 if (selectedFood) {
-                  await addGroceryListItem(groceryListId, selectedFood.value, selectedFood.label);
+                  await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
                   const newFood = await fetchGroceryListByID(groceryListId);
                   if(newFood){
                     setItems(newFood.grocery_list_items);
@@ -873,39 +866,6 @@ const GroceryList = () => {
             }}>
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
-            <View
-              style={{
-                borderBottomColor: 'white',
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                alignSelf: 'stretch',
-                marginBottom: 10
-              }}
-            />
-            <Pressable onPress={toggleDropdown} style={styles.modalButton}>
-              <Text style={styles.buttonText}>Add Custom Item</Text>
-            </Pressable>
-            {/* Animated dropdown */}
-            <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
-              {/* Conditionally hide the content based on dropdown visibility */}
-              <View>
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter name"
-                  value={customName}
-                  onChangeText={setCustomName} // setName should be defined with useState
-                />
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter description"
-                  value={customDescription}
-                  onChangeText={setCustomDescription} // setDescription should be defined with useState
-                />
-                <Pressable onPress={addCustomItem} style={styles.modalButton}>
-                    <Text style={styles.buttonText}>Submit</Text>
-                </Pressable>
-              </View>
-            </Animated.View>
-
             <Pressable style={styles.modalButton} onPress={closeModal}>
               <Text style={styles.buttonText}>Close</Text>
             </Pressable>

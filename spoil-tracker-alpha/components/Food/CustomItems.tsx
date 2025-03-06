@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, FlatList, Pressable, StyleSheet, Image, Animated } from 'react-native';
 import { FoodGlobal } from '@/components/Food/FoodGlobalService'; 
 
 interface CustomItemsMenuProps {
@@ -9,9 +9,31 @@ interface CustomItemsMenuProps {
 
 const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({ customItems, title = "Custom Items" }) => {
   const [expanded, setExpanded] = useState(false);
+  // Create an animated value that will control the dropdown animation.
+  const animation = useRef(new Animated.Value(0)).current;
 
   const toggleDropdown = () => {
     setExpanded(prev => !prev);
+  };
+
+  // Animate the dropdown whenever the expanded state changes.
+  useEffect(() => {
+    Animated.timing(animation, {
+      toValue: expanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [expanded, animation]);
+
+  // Interpolate the animated value for opacity and a slight vertical slide.
+  const dropdownStyle = {
+    opacity: animation,
+    transform: [{
+      translateY: animation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-10, 0],
+      })
+    }]
   };
 
   const renderItem = ({ item }: { item: FoodGlobal }) => (
@@ -32,7 +54,7 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({ customItems, title = 
       <Pressable onPress={toggleDropdown} style={styles.header}>
         <Text style={styles.headerText}>{title}</Text>
       </Pressable>
-      {expanded && (
+      <Animated.View style={[styles.dropdown, dropdownStyle]}>
         <FlatList
           data={customItems}
           renderItem={renderItem}
@@ -40,7 +62,7 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({ customItems, title = 
           horizontal
           contentContainerStyle={styles.listContainer}
         />
-      )}
+      </Animated.View>
     </View>
   );
 };
@@ -50,17 +72,20 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   header: {
-    backgroundColor: '#e2e6ea',
+    backgroundColor: '#f3e5f5', // light lavender background
     padding: 12,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#007bff',
+    borderColor: '#8e44ad', // purple border
   },
   headerText: {
     fontSize: 18,
-    color: '#007bff',
-    fontWeight: 'bold',
+    color: '#8e44ad', // purple text
+    fontFamily: 'inter-bold',
     textAlign: 'center',
+  },
+  dropdown: {
+    overflow: 'hidden', // ensures the animated view clips its content during the animation
   },
   listContainer: {
     marginTop: 10,

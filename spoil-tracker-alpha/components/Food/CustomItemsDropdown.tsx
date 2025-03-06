@@ -9,13 +9,13 @@ interface FoodDropdownOption {
   value: string;
 }
 
-interface FoodDropdownProps {
+interface CustomDropdownProps {
   accountId: string;
   // Callback receives the entire selected item (or null if nothing selected)
   onValueChange: (selectedItem: FoodDropdownOption | null) => void;
 }
 
-const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ accountId, onValueChange }) => {
+const CustomDropdownComponent: React.FC<CustomDropdownProps> = ({ accountId, onValueChange }) => {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
   const [isFocus, setIsFocus] = useState(false);
   const [data, setData] = useState<FoodDropdownOption[]>([]);
@@ -98,7 +98,7 @@ const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ accountId, onValue
   );
 };
 
-export default FoodDropdownComponent;
+export default CustomDropdownComponent;
 
 const styles = StyleSheet.create({
   container: {

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { getAllFoodGlobal } from '@/components/Food/FoodGlobalService'; // adjust path as needed
+import { getCustomItemsFromAccount } from '@/components/Account/AccountService'; // adjust path as needed
 
 interface FoodDropdownOption {
   label: string;
@@ -10,11 +11,12 @@ interface FoodDropdownOption {
 }
 
 interface FoodDropdownProps {
+  accountId: string;
   // Callback receives the entire selected item (or null if nothing selected)
   onValueChange: (selectedItem: FoodDropdownOption | null) => void;
 }
 
-const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ onValueChange }) => {
+const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ accountId, onValueChange }) => {
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
   const [isFocus, setIsFocus] = useState(false);
   const [data, setData] = useState<FoodDropdownOption[]>([]);
@@ -23,9 +25,15 @@ const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ onValueChange }) =
   useEffect(() => {
     const fetchFoodData = async () => {
       try {
-        const foods = await getAllFoodGlobal();
+        // Fetch both global foods and account custom items concurrently
+        const [globalFoods, customFoods] = await Promise.all([
+          getAllFoodGlobal(),
+          getCustomItemsFromAccount(accountId),
+        ]);
+        // Merge the two arrays
+        const allFoods = [...globalFoods, ...customFoods];
         // Map the fetched food items to the dropdown format.
-        const mappedFoods = foods.map((food: any) => ({
+        const mappedFoods = allFoods.map((food: any) => ({
           label: food.food_name,
           value: food.id,
         }));
@@ -38,7 +46,7 @@ const FoodDropdownComponent: React.FC<FoodDropdownProps> = ({ onValueChange }) =
     };
 
     fetchFoodData();
-  }, []);
+  }, [accountId]);
 
   const renderLabel = () => {
     if (selectedValue || isFocus) {
