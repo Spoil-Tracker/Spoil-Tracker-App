@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     width: 2,
     backgroundColor: '#4CAE4F',
     marginHorizontal: 15,
-    height: '100%',
+    alignSelf: 'stretch',
   },
 
   formGroup: {
