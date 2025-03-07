@@ -1,5 +1,3 @@
-This is Cong's part of the project
-
 # Getting Started
 
 The following build is a demo build for the Initial Programming segment of our project. A lot of it does not represent what we think should be the final product of our application. With that said, the build was made with the purpose of demonstrating our idea, how it works, and showing it works as an application through pre-existing frameworks.

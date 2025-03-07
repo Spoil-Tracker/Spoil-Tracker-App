@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
+import {
+  Animated,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  SafeAreaView,
+  Pressable,
+  Image,
+  Dimensions,
+  TextInput,
+  ScrollView,
+  Modal,
+  TouchableOpacity,
+} from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -10,104 +24,156 @@ import { Picker } from '@react-native-picker/picker';
 import { v4 as uuidv4 } from 'uuid';
 import FoodDropdownComponent from '../../components/FoodDropdown';
 import { log } from 'console';
-
-
+import { Rating } from 'react-native-ratings'; // imports ability to rate items contributed by Kevin
+import { useTheme } from 'react-native-paper'; // allows for dark mode contributed by Kevin
 
 // Mock data to simulate Firestore documents
-  const foodItems = [
-    { title: 'Apples', description: 'Fresh and juicy apples', imageUrl: 'https://via.placeholder.com/100?text=Apples' },
-    { title: 'Bananas', description: 'Sweet and ripe bananas', imageUrl: 'https://via.placeholder.com/100?text=Bananas' },
-    { title: 'Carrots', description: 'Crunchy and nutritious carrots', imageUrl: 'https://via.placeholder.com/100?text=Carrots' },
-    { title: 'Milk', description: 'Cold and fresh milk', imageUrl: 'https://via.placeholder.com/100?text=Milk' },
-    { title: 'Eggs', description: 'Organic farm-fresh eggs', imageUrl: 'https://via.placeholder.com/100?text=Eggs' },
-    { title: 'Bread', description: 'Freshly baked bread', imageUrl: 'https://via.placeholder.com/100?text=Bread' },
-    { title: 'Cheese', description: 'A variety of cheeses', imageUrl: 'https://via.placeholder.com/100?text=Cheese' },
-    { title: 'Chicken', description: 'Farm-raised chicken', imageUrl: 'https://via.placeholder.com/100?text=Chicken' },
-    { title: 'Fish', description: 'Fresh fish from the ocean', imageUrl: 'https://via.placeholder.com/100?text=Fish' },
-    { title: 'Potatoes', description: 'Perfect for any meal', imageUrl: 'https://via.placeholder.com/100?text=Potatoes' },
-  ];
+const foodItems = [
+  {
+    title: 'Apples',
+    description: 'Fresh and juicy apples',
+    imageUrl: 'https://via.placeholder.com/100?text=Apples',
+  },
+  {
+    title: 'Bananas',
+    description: 'Sweet and ripe bananas',
+    imageUrl: 'https://via.placeholder.com/100?text=Bananas',
+  },
+  {
+    title: 'Carrots',
+    description: 'Crunchy and nutritious carrots',
+    imageUrl: 'https://via.placeholder.com/100?text=Carrots',
+  },
+  {
+    title: 'Milk',
+    description: 'Cold and fresh milk',
+    imageUrl: 'https://via.placeholder.com/100?text=Milk',
+  },
+  {
+    title: 'Eggs',
+    description: 'Organic farm-fresh eggs',
+    imageUrl: 'https://via.placeholder.com/100?text=Eggs',
+  },
+  {
+    title: 'Bread',
+    description: 'Freshly baked bread',
+    imageUrl: 'https://via.placeholder.com/100?text=Bread',
+  },
+  {
+    title: 'Cheese',
+    description: 'A variety of cheeses',
+    imageUrl: 'https://via.placeholder.com/100?text=Cheese',
+  },
+  {
+    title: 'Chicken',
+    description: 'Farm-raised chicken',
+    imageUrl: 'https://via.placeholder.com/100?text=Chicken',
+  },
+  {
+    title: 'Fish',
+    description: 'Fresh fish from the ocean',
+    imageUrl: 'https://via.placeholder.com/100?text=Fish',
+  },
+  {
+    title: 'Potatoes',
+    description: 'Perfect for any meal',
+    imageUrl: 'https://via.placeholder.com/100?text=Potatoes',
+  },
+];
 
-  const FOOD_UNITS = [
-    { label: 'mg', value: 'mg' },
-    { label: 'g', value: 'g' },
-    { label: 'kg', value: 'kg' },
-    { label: 'lb', value: 'lb' },
-    { label: 'L', value: 'L' },
-    { label: 'mL', value: 'mL' },
-    { label: 'unit', value: 'unit' }
-  ];
+// list used for the dropdown located with each grocery list item in the flatlist
+const FOOD_UNITS = [
+  { label: 'mg', value: 'mg' },
+  { label: 'g', value: 'g' },
+  { label: 'kg', value: 'kg' },
+  { label: 'lb', value: 'lb' },
+  { label: 'L', value: 'L' },
+  { label: 'mL', value: 'mL' },
+  { label: 'unit', value: 'unit' },
+];
 
 type ListItem = {
-    id: string,
-    title: string;
-    description: string;
-    quantity: number;
-    measurement: string;
-    complete: boolean;
-    imageUrl: string;
-}
+  id: string;
+  title: string;
+  description: string;
+  quantity: number;
+  measurement: string;
+  complete: boolean;
+  imageUrl: string;
+};
 
 const GroceryList = () => {
-  const [items, setItems] = useState<ListItem[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
+  const [items, setItems] = useState<ListItem[]>([]); // List of grocery items
+  const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
+  const [screenWidth, setScreenWidth] = useState(
+    Dimensions.get('window').width
+  ); // Store screen width
   const [searchText, setSearchText] = useState(''); // Search text state
-  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state
-  const [groceryListTitle, setGroceryListTitle] = useState('');
-  const [groceryListDate, setGroceryListDate] = useState('');
-  const [groceryListDescription, setGroceryListDescription] = useState('');
-  const [groceryListCompletion, setGroceryListCompletion] = useState<boolean>(false);
-  const [scaleAnim] = useState(new Animated.Value(1));
-  const local = useLocalSearchParams();
-  const docRef = doc(db, 'grocery_lists', local.id as string);
-  const [sortModalVisible, setSortModalVisible] = useState(false);
-  const [dropdownVisible, setDropdownVisible] = useState(false);
-  const dropdownHeight = useRef(new Animated.Value(0)).current;
-  const [customName, setCustomName] = useState('');
-  const [customDescription, setCustomDescription] = useState('');
+  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state, hook used whenever the Sort By button is used or user searches through text input
+  const [groceryListTitle, setGroceryListTitle] = useState(''); // Grocery list title
+  const [groceryListDate, setGroceryListDate] = useState(''); // Grocery list creation date
+  const [groceryListDescription, setGroceryListDescription] = useState(''); // Grocery list description
+  const [groceryListCompletion, setGroceryListCompletion] =
+    useState<boolean>(false); // Grocery List Completion status
+  const [scaleAnim] = useState(new Animated.Value(1)); // Animation state, for resizing and re-organizing the UI whenever the user changes screen size
+  const local = useLocalSearchParams(); // Retrieve parameters from route, for docRef local.id below
+  const docRef = doc(db, 'grocery_lists', local.id as string); // Reference to Firestore document in the grocery_list collection, uses the id fed by the previous list main menu
+  const [sortModalVisible, setSortModalVisible] = useState(false); // Modal visibility state
+  const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown visibility state, used in the add item modal UI
+  const dropdownHeight = useRef(new Animated.Value(0)).current; // Dropdown animation height, used in the add item modal UI
+  const [customName, setCustomName] = useState(''); // Custom item name, used in the add item modal UI for when a user wants to add a custom item
+  const [customDescription, setCustomDescription] = useState(''); // Custom item description, used in the add item modal UI for when a user wants to add a custom item
+  const { colors } = useTheme(); // allows for dark mode contributed by Kevin
 
+  // Effect hook to fetch grocery list data and handle screen resizing
   useEffect(() => {
     const onChange = () => {
       setScreenWidth(Dimensions.get('window').width);
     };
 
     const fetchGroceryList = async () => {
-        try {
-          
-          const snapshot = await getDoc(docRef);
-    
-          if (snapshot.exists()) {
-            const data = snapshot.data();
-            const itemsFromFirestore: ListItem[] = data?.items || [];
-            
-            const formatDate = (isoString: string) => {
-              const date = new Date(isoString);
-              return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-            };
+      try {
+        const snapshot = await getDoc(docRef);
 
-            setItems(itemsFromFirestore);
-            setFilteredItems(itemsFromFirestore); // Load items into filteredItems
-            setGroceryListTitle(data.name || 'Untitled List');
-            setGroceryListDate(data.created ? formatDate(data.created) : 'Unknown Date');
-            setGroceryListDescription(data.description || ''); // Load description from Firestore
-            setGroceryListCompletion(data.completed || false);
-            console.log('Fetched grocery list:', data);
-          } else {
-            console.log('No such document!');
-          }
-        } catch (error) {
-          console.error('Error fetching grocery list data:', error);
+        // if a grocery list with the id specified by the local param exists
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          const itemsFromFirestore: ListItem[] = data?.items || [];
+
+          // dates are formatted differently between expo native and firebase, so we reformat it into something readable here
+          const formatDate = (isoString: string) => {
+            const date = new Date(isoString);
+            return date.toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            });
+          };
+
+          setItems(itemsFromFirestore);
+          setFilteredItems(itemsFromFirestore); // Load items into filteredItems
+          setGroceryListTitle(data.name || 'Untitled List');
+          setGroceryListDate(
+            data.created ? formatDate(data.created) : 'Unknown Date'
+          );
+          setGroceryListDescription(data.description || ''); // Load description from Firestore
+          setGroceryListCompletion(data.completed || false);
+          console.log('Fetched grocery list:', data);
+        } else {
+          console.log('No such document!');
         }
-      };
-
+      } catch (error) {
+        console.error('Error fetching grocery list data:', error);
+      }
+    };
 
     fetchGroceryList();
     Dimensions.addEventListener('change', onChange);
-
   }, [local.id]);
 
-  const navigation = useNavigation();
+  const navigation = useNavigation(); // Navigation hook, allows for a back button on the top left of the header
 
+  // handler for when a user chooses to delete the list, called after user presses the delete button
   const handleDeleteList = async () => {
     try {
       await deleteDoc(docRef);
@@ -120,6 +186,8 @@ const GroceryList = () => {
     }
   };
 
+  // Function to add a custom item to the list
+  // used whenever user opens up the FAB modal and then inputs a custom name and description for an item
   const addCustomItem = async () => {
     if (!customName || !customDescription) {
       return; // Exit the function early if any field is empty
@@ -131,12 +199,12 @@ const GroceryList = () => {
       if (snapshot.exists()) {
         const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
         const updatedItems = [...currentItems, newItem]; // Add the new random item
-  
+
         // Update Firestore
         await updateDoc(docRef, {
           items: updatedItems,
         });
-  
+
         // Update local state to reflect the new addition
         setItems(updatedItems);
         setFilteredItems(updatedItems);
@@ -151,6 +219,8 @@ const GroceryList = () => {
     }
   };
 
+  // Function to generate a random item
+  // addRandomItem uses this to generate a grocery list item object
   const generateRandomItem = (): ListItem => {
     const randomIndex = Math.floor(Math.random() * foodItems.length);
     const randomFood = foodItems[randomIndex];
@@ -166,6 +236,8 @@ const GroceryList = () => {
     };
   };
 
+  // Function to generate a custom item
+  // addCustomItem uses this to generate a grocery list item object
   const generateCustomItem = (): ListItem => {
     const cTitle = customName;
     const cDesc = customDescription;
@@ -178,25 +250,27 @@ const GroceryList = () => {
       quantity: 1,
       measurement: 'unit',
       complete: false,
-      imageUrl: 'https://www.placekittens.com/100/100'
-    }
+      imageUrl: 'https://www.placekittens.com/100/100',
+    };
   };
 
+  // Function to generate a random item
+  // placeholder for now until we have a food database running
+  // used whenever user opens up the FAB modal and then presses the add item button
   const addRandomItem = async () => {
     const newItem = generateRandomItem();
     try {
-  
       // Fetch current document
       const snapshot = await getDoc(docRef);
       if (snapshot.exists()) {
         const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
         const updatedItems = [...currentItems, newItem]; // Add the new random item
-  
+
         // Update Firestore
         await updateDoc(docRef, {
           items: updatedItems,
         });
-  
+
         // Update local state to reflect the new addition
         setItems(updatedItems);
         setFilteredItems(updatedItems);
@@ -211,21 +285,30 @@ const GroceryList = () => {
     }
   };
 
+  // Function called whenever user presses the mark as complete/incomplete button in the List UI
   const toggleCompletion = async () => {
     try {
       await updateDoc(docRef, {
         completed: !groceryListCompletion, // Toggle between true/false
       });
       setGroceryListCompletion(!groceryListCompletion); // Update local state to reflect the change
-      console.log(groceryListCompletion ? 'Marked as incomplete in Firestore' : 'Marked as done in Firestore');
-      alert(groceryListCompletion ? 'Grocery list marked as incomplete!' : 'Grocery list marked as completed!');
+      console.log(
+        groceryListCompletion
+          ? 'Marked as incomplete in Firestore'
+          : 'Marked as done in Firestore'
+      );
+      alert(
+        groceryListCompletion
+          ? 'Grocery list marked as incomplete!'
+          : 'Grocery list marked as completed!'
+      );
     } catch (error) {
       console.error('Error toggling completion:', error);
       alert('Failed to toggle completion.');
     }
   };
-  
 
+  // Function called whenever the user onBlurs (i believe) the description text field
   const onDescriptionChange = async (text: string) => {
     setGroceryListDescription(text);
     try {
@@ -237,6 +320,7 @@ const GroceryList = () => {
       console.error('Error updating description:', error);
     }
   };
+
   // Function to filter items based on the search text
   const filterItems = (text: string) => {
     setSearchText(text);
@@ -244,15 +328,15 @@ const GroceryList = () => {
     if (text.trim() === '') {
       setFilteredItems(items);
     } else {
-      const filtered = items.filter(item =>
-        item.title.toLowerCase().includes(text.toLowerCase()) ||
-        item.description.toLowerCase().includes(text.toLowerCase())
+      const filtered = items.filter(
+        (item) =>
+          item.title.toLowerCase().includes(text.toLowerCase()) ||
+          item.description.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredItems(filtered);
     }
-
   };
-
+  // Function to handle the floating blue button being pressed and animate
   const onFABPress = async () => {
     // Animate FAB when clicked
     Animated.sequence([
@@ -274,17 +358,27 @@ const GroceryList = () => {
   const closeModal = () => {
     setModalVisible(false); // Close modal
   };
-  
 
-  // Render each item in the list
+  /**
+   render each item in the list
+   used for the items in the flatlist that renders all of the grocery list items
+   includes all the UI elements for one item cell
+  */
   const renderItem = ({ item }: { item: ListItem }) => {
+    /**
+     toggles the completion status of the current item
+     updates the Firestore document and local state accordingly
+     */
     const toggleCompleteStatus = async () => {
       try {
-        const updatedItems = items.map(i =>
+        // Create a new array with the item's completion status toggled
+        const updatedItems = items.map((i) =>
           i.id === item.id ? { ...i, complete: !i.complete } : i
         );
-  
+        // Update Firestore document
         await updateDoc(docRef, { items: updatedItems });
+
+        // Update local state
         setItems(updatedItems);
         setFilteredItems(updatedItems);
       } catch (error) {
@@ -292,11 +386,15 @@ const GroceryList = () => {
         alert('Failed to toggle status');
       }
     };
-  
+
+    /**
+     deletes the current item from the list
+     updates Firestore and local state
+     */
     const deleteItem = async () => {
       try {
-        const updatedItems = items.filter(i => i.id !== item.id);
-  
+        const updatedItems = items.filter((i) => i.id !== item.id);
+
         await updateDoc(docRef, { items: updatedItems });
         setItems(updatedItems);
         setFilteredItems(updatedItems);
@@ -306,18 +404,23 @@ const GroceryList = () => {
         alert('Failed to delete item');
       }
     };
-  
+
+    /**
+     updates the quantity of the current item.
+     ensures the input is a valid number before updating Firestore and state.
+     @param {string} value - The new quantity value as a string input.
+     */
     const handleQuantityChange = async (value: string) => {
       const numericQuantity = value.trim() === '' ? 0 : parseInt(value, 10);
-  
+
       if (isNaN(numericQuantity)) {
         return;
       }
-  
-      const updatedItems = items.map(i =>
+
+      const updatedItems = items.map((i) =>
         i.id === item.id ? { ...i, quantity: numericQuantity } : i
       );
-  
+
       try {
         await updateDoc(docRef, { items: updatedItems });
         setItems(updatedItems);
@@ -326,11 +429,15 @@ const GroceryList = () => {
       }
     };
 
+    /**
+     updates the measurement unit of the current item.
+     @param {string} measure - The new measurement unit.
+     */
     const handleUnitChange = async (measure: string) => {
-      const updatedItems = items.map(i =>
+      const updatedItems = items.map((i) =>
         i.id === item.id ? { ...i, measurement: measure } : i
       );
-  
+
       try {
         await updateDoc(docRef, { items: updatedItems });
         setItems(updatedItems);
@@ -339,8 +446,30 @@ const GroceryList = () => {
       }
     };
 
+    {
+      /* Allows users to give a 5 star rating to their items CONTRIBUTED BY KEVIN */
+    }
+    const handleRatingChange = async (rating: number) => {
+      const updatedItems = items.map((i) =>
+        i.id === item.id ? { ...i, rating } : i
+      );
+
+      try {
+        await updateDoc(docRef, { items: updatedItems });
+        setItems(updatedItems);
+      } catch (error) {
+        console.error('Error updating rating:', error);
+      }
+    };
+
+    // the rest of the code below is standard UI components using react native's framework + basic css
     return (
-      <View style={[styles.unit, item.complete ? styles.completedItem : styles.incompleteItem]}>
+      <View
+        style={[
+          styles.unit,
+          item.complete ? styles.completedItem : styles.incompleteItem,
+        ]}
+      >
         <View style={styles.textContainer}>
           <Text style={styles.unitTitle}>{item.title}</Text>
           <Text style={styles.unitDescription}>{item.description}</Text>
@@ -363,19 +492,34 @@ const GroceryList = () => {
               itemContainerStyle={styles.measurementContainer}
               itemTextStyle={styles.measurementText}
             />
-            <Pressable style={[styles.itemButton, item.complete ? styles.completeButton: styles.incompleteButton]} onPress={toggleCompleteStatus}>
-              <Text style={styles.itemButtonText}>{item.complete ? 'X' : '✔'}</Text>
+            <Pressable
+              style={[
+                styles.itemButton,
+                item.complete ? styles.completeButton : styles.incompleteButton,
+              ]}
+              onPress={toggleCompleteStatus}
+            >
+              <Text style={styles.itemButtonText}>
+                {item.complete ? 'X' : '✔'}
+              </Text>
             </Pressable>
             <Pressable style={styles.minusButton} onPress={deleteItem}>
               <Text style={styles.minusButtonText}>-</Text>
             </Pressable>
           </View>
+          {/* allows for ratings contributed by Kevin */}
+          <Rating
+            startingValue={item.rating || 0} // Default to 0 if no rating exists
+            imageSize={20} // Adjust star size
+            onFinishRating={handleRatingChange}
+            style={{ marginTop: 10, alignSelf: 'flex-start' }}
+          />
         </View>
         <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
       </View>
     );
-  }
-  
+  };
+
   const smallScreen = screenWidth < 690;
   const numColumns = screenWidth < 1090 ? 1 : 2;
 
@@ -390,7 +534,7 @@ const GroceryList = () => {
 
   const sortItems = (text: string) => {
     let sorted = [...items];
-  
+
     if (text === 'alphabetical') {
       sorted.sort((a, b) => a.title.localeCompare(b.title));
     } else if (text === 'quantity') {
@@ -398,23 +542,38 @@ const GroceryList = () => {
     } else if (text === 'completed') {
       sorted.sort((a, b) => Number(b.complete) - Number(a.complete));
     }
-    const newFilteredItems = searchText.trim() === '' 
-      ? sorted 
-      : sorted.filter(item =>
-          item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.description.toLowerCase().includes(searchText.toLowerCase())
-        );
+    const newFilteredItems =
+      searchText.trim() === ''
+        ? sorted
+        : sorted.filter(
+            (item) =>
+              item.title.toLowerCase().includes(searchText.toLowerCase()) ||
+              item.description.toLowerCase().includes(searchText.toLowerCase())
+          );
 
     setItems(sorted);
     setFilteredItems(newFilteredItems);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    // allows for dark mode, contributed by Kevin
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={[styles.mainContent, { flexDirection: smallScreen ? 'column' : 'row' }]}>
+        <View
+          style={[
+            styles.mainContent,
+            { flexDirection: smallScreen ? 'column' : 'row' },
+          ]}
+        >
           {/* Left column (fixed position) */}
-          <View style={[styles.fixedLeftColumn, {maxWidth : smallScreen ? screenWidth : 300}]}>
+          <View
+            style={[
+              styles.fixedLeftColumn,
+              { maxWidth: smallScreen ? screenWidth : 300 },
+            ]}
+          >
             <TextInput
               style={styles.searchInput}
               placeholder="Search items..."
@@ -425,7 +584,9 @@ const GroceryList = () => {
             {/* Box with text */}
             <View style={styles.textBox}>
               <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
-              <Text style={styles.textBoxContent}>Created: {groceryListDate}</Text>
+              <Text style={styles.textBoxContent}>
+                Created: {groceryListDate}
+              </Text>
             </View>
 
             {/* Large Text Input below the text box */}
@@ -439,17 +600,30 @@ const GroceryList = () => {
 
             {/* Buttons below the text input */}
             <View style={styles.buttonsContainer}>
-            <Pressable style={styles.markAsDoneButton} onPress={toggleCompletion}>
-                <Text style={styles.buttonText}>{groceryListCompletion ? 'Mark as Incomplete' : 'Mark as Done'}</Text>
-            </Pressable>
-                <Pressable style={styles.deleteButton} onPress={handleDeleteList}>
+              <Pressable
+                style={styles.markAsDoneButton}
+                onPress={toggleCompletion}
+              >
+                <Text style={styles.buttonText}>
+                  {groceryListCompletion
+                    ? 'Mark as Incomplete'
+                    : 'Mark as Done'}
+                </Text>
+              </Pressable>
+              <Pressable style={styles.deleteButton} onPress={handleDeleteList}>
                 <Text style={styles.buttonText}>Delete</Text>
               </Pressable>
-              <Pressable style={styles.exportButton} onPress={() => alert('Export clicked!')}>
-              <Text style={styles.buttonText}>Export</Text>
+              <Pressable
+                style={styles.exportButton}
+                onPress={() => alert('Export clicked!')}
+              >
+                <Text style={styles.buttonText}>Export</Text>
               </Pressable>
-              <Pressable style={styles.sortByButton} onPress={() => setSortModalVisible(true)}>
-              <Text style={styles.buttonText}>Sort By</Text>
+              <Pressable
+                style={styles.sortByButton}
+                onPress={() => setSortModalVisible(true)}
+              >
+                <Text style={styles.buttonText}>Sort By</Text>
               </Pressable>
               <Modal
                 transparent={true}
@@ -460,30 +634,48 @@ const GroceryList = () => {
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Sort By</Text>
-                    <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
-                      <TouchableOpacity 
-                        style={[styles.sortByButton]} 
-                        onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
+                    <ScrollView
+                      contentContainerStyle={styles.scrollContainer}
+                      horizontal={smallScreen ? false : true}
+                    >
+                      <TouchableOpacity
+                        style={[styles.sortByButton]}
+                        onPress={() => {
+                          sortItems('alphabetical');
+                          setSortModalVisible(false);
+                        }}
+                      >
                         <Text style={styles.buttonText}>Alphabetical</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.sortByButton]} 
-                        onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
+                      <TouchableOpacity
+                        style={[styles.sortByButton]}
+                        onPress={() => {
+                          sortItems('quantity');
+                          setSortModalVisible(false);
+                        }}
+                      >
                         <Text style={styles.buttonText}>Quantity</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={[styles.sortByButton]} 
-                        onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
+                      <TouchableOpacity
+                        style={[styles.sortByButton]}
+                        onPress={() => {
+                          sortItems('completed');
+                          setSortModalVisible(false);
+                        }}
+                      >
                         <Text style={styles.buttonText}>Completed</Text>
                       </TouchableOpacity>
                     </ScrollView>
-                      <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
-                        <Text style={styles.closeButtonText}>Close</Text>
-                      </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={() => setSortModalVisible(false)}
+                    >
+                      <Text style={styles.closeButtonText}>Close</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </Modal>
-          </View>
+            </View>
           </View>
 
           {/* Right column (scrollable list) */}
@@ -494,20 +686,25 @@ const GroceryList = () => {
               keyExtractor={(item) => item.id}
               key={numColumns}
               numColumns={numColumns}
-              contentContainerStyle={[styles.listContent, { paddingBottom: 260 }]}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: 260 },
+              ]}
             />
           </View>
         </View>
       </ScrollView>
 
       {/* Floating plus button */}
-      <Animated.View style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}>
+      <Animated.View
+        style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}
+      >
         <Pressable onPress={onFABPress}>
           <AntDesign name="plus" size={24} color="white" />
         </Pressable>
-    </Animated.View>
+      </Animated.View>
 
-    <Modal
+      <Modal
         animationType="fade"
         transparent={true}
         visible={modalVisible}
@@ -516,12 +713,15 @@ const GroceryList = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Item</Text>
-            <FoodDropdownComponent/>
-            <Pressable style={styles.modalButton} onPress={() => {
-              // Add item to the list
-              addRandomItem();
-              closeModal();
-            }}>
+            <FoodDropdownComponent />
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => {
+                // Add item to the list
+                addRandomItem();
+                closeModal();
+              }}
+            >
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
             <View
@@ -529,14 +729,16 @@ const GroceryList = () => {
                 borderBottomColor: 'white',
                 borderBottomWidth: StyleSheet.hairlineWidth,
                 alignSelf: 'stretch',
-                marginBottom: 10
+                marginBottom: 10,
               }}
             />
             <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
               <Text style={styles.buttonText}>Add Custom Item</Text>
             </Pressable>
             {/* Animated dropdown */}
-            <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
+            <Animated.View
+              style={[styles.dropdown, { height: dropdownHeight }]}
+            >
               {/* Conditionally hide the content based on dropdown visibility */}
               <View>
                 <TextInput
@@ -552,7 +754,7 @@ const GroceryList = () => {
                   onChangeText={setCustomDescription} // setDescription should be defined with useState
                 />
                 <Pressable onPress={addCustomItem} style={styles.sortByButton}>
-                    <Text style={styles.buttonText}>Submit</Text>
+                  <Text style={styles.buttonText}>Submit</Text>
                 </Pressable>
               </View>
             </Animated.View>
@@ -570,7 +772,6 @@ const GroceryList = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF9F2',
   },
   scrollContainer: {
     flexGrow: 1, // Allow the scroll view to grow and fill the available space
@@ -587,7 +788,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 20,
     paddingBottom: 100,
-    paddingLeft: 5
+    paddingLeft: 5,
   },
   unit: {
     flex: 1,
@@ -630,7 +831,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderColor: 'white',
     borderWidth: 2,
-    backgroundColor: 'white'
+    backgroundColor: 'white',
   },
   floatingButton: {
     position: 'absolute',
@@ -711,7 +912,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   largeTextInput: {
-    height: 120,
+    height: 240,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
@@ -762,7 +963,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
-    textAlign: 'center'
+    textAlign: 'center',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -780,7 +981,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 10,
     textAlign: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
   },
   itemButton: {
     backgroundColor: '#007bff',
@@ -797,11 +998,11 @@ const styles = StyleSheet.create({
   },
   minusButton: {
     backgroundColor: '#dc3545', // Red background for the minus button
-    width: 30,  // Set the width and height to make it circular
+    width: 30, // Set the width and height to make it circular
     height: 30,
-    borderRadius: 20,  // Half of the width/height to make it a perfect circle
+    borderRadius: 20, // Half of the width/height to make it a perfect circle
     alignItems: 'center',
-    justifyContent: 'center' // Space between the buttons
+    justifyContent: 'center', // Space between the buttons
   },
 
   minusButtonText: {
@@ -809,7 +1010,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 20,
     textAlign: 'center',
-    paddingBottom: 4
+    paddingBottom: 4,
   },
   completedItem: {
     flex: 1,
@@ -859,23 +1060,23 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 10,
     textAlign: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
   },
   completeButton: {
-    backgroundColor: '#cd2525'
+    backgroundColor: '#cd2525',
   },
   incompleteButton: {
-    backgroundColor: '#227730'
+    backgroundColor: '#227730',
   },
-  closeButton: { 
+  closeButton: {
     marginTop: 10,
-    padding: 10, 
-    backgroundColor: '#d9534f', 
-    borderRadius: 5 
+    padding: 10,
+    backgroundColor: '#d9534f',
+    borderRadius: 5,
   },
-  closeButtonText: { 
-    color: 'white', 
-    fontWeight: 'bold' 
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   customInputField: {
     height: 40,
@@ -900,14 +1101,14 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderRadius: 8,
     paddingHorizontal: 8,
-    marginRight: 5
+    marginRight: 5,
   },
   measurementContainer: {
-    height: 38
+    height: 38,
   },
   measurementText: {
     textAlign: 'left',
-  }
+  },
 });
 
 export default GroceryList;

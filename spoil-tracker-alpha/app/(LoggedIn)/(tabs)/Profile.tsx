@@ -1,16 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, Button, Modal, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
+import {
+  Text,
+  View,
+  Button,
+  Modal,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  TextInput,
+} from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useRouter, router } from 'expo-router';
 import { db, auth } from '../../../services/firebaseConfig';
-import { deleteUser } from "firebase/auth";
+import { deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../../../services/authContext';
+import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
 
 const userIcon = require('../../../assets/images/icon.png');
 
 
 export default function HomeScreen() {
+  const { colors } = useTheme(); // allows for dark mode, contributed by Kevin
   const { user } = useAuth();
   const userID = user?.uid;
   const router = useRouter();
@@ -79,29 +90,29 @@ export default function HomeScreen() {
 
   const handleDeleteAccount = async () => {
     if (!userID) return;
-  
+
     const user = auth.currentUser;
-  
+
     if (!user) {
-      console.error("No authenticated user found");
+      console.error('No authenticated user found');
       return;
     }
-  
+
     try {
       // Reference to the user document by userID
       const userRef = doc(db, 'users', userID);
   
       // Delete the user document from Firestore
       await deleteDoc(userRef);
-  
+
       // Delete the user's authentication account
       await deleteUser(user);
-  
-      console.log("User account and authentication deleted successfully.");
-  
+
+      console.log('User account and authentication deleted successfully.');
+
       // Redirect to the login screen
       router.push('/login');
-  
+
       // Close the modal after deletion
       setModalVisible(false);
     } catch (error) {
@@ -109,11 +120,10 @@ export default function HomeScreen() {
     }
   };
 
-
   return (
-    
-    <View style={styles.container}>
-       {/* Account Header with Small Image */}
+    // allows for dark mode, contributed by Kevin
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Account Header with Small Image */}
       <View style={styles.accountHeader}>
         <Image source={userIcon} style={styles.icon} />
         <Text style={styles.accountTitle}>My Account</Text>
@@ -149,19 +159,36 @@ export default function HomeScreen() {
         <Button title="Delete Account" onPress={toggleModal} />
       </View>
 
-      {/* Share Kitchen Section */}  
+      {/* Share Kitchen Section */}
       <View style={styles.group}>
-      <Text style={styles.info}>Share your kitchen with friends and family to manage the kitchen together.</Text>
+        <Text style={styles.info}>
+          Share your kitchen with friends and family to manage the kitchen
+          together.
+        </Text>
         <Button title="Share Kitchen" onPress={generateShareLink} />
       </View>
 
-      <Modal animationType="slide" transparent={true} visible={isShareModalVisible} onRequestClose={() => setShareModalVisible(false)}>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isShareModalVisible}
+        onRequestClose={() => setShareModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Share Kitchen</Text>
-            <Text style={styles.modalMessage}>Share this link with your family members.</Text>
-            <TextInput style={styles.linkBox} value={generatedLink} editable={false} />
-            <TouchableOpacity style={styles.copyButton} onPress={copyToClipboard}>
+            <Text style={styles.modalMessage}>
+              Share this link with your family members.
+            </Text>
+            <TextInput
+              style={styles.linkBox}
+              value={generatedLink}
+              editable={false}
+            />
+            <TouchableOpacity
+              style={styles.copyButton}
+              onPress={copyToClipboard}
+            >
               <Text style={styles.copyButtonText}>Copy Link</Text>
             </TouchableOpacity>
             <Button title="Close" onPress={() => setShareModalVisible(false)} />
@@ -171,14 +198,14 @@ export default function HomeScreen() {
 
       {/* Modal for Delete Confirmation */}
       <Modal
-        animationType="slide"
+        animationType="slide" // Allows it to be displayed as a pop-up.
         transparent={true}
         visible={isModalVisible}
         onRequestClose={toggleModal} // Handle closing the modal
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Are you sure?</Text>
+            <Text style={styles.modalTitle}>Warning!</Text>
             <Text style={styles.modalMessage}>
               Are you sure you want to permanently delete your account? This
               action cannot be undone.
@@ -186,10 +213,10 @@ export default function HomeScreen() {
 
             {/* Buttons for the modal */}
             <View style={styles.modalButtons}>
-              <Button title="Cancel" onPress={toggleModal} />
+              <Button title="No! I change my mind!" onPress={toggleModal} />
               <Button
-                title="Permanently Delete Account"
-                color="red"
+                title="Yes! Delete it forever!"
+                color="red" // Red instead of usual green color to make it stand out more.
                 onPress={handleDeleteAccount}
               />
             </View>
@@ -205,14 +232,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FEF9F2',
     padding: 16,
   },
   accountTitle: {
     fontSize: 40,
     fontWeight: 'bold',
     color: '#4CAE4F',
-    marginBottom: 16, 
+    marginBottom: 16,
   },
   accountHeader: {
     flexDirection: 'row',
@@ -224,7 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   icon: {
-    width: 40,  // Adjust the size as needed
+    width: 40, // Adjust the size as needed
     height: 40, // Adjust the size as needed
     marginRight: 10,
   },
@@ -284,7 +310,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  linkBox: { width: '100%', padding: 10, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, textAlign: 'center', backgroundColor: '#f5f5f5', marginBottom: 10 },
-  copyButton: { backgroundColor: '#4CAE4F', padding: 10, borderRadius: 5, width: '100%', alignItems: 'center', marginBottom: 10 },
+  linkBox: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    textAlign: 'center',
+    backgroundColor: '#f5f5f5',
+    marginBottom: 10,
+  },
+  copyButton: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   copyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });

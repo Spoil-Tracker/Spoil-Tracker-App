@@ -38,15 +38,23 @@ export default function NutritionScreen() {
         <TouchableOpacity onPress={() => changeDay(-1)}>
           <AntDesign name="left" size={24} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.todayContainer} onPress={() => setShowDatePicker(!showDatePicker)}>
-          <FontAwesome name="calendar" size={20} color="white" style={styles.calendarIcon} />
+        <TouchableOpacity
+          style={styles.todayContainer}
+          onPress={() => setShowDatePicker(!showDatePicker)}
+        >
+          <FontAwesome
+            name="calendar"
+            size={20}
+            color="white"
+            style={styles.calendarIcon}
+          />
           <Text style={styles.todayText}>{formatDate(selectedDate)}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => changeDay(1)}>
           <AntDesign name="right" size={24} color="white" />
         </TouchableOpacity>
       </View>
-      
+
       {showDatePicker && (
         <DatePicker
           selected={selectedDate}
