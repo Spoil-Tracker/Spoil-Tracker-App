@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
-import db  from "../firestore";
+import { db } from "../firestore";
 import { FoodAbstractResolver } from "./FoodAbstract";
 
 // New object types for nutrients
@@ -55,7 +55,7 @@ class Micronutrients {
 
 // Input types for mutations
 
-@InputType()
+export @InputType()
 class MacronutrientsInput {
     @Field()
     total_fat!: number;
@@ -82,7 +82,7 @@ class MacronutrientsInput {
     protein!: number;
 }
 
-@InputType()
+export @InputType()
 class MicronutrientsInput {
     @Field()
     cholesterol!: number;
