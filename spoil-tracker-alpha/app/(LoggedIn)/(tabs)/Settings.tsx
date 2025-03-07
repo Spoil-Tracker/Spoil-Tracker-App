@@ -20,7 +20,7 @@ import {
   RecaptchaVerifier,
   unlink,
 } from 'firebase/auth';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 import Banner from '../../../components/Banner';
 import styles from '../SettingsPageStyleSheet';
@@ -36,8 +36,7 @@ const SettingsPage = (): JSX.Element => {
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
 
-  const [notificationSetting, setNotificationSetting] =
-    useState('Notify Everyday');
+  const [notificationSetting, setNotificationSetting] = useState('Notify Everyday');
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const [showFeedback, setShowFeedback] = useState(false)
@@ -62,6 +61,16 @@ const SettingsPage = (): JSX.Element => {
       setUser(currentUser);
       setEmailVerified(currentUser.emailVerified);
       setPhoneVerified(!!currentUser.phoneNumber);
+
+      const fetchUserSettings = async () => {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setNotificationSetting(data.notificationSetting || 'Notify Everyday');
+        }
+      };
+      fetchUserSettings();
     }
   }, []);
 
@@ -165,10 +174,18 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
-  const handleNotificationChange = (setting: string) => {
+  const handleNotificationChange = async (setting: string) => {
     setNotificationSetting(setting);
     setBannerMessage(`Notification setting changed to: ${setting}`);
     setBannerType('success');
+    if (user) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { notificationSetting: setting });
+      } catch (error) {
+        console.error('Error updating notification setting:', error);
+      }
+    }
   };
 
   const sendVerificationCode = async () => {

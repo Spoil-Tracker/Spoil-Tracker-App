@@ -13,7 +13,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { db, auth } from '../../../services/firebaseConfig';
 import { deleteUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../../services/authContext';
 import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
 
@@ -29,8 +29,8 @@ export default function HomeScreen() {
   const [generatedLink, setGeneratedLink] = useState('');
   const [userData, setUserData] = useState({
     email: '',
-    firstName: '',
-    lastName: '',
+    name: '',
+    notificationSetting: 'Notify Everyday',
   });
 
   // Reward notification state.
@@ -97,44 +97,27 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!userID) return;
 
-    const fetchOrCreateUserData = async () => {
-      try {
-        const userDocRef = doc(db, 'user_profiles', userID);
-        const userDoc = await getDoc(userDocRef);
+    const userDocRef = doc(db, 'users', userID);
 
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          console.log('User document data:', data);
-
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (docSnapShot) => {
+        if (docSnapShot.exists()) {
+          const data = docSnapShot.data();
+          console.log('User document updated:', data);
           setUserData({
             email: data.email,
-            firstName: data.name.split(' ')[0],
-            lastName: data.name.split(' ')[1],
-          });
-        } else {
-          console.log('No user document found. Creating one...');
-          const newUserData = {
-            email: user.email,
-            name: user.displayName || 'New User',
-            createdAt: new Date().toISOString(),
-          };
-
-          await setDoc(userDocRef, newUserData);
-          console.log('New user document created');
-
-          setUserData({
-            email: newUserData.email || '',
-            firstName: newUserData.name.split(' ')[0],
-            lastName: newUserData.name.split(' ')[1] || '',
+            name: data.name || '',
+            notificationSetting: data.notificationSetting || 'Notify Everyday',
           });
         }
-      } catch (error) {
-        console.error('Error fetching or creating user data:', error);
+      },
+      (error) => {
+        console.error('Error fetching user data:', error);
       }
-    };
-
-    fetchOrCreateUserData();
-  }, [userID, user]);
+    );
+    return () => unsubscribe();
+  }, [userID]);
 
   const generateShareLink = () => {
     const fakeLink = `https://fakelink.com`;
@@ -162,8 +145,11 @@ export default function HomeScreen() {
     }
 
     try {
+      const rewardRef = doc(db, 'user_rewards', userID);
+      await deleteDoc(rewardRef);
+
       // Reference to the user document by userID
-      const userRef = doc(db, 'user_profiles', userID);
+      const userRef = doc(db, 'users', userID);
 
       // Delete the user document from Firestore
       await deleteDoc(userRef);
@@ -171,7 +157,7 @@ export default function HomeScreen() {
       // Delete the user's authentication account
       await deleteUser(user);
 
-      console.log('User account and authentication deleted successfully.');
+      console.log('User account, rewards, and authentication deleted successfully.');
 
       // Redirect to the login screen
       router.push('/login');
@@ -187,14 +173,14 @@ export default function HomeScreen() {
     // allows for dark mode, contributed by Kevin
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Unclaimed rewards storage */}
-      {unclaimedRewards > 0 && (
+      {userData.notificationSetting !== 'Notify Never' && unclaimedRewards > 0 && (
         <TouchableOpacity style={styles.unclaimedBadge} onPress={handleShowRewardNotification}>
           <Text style={styles.unclaimedBadgeText}>{unclaimedRewards}</Text>
         </TouchableOpacity>
       )}
 
       {/* Weekly reward notification */}
-      {rewardAvailable && (
+      {userData.notificationSetting !== 'Notify Never' && rewardAvailable && (
         <View style={styles.topRightNotification}>
           <Text style={styles.notificationText}>
             Your weekly reward is available to claim!
@@ -220,11 +206,9 @@ export default function HomeScreen() {
         <Text style={styles.label}>Email</Text>
         <Text style={styles.info}>{userData.email || 'Loading...'}</Text>
 
-        <Text style={styles.label}>First Name</Text>
-        <Text style={styles.info}>{userData.firstName || 'Loading...'}</Text>
+        <Text style={styles.label}>Name</Text>
+        <Text style={styles.info}>{userData.name || 'Loading...'}</Text>
 
-        <Text style={styles.label}>Last Name</Text>
-        <Text style={styles.info}>{userData.lastName || 'Loading...'}</Text>
         <View style={styles.space2} />
         <Button
           title="Edit Account"
@@ -233,8 +217,7 @@ export default function HomeScreen() {
               pathname: '/EditAccount',
               params: {
                 userID, // Pass the userID
-                currentFirstName: userData.firstName,
-                currentLastName: userData.lastName,
+                currentName: userData.name,
               },
             })
           }
