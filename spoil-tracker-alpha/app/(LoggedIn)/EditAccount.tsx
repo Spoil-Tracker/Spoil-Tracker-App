@@ -7,30 +7,27 @@ import { db } from '../../services/firebaseConfig';
 
 interface EditAccountRouteParams {
   userID: string;
-  currentFirstName: string;
-  currentLastName: string;
+  currentUserName: string;
 }
 
 export default function EditAccount() {
   const route = useRoute();
-  const { userID, currentFirstName, currentLastName } =
+  const { userID, currentUserName } =
     route.params as EditAccountRouteParams;
 
-  const [firstName, setFirstName] = useState(currentFirstName || '');
-  const [lastName, setLastName] = useState(currentLastName || '');
+  const [username, setUserName] = useState(currentUserName || '');
   const router = useRouter();
 
   // Log the current values for debugging
   useEffect(() => {
-    console.log('Current first name:', currentFirstName);
-    console.log('Current last name:', currentLastName);
-  }, [currentFirstName, currentLastName]);
+    console.log('Current user name:', currentUserName);
+  }, [currentUserName]);
 
   const updateUserData = async () => {
     try {
-      const userRef = doc(db, 'user_profiles', userID); // Reference to the user document
+      const userRef = doc(db, 'users', userID); // Reference to the user document
       await updateDoc(userRef, {
-        name: `${firstName} ${lastName}`,
+        username: username,
       });
       console.log('User account updated successfully!');
 
@@ -45,27 +42,18 @@ export default function EditAccount() {
     <View style={styles.container}>
       <Text style={styles.title}>Edit Account</Text>
 
-      {/* First Name Input */}
+      {/* User Name Input */}
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>First Name:</Text>
+        <Text style={styles.label}>User Name:</Text>
         <TextInput
           style={styles.input}
-          value={firstName}
-          onChangeText={setFirstName}
-          placeholder="Enter your first name"
+          value={username}
+          onChangeText={setUserName}
+          placeholder="Enter your user name"
         />
       </View>
 
-      {/* Last Name Input */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Last Name:</Text>
-        <TextInput
-          style={styles.input}
-          value={lastName}
-          onChangeText={setLastName}
-          placeholder="Enter your last name"
-        />
-      </View>
+  
 
       {/* Update Button */}
       <Button title="Update Account" onPress={updateUserData} />

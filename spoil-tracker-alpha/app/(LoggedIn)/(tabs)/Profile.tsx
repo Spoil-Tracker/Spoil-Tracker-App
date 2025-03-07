@@ -9,7 +9,6 @@ import { useAuth } from '../../../services/authContext';
 
 const userIcon = require('../../../assets/images/icon.png');
 
-//const userIcon = require('@/assets/images/icon.png');
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -20,8 +19,7 @@ export default function HomeScreen() {
   const [generatedLink, setGeneratedLink] = useState('');
   const [userData, setUserData] = useState({
     email: '',
-    firstName: '',
-    lastName: '',
+    username: '',
   });
 
   useEffect(() => {
@@ -29,7 +27,7 @@ export default function HomeScreen() {
 
     const fetchOrCreateUserData = async () => {
       try {
-        const userDocRef = doc(db, 'user_profiles', userID);
+        const userDocRef = doc(db, 'users', userID);
         const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
@@ -38,14 +36,13 @@ export default function HomeScreen() {
 
           setUserData({
             email: data.email,
-            firstName: data.name.split(' ')[0],
-            lastName: data.name.split(' ')[1],
+            username: data.username || 'New User',
           });
         } else {
           console.log('No user document found. Creating one...');
           const newUserData = {
             email: user.email,
-            name: user.displayName || 'New User',
+            username: user.displayName || 'New User',
             createdAt: new Date().toISOString(),
           };
 
@@ -54,8 +51,7 @@ export default function HomeScreen() {
 
           setUserData({
             email: newUserData.email || '',
-            firstName: newUserData.name.split(' ')[0],
-            lastName: newUserData.name.split(' ')[1] || '',
+            username: newUserData.username || '',
           });
         }
       } catch (error) {
@@ -93,7 +89,7 @@ export default function HomeScreen() {
   
     try {
       // Reference to the user document by userID
-      const userRef = doc(db, 'user_profiles', userID);
+      const userRef = doc(db, 'users', userID);
   
       // Delete the user document from Firestore
       await deleteDoc(userRef);
@@ -128,11 +124,10 @@ export default function HomeScreen() {
         <Text style={styles.label}>Email</Text>
         <Text style={styles.info}>{userData.email || 'Loading...'}</Text>
 
-        <Text style={styles.label}>First Name</Text>
-        <Text style={styles.info}>{userData.firstName || 'Loading...'}</Text>
+        <Text style={styles.label}>User Name</Text>
+        <Text style={styles.info}>{userData.username || 'Loading...'}</Text>
 
-        <Text style={styles.label}>Last Name</Text>
-        <Text style={styles.info}>{userData.lastName || 'Loading...'}</Text>
+      
         <View style={styles.space2} />
         <Button
           title="Edit Account"
@@ -141,8 +136,7 @@ export default function HomeScreen() {
               pathname: '/EditAccount',
               params: {
                 userID, // Pass the userID
-                currentFirstName: userData.firstName,
-                currentLastName: userData.lastName,
+                currentUsername: userData.username,
               },
             })
           }
