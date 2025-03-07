@@ -10,7 +10,7 @@ import {
   TextInput,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useRouter, router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { db, auth } from '../../../services/firebaseConfig';
 import { deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
@@ -32,6 +32,67 @@ export default function HomeScreen() {
     firstName: '',
     lastName: '',
   });
+
+  // Reward notification state.
+  const [rewardAvailable, setRewardAvailable] = useState(false);
+  const [unclaimedRewards, setUnclaimedRewards] = useState(0);
+
+  // Fetch or initialize reward state from Firestore.
+  useEffect(() => {
+    if (!userID) return;
+    const fetchRewardData = async () => {
+      try {
+        const rewardDocRef = doc(db, 'user_rewards', userID);
+        const rewardDoc = await getDoc(rewardDocRef);
+        if (rewardDoc.exists()) {
+          const data = rewardDoc.data();
+          // If user has not claimed reward, then it will be available.
+          setRewardAvailable(!data.weeklyRewardClaimed);
+          setUnclaimedRewards(data.unclaimedRewards || 0);
+        } else {
+          // Initialize reward data: reward available and no unclaimed rewards.
+          await setDoc(rewardDocRef, {weeklyRewardClaimed: false, unclaimedRewards: 0});
+          setRewardAvailable(true);
+          setUnclaimedRewards(0);
+        }
+      } catch (error) {
+        console.error('Error fetching reward data:', error);
+      }
+    };
+    fetchRewardData();
+  }, [userID]);
+
+  // Handle the weekly reward notification.
+  const handleClaimReward = async () => {
+    if (!userID) return;
+    const rewardDocRef = doc(db, 'user_rewards', userID);
+    try {
+      // Mark reward as claimed.
+      await setDoc(rewardDocRef, {weeklyRewardClaimed: true, unclaimedRewards: 0});
+      setRewardAvailable(false);
+      setUnclaimedRewards(0);
+    } catch (error) {
+      console.error('Error claiming reward:', error);
+    }
+  };
+
+  const handleIgnoreReward = async () => {
+    if (!userID) return;
+    const rewardDocRef = doc(db, 'user_rewards', userID);
+    try {
+      // Mark the weekly reward as dismissed and increment unclaimed rewards.
+      const newCount = 1;
+      await setDoc(rewardDocRef, {weeklyRewardClaimed: true, unclaimedRewards: newCount});
+      setRewardAvailable(false);
+      setUnclaimedRewards(newCount);
+    } catch (error) {
+      console.error('Error ignoring reward:', error);
+    }
+  };
+
+  const handleShowRewardNotification = () => {
+    setRewardAvailable(true);
+  }
 
   useEffect(() => {
     if (!userID) return;
@@ -125,7 +186,30 @@ export default function HomeScreen() {
   return (
     // allows for dark mode, contributed by Kevin
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Account Header with Small Image */}
+      {/* Unclaimed rewards storage */}
+      {unclaimedRewards > 0 && (
+        <TouchableOpacity style={styles.unclaimedBadge} onPress={handleShowRewardNotification}>
+          <Text style={styles.unclaimedBadgeText}>{unclaimedRewards}</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Weekly reward notification */}
+      {rewardAvailable && (
+        <View style={styles.topRightNotification}>
+          <Text style={styles.notificationText}>
+            Your weekly reward is available to claim!
+          </Text>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity style={styles.claimButton} onPress={handleClaimReward}>
+              <Text style={styles.buttonText}>Claim</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.ignoreButton} onPress={handleIgnoreReward}>
+              <Text style={styles.buttonText}>Ignore</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <View style={styles.accountHeader}>
         <Image source={userIcon} style={styles.icon} />
         <Text style={styles.accountTitle}>My Account</Text>
@@ -333,4 +417,61 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   copyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+
+  topRightNotification: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 8,
+    zIndex: 1000,
+  },
+
+  notificationText: {
+    color: 'white',
+    fontSize: 14,
+  },
+
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+
+  claimButton: {
+    backgroundColor: '#2E7D32',
+    padding: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+
+  ignoreButton: {
+    backgroundColor: '#d9534f',
+    padding: 10,
+    borderRadius: 5,
+  },
+
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+
+  unclaimedBadge: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: 'red',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+
+  unclaimedBadgeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
