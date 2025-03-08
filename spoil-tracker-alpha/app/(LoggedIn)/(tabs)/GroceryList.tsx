@@ -27,6 +27,7 @@ import {
 } from '@/components/Account/AccountService';
 
 import { useTheme } from 'react-native-paper'; // allows for dark mode
+import { useAuth } from '@/services/authContext';
 
 // Get screen width for responsive design
 const SCREEN_WIDTH = Dimensions.get('window').width;
