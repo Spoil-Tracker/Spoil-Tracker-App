@@ -1,6 +1,8 @@
 import { gql } from '@apollo/client';
 import client from '@/src/ApolloClient';
 
+// Service layer functions to allow the client to connect with the server in some convenient manner.
+
 // Query to fetch all FoodGlobal items
 const GET_ALL_FOOD_GLOBAL = gql`
   query GetAllFoodGlobal {
@@ -188,6 +190,12 @@ export interface FoodGlobal {
   micronutrients: Micronutrients;
 }
 
+/**
+ * Fetches all FoodGlobal items.
+ *
+ * @returns A promise that resolves to an array of FoodGlobal items.
+ * @throws An error if the query fails.
+ */
 export async function getAllFoodGlobal() {
   try {
     const result = await client.query({
@@ -200,6 +208,13 @@ export async function getAllFoodGlobal() {
   }
 }
 
+/**
+ * Fetches a FoodGlobal item by its food name.
+ *
+ * @param food_name - The name of the food item to retrieve.
+ * @returns A promise that resolves to the FoodGlobal item or null if not found.
+ * @throws An error if the query fails.
+ */
 export async function getFoodGlobalByFoodName(food_name: string) {
   try {
     const result = await client.query({
@@ -213,6 +228,13 @@ export async function getFoodGlobalByFoodName(food_name: string) {
   }
 }
 
+/**
+ * Fetches a FoodGlobal item by its unique identifier.
+ *
+ * @param food_global_id - The unique identifier of the food item.
+ * @returns A promise that resolves to the FoodGlobal item or null if not found.
+ * @throws An error if the query fails.
+ */
 export async function getFoodGlobalById(food_global_id: string) {
   try {
     const result = await client.query({
@@ -226,6 +248,21 @@ export async function getFoodGlobalById(food_global_id: string) {
   }
 }
 
+/**
+ * Creates a new FoodGlobal item.
+ *
+ * Converts the nutrient input objects to plain objects and then calls the createFoodGlobal mutation.
+ *
+ * @param food_name - The name of the food.
+ * @param food_category - The category of the food.
+ * @param food_picture_url - The URL of the food's image.
+ * @param amount_per_serving - Serving information for the food.
+ * @param description - A description of the food.
+ * @param macronutrients - An object containing macronutrient values.
+ * @param micronutrients - An object containing micronutrient values.
+ * @returns A promise that resolves to the newly created FoodGlobal item.
+ * @throws An error if the mutation fails.
+ */
 export async function createFoodGlobal(
   food_name: string,
   food_category: string,
@@ -236,6 +273,7 @@ export async function createFoodGlobal(
   micronutrients: any
 ) {
   try {
+    // Convert nutrient input objects to plain objects.
     const plainMacronutrients = JSON.parse(JSON.stringify(macronutrients));
     const plainMicronutrients = JSON.parse(JSON.stringify(micronutrients));
 
@@ -250,6 +288,22 @@ export async function createFoodGlobal(
   }
 }
 
+/**
+ * Updates an existing FoodGlobal item.
+ *
+ * Only provided fields will be updated; omitted fields will remain unchanged.
+ *
+ * @param food_global_id - The unique identifier of the food item to update.
+ * @param food_name - (Optional) The new name of the food.
+ * @param food_category - (Optional) The new category.
+ * @param food_picture_url - (Optional) The new image URL.
+ * @param amount_per_serving - (Optional) The new serving information.
+ * @param description - (Optional) The new description.
+ * @param macronutrients - (Optional) Updated macronutrient values.
+ * @param micronutrients - (Optional) Updated micronutrient values.
+ * @returns A promise that resolves to the updated FoodGlobal item.
+ * @throws An error if the mutation fails.
+ */
 export async function updateFoodGlobal(
   food_global_id: string,
   food_name?: string,
@@ -272,6 +326,13 @@ export async function updateFoodGlobal(
   }
 }
 
+/**
+ * Deletes a FoodGlobal item.
+ *
+ * @param food_global_id - The unique identifier of the FoodGlobal item to delete.
+ * @returns A promise that resolves to the result of the deletion.
+ * @throws An error if the mutation fails.
+ */
 export async function deleteFoodGlobal(food_global_id: string) {
   try {
     const result = await client.mutate({

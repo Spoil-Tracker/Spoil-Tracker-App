@@ -662,7 +662,7 @@ const GroceryList = () => {
               {/* Only render ProductPage if we have a selectedFoodId */}
               {selectedFoodId && (
                   <ScrollView style={{ flex: 1 }}>
-                      <ProductPage foodId={selectedFoodId} />
+                      <ProductPage foodId={selectedFoodId} accountId={accountId} />
                   </ScrollView>
               )}
           </View>
@@ -889,7 +889,7 @@ const GroceryList = () => {
               {/* Only render ProductPage if we have a selectedFoodId */}
               {selectedFoodId && (
                   <ScrollView style={{ flex: 1 }}>
-                      <ProductPage foodId={selectedFoodId} />
+                      <ProductPage foodId={selectedFoodId} accountId={accountId} />
                   </ScrollView>
               )}
           </View>

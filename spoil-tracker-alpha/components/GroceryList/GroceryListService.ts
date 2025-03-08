@@ -2,7 +2,11 @@
 import { gql } from '@apollo/client';
 import client from '@/src/ApolloClient'; 
 
+// Service layer functions to allow the client to connect with the server in some convenient manner.
 
+/**
+ * GraphQL query to retrieve all grocery lists associated with a given account.
+ */
 const GET_ALL_GROCERY_LISTS = gql`
   query GetGroceryListsForAccount($account_id: String!) {
     getGroceryListsForAccount(account_id: $account_id) {
@@ -29,6 +33,9 @@ const GET_ALL_GROCERY_LISTS = gql`
   }
 `;
 
+/**
+ * GraphQL query to retrieve a single grocery list by its ID.
+ */
 const GET_GROCERY_LIST_BY_ID = gql`
   query GetGroceryListByID($grocery_list_id: String!) {
     getGroceryListByID(grocery_list_id: $grocery_list_id) {
@@ -55,6 +62,9 @@ const GET_GROCERY_LIST_BY_ID = gql`
   }
 `;
 
+/**
+ * GraphQL mutation to create a new grocery list for an account.
+ */
 const CREATE_GROCERY_LIST = gql`
   mutation CreateGroceryList($account_id: String!, $grocerylist_name: String!) {
     createGroceryList(account_id: $account_id, grocerylist_name: $grocerylist_name) {
@@ -66,12 +76,18 @@ const CREATE_GROCERY_LIST = gql`
   }
 `;
 
+/**
+ * GraphQL mutation to delete a grocery list by its ID.
+ */
 const DELETE_GROCERY_LIST = gql`
     mutation DeleteGroceryList($grocerylist_id: String!) {
         deleteGroceryList(grocerylist_id: $grocerylist_id)
   }
 `;
 
+/**
+ * GraphQL mutation to update the name of a grocery list.
+ */
 const UPDATE_GROCERY_LIST_NAME = gql`
     mutation UpdateGroceryListName($grocerylist_id: String!, $grocerylist_name: String!) {
         updateGroceryListName(grocerylist_id: $grocerylist_id, grocerylist_name: $grocerylist_name) {
@@ -81,6 +97,9 @@ const UPDATE_GROCERY_LIST_NAME = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to update the description of a grocery list.
+ */
 const UPDATE_GROCERY_LIST_DESCRIPTION = gql`
     mutation UpdateGroceryListDescription($grocerylist_id: String!, $description: String!) {
         updateGroceryListDescription(grocerylist_id: $grocerylist_id, description: $description) {
@@ -90,6 +109,9 @@ const UPDATE_GROCERY_LIST_DESCRIPTION = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to update the last opened timestamp of a grocery list.
+ */
 const UPDATE_GROCERY_LIST_LAST_OPENED = gql`
     mutation UpdateGroceryListLastOpened($grocerylist_id: String!, $last_opened: String!) {
         updateGroceryListLastOpened(grocerylist_id: $grocerylist_id, last_opened: $last_opened) {
@@ -99,6 +121,9 @@ const UPDATE_GROCERY_LIST_LAST_OPENED = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to update the isFamily flag of a grocery list.
+ */
 const UPDATE_GROCERY_LIST_IS_FAMILY = gql`
     mutation UpdateGroceryListIsFamily($grocerylist_id: String!, $isFamily: Boolean!) {
         updateGroceryListIsFamily(grocerylist_id: $grocerylist_id, isFamily: $isFamily) {
@@ -108,6 +133,9 @@ const UPDATE_GROCERY_LIST_IS_FAMILY = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to update the isShared flag of a grocery list.
+ */
 const UPDATE_GROCERY_LIST_IS_SHARED = gql`
     mutation UpdateGroceryListIsShared($grocerylist_id: String!, $isShared: Boolean!) {
         updateGroceryListIsShared(grocerylist_id: $grocerylist_id, isShared: $isShared) {
@@ -117,6 +145,9 @@ const UPDATE_GROCERY_LIST_IS_SHARED = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to update the isComplete flag of a grocery list.
+ */
 const UPDATE_GROCERY_LIST_IS_COMPLETE = gql`
     mutation UpdateGroceryListIsComplete($grocerylist_id: String!, $isComplete: Boolean!) {
         updateGroceryListIsComplete(grocerylist_id: $grocerylist_id, isComplete: $isComplete) {
@@ -126,6 +157,11 @@ const UPDATE_GROCERY_LIST_IS_COMPLETE = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to add a new grocery list item.
+ *
+ * This mutation creates a new grocery list item based on the provided food data.
+ */
 const ADD_GROCERY_LIST_ITEM = gql`
     mutation AddGroceryListItem(
         $grocerylist_id: String!,
@@ -142,18 +178,27 @@ const ADD_GROCERY_LIST_ITEM = gql`
 }
 `;
 
+/**
+ * GraphQL mutation to delete a grocery list item by its ID.
+ */
 const DELETE_GROCERY_LIST_ITEM = gql`
     mutation DeleteGroceryListItem($grocerylist_id: String!, $item_id: String!) {
         deleteGroceryListItem(grocerylist_id: $grocerylist_id, item_id: $item_id)
     }
 `;
 
+/**
+ * GraphQL mutation to update the measurement field of a grocery list item.
+ */
 const UPDATE_GROCERY_LIST_ITEM_MEASUREMENT = gql`
     mutation UpdateGroceryListItemMeasurement($grocerylist_id: String!, $item_id: String!, $measurement: String!) {
         updateGroceryListItemMeasurement(grocerylist_id: $grocerylist_id, item_id: $item_id, measurement: $measurement)
     }
 `;
 
+/**
+ * GraphQL mutation to update the quantity of a grocery list item.
+ */
 const UPDATE_GROCERY_LIST_ITEM_QUANTITY = gql`
   mutation UpdateGroceryListItemQuantity(
     $grocerylist_id: String!
@@ -168,12 +213,18 @@ const UPDATE_GROCERY_LIST_ITEM_QUANTITY = gql`
   }
 `;
 
+/**
+ * GraphQL mutation to toggle the isBought flag of a grocery list item.
+ */
 const UPDATE_GROCERY_LIST_ITEM_IS_BOUGHT = gql`
   mutation UpdateGroceryListItemIsBought($grocerylist_id: String!, $item_id: String!) {
     updateGroceryListItemIsBought(grocerylist_id: $grocerylist_id, item_id: $item_id)
   }
 `;
 
+/**
+ * Represents a Grocery List.
+ */
 export interface GroceryList {
     id: string;
     account_id: string;
@@ -187,6 +238,9 @@ export interface GroceryList {
     isComplete: boolean;
 };
 
+/**
+ * Represents an item within a Grocery List.
+ */
 export interface GroceryListItem {
     id: string;
     food_name: string;
@@ -197,9 +251,14 @@ export interface GroceryListItem {
     description: string;
     imageUrl: string;
   }
-// Add more mutations/queries as needed…
 
-// Function to fetch all grocery lists
+/**
+ * Fetches all grocery lists for a given account.
+ *
+ * @param account_id - The ID of the account.
+ * @returns An array of grocery lists for the account.
+ * @throws Error if the query fails.
+ */
 export async function fetchAllGroceryLists(account_id: string) {
   try {
     const result = await client.query({ 
@@ -215,6 +274,13 @@ export async function fetchAllGroceryLists(account_id: string) {
   }
 }
 
+/**
+ * Fetches a single grocery list by its ID.
+ *
+ * @param grocery_list_id - The ID of the grocery list.
+ * @returns The grocery list object if found, otherwise null.
+ * @throws Error if the query fails.
+ */
 export async function fetchGroceryListByID(grocery_list_id: string): Promise<GroceryList | null> {
     try {
       const result = await client.query({
@@ -230,7 +296,14 @@ export async function fetchGroceryListByID(grocery_list_id: string): Promise<Gro
     }
   }
 
-// Function to create a new grocery list
+/**
+ * Creates a new grocery list.
+ *
+ * @param account_id - The ID of the account that owns the grocery list.
+ * @param grocerylist_name - The name for the new grocery list.
+ * @returns The newly created grocery list object.
+ * @throws Error if the mutation fails.
+ */
 export async function createGroceryList(account_id: string, grocerylist_name: string) {
     try {
         const result = await client.mutate({
@@ -246,6 +319,13 @@ export async function createGroceryList(account_id: string, grocerylist_name: st
     }
 }
 
+/**
+ * Deletes a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list to delete.
+ * @returns The result of the deletion mutation.
+ * @throws Error if the mutation fails.
+ */
 export async function deleteGroceryList(grocerylist_id: string) {
     try {
         const result = await client.mutate({
@@ -261,6 +341,14 @@ export async function deleteGroceryList(grocerylist_id: string) {
     }
 }
 
+/**
+ * Updates the name of a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param grocerylist_name - The new name for the grocery list.
+ * @returns The updated grocery list object.
+ * @throws Error if the mutation fails.
+ */
 export async function updateGroceryListName(grocerylist_id: string, grocerylist_name: string) {
     try {
         const result = await client.mutate({
@@ -276,6 +364,14 @@ export async function updateGroceryListName(grocerylist_id: string, grocerylist_
     }
 }
 
+/**
+ * Updates the description of a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param description - The new description for the grocery list.
+ * @returns The updated grocery list object.
+ * @throws Error if the mutation fails.
+ */
 export async function updateGroceryListDescription(grocerylist_id: string, description: string) {
     try{
         const result = await client.mutate({
@@ -290,6 +386,14 @@ export async function updateGroceryListDescription(grocerylist_id: string, descr
     }
 }
 
+/**
+ * Updates the last opened timestamp of a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param last_opened - The new last opened timestamp (ISO string).
+ * @returns The updated grocery list object.
+ * @throws Error if the mutation fails.
+ */
 export async function updateGroceryListLastOpened(grocerylist_id: string, last_opened: string) {
     try {
         const result = await client.mutate({
@@ -304,6 +408,14 @@ export async function updateGroceryListLastOpened(grocerylist_id: string, last_o
     }
 }
 
+/**
+ * Updates the isFamily flag of a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param isFamily - The new value for the isFamily flag.
+ * @returns The updated grocery list object.
+ * @throws Error if the mutation fails.
+ */
 export async function updateGroceryListIsFamily(grocerylist_id: string, isFamily: boolean) {
     try {
         const result = await client.mutate({
@@ -318,6 +430,14 @@ export async function updateGroceryListIsFamily(grocerylist_id: string, isFamily
     }
 }
 
+/**
+ * Updates the isShared flag of a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param isShared - The new value for the isShared flag.
+ * @returns The updated grocery list object.
+ * @throws Error if the mutation fails.
+ */
 export async function updateGroceryListIsShared(grocerylist_id: string, isShared: boolean) {
     try {
         const result = await client.mutate({
@@ -332,6 +452,14 @@ export async function updateGroceryListIsShared(grocerylist_id: string, isShared
     }
 }
 
+/**
+ * Updates the isComplete flag of a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param isComplete - The new value for the isComplete flag.
+ * @returns The updated grocery list object.
+ * @throws Error if the mutation fails.
+ */
 export async function updateGroceryListIsComplete(grocerylist_id: string, isComplete: boolean) {
     try {
         const result = await client.mutate({
@@ -346,6 +474,16 @@ export async function updateGroceryListIsComplete(grocerylist_id: string, isComp
     }
 }
 
+/**
+ * Adds a new grocery list item to a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param account_id - The ID of the account (used to locate custom items if needed).
+ * @param food_global_id - The global food item ID.
+ * @param food_name - The name of the food item.
+ * @returns The result of the add grocery list item mutation.
+ * @throws Error if the mutation fails.
+ */
 export async function addGroceryListItem(
     grocerylist_id: string,
     account_id: string,
@@ -365,7 +503,14 @@ export async function addGroceryListItem(
     }
 }
   
-
+/**
+ * Deletes a grocery list item from a grocery list.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param item_id - The ID of the item to delete.
+ * @returns The result of the delete grocery list item mutation.
+ * @throws Error if the mutation fails.
+ */
 export async function deleteGroceryListItem(grocerylist_id: string, item_id: string) {
     try {
         const result = await client.mutate({
@@ -380,8 +525,20 @@ export async function deleteGroceryListItem(grocerylist_id: string, item_id: str
     }
 }
 
-
-export async function updateGroceryListItemMeasurement(grocerylist_id: string, item_id: string, measurement: string) {
+/**
+ * Updates the measurement of a specific grocery list item.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param item_id - The ID of the item to update.
+ * @param measurement - The new measurement value.
+ * @returns The result of the update grocery list item measurement mutation.
+ * @throws Error if the mutation fails.
+ */
+export async function updateGroceryListItemMeasurement(
+    grocerylist_id: string, 
+    item_id: string, 
+    measurement: string
+) {
     try {
         const result = await client.mutate({
             mutation: UPDATE_GROCERY_LIST_ITEM_MEASUREMENT,
@@ -394,35 +551,52 @@ export async function updateGroceryListItemMeasurement(grocerylist_id: string, i
         throw error;
     }
   }
-  
-  export async function updateGroceryListItemQuantity(
+
+/**
+ * Updates the quantity of a specific grocery list item.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param item_id - The ID of the item to update.
+ * @param quantity - The new quantity (integer).
+ * @returns A boolean indicating whether the update was successful.
+ * @throws Error if the mutation fails.
+ */
+export async function updateGroceryListItemQuantity(
     grocerylist_id: string,
     item_id: string,
     quantity: number
-  ) {
+) {
     try {
-      const result = await client.mutate({
+        const result = await client.mutate({
         mutation: UPDATE_GROCERY_LIST_ITEM_QUANTITY,
         variables: { grocerylist_id, item_id, quantity },
-      });
-      console.log("Mutation result:", result.data);
-      return result.data.updateGroceryListItemQuantity as boolean;
+        });
+        console.log("Mutation result:", result.data);
+        return result.data.updateGroceryListItemQuantity as boolean;
     } catch (error) {
-      console.error('Error updating grocery list item quantity:', error);
-      throw error;
+        console.error('Error updating grocery list item quantity:', error);
+        throw error;
     }
-  }
+}
 
-  export async function updateGroceryListItemIsBought(grocerylist_id: string, item_id: string) {
+/**
+ * Toggles the isBought flag for a specific grocery list item.
+ *
+ * @param grocerylist_id - The ID of the grocery list.
+ * @param item_id - The ID of the item to toggle.
+ * @returns A boolean indicating whether the toggle was successful.
+ * @throws Error if the mutation fails.
+ */
+export async function updateGroceryListItemIsBought(grocerylist_id: string, item_id: string) {
     try {
-      const result = await client.mutate({
+        const result = await client.mutate({
         mutation: UPDATE_GROCERY_LIST_ITEM_IS_BOUGHT,
         variables: { grocerylist_id, item_id },
-      });
-      return result.data.updateGroceryListItemIsBought as boolean;
+        });
+        return result.data.updateGroceryListItemIsBought as boolean;
     } catch (error) {
-      console.error('Error toggling grocery list item isBought:', error);
-      throw error;
+        console.error('Error toggling grocery list item isBought:', error);
+        throw error;
     }
-  }
+}
 // Export additional functions for updating, deleting, etc., in a similar fashion.

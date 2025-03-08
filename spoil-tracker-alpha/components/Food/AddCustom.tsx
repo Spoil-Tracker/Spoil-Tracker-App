@@ -12,16 +12,14 @@ import {
 import { addCustomItem, getAccountByOwnerID } from '@/components/Account/AccountService'; // Adjust the path as needed
 import { useAuth } from '@/services/authContext';
 
-const MACROS_EXPANDED_HEIGHT = 410;
-const MICROS_EXPANDED_HEIGHT = 300;
-
 const CustomGroceryItemScreen = () => {
+  // Basic grocery item details.
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
 
-  // Macronutrients state (stored as strings, to be converted)
+  // Macronutrients state (stored as strings, to be converted to numbers)
   const [totalFat, setTotalFat] = useState('');
   const [satFat, setSatFat] = useState('');
   const [transFat, setTransFat] = useState('');
@@ -31,7 +29,7 @@ const CustomGroceryItemScreen = () => {
   const [addedSugars, setAddedSugars] = useState('');
   const [protein, setProtein] = useState('');
 
-  // Micronutrients state (stored as strings)
+  // Micronutrients state (stored as strings, to be converted to numbers)
   const [cholesterol, setCholesterol] = useState('');
   const [sodium, setSodium] = useState('');
   const [vitaminD, setVitaminD] = useState('');
@@ -39,15 +37,25 @@ const CustomGroceryItemScreen = () => {
   const [iron, setIron] = useState('');
   const [potassium, setPotassium] = useState('');
 
-  // Animated values and toggle states for dropdowns
+  // Constants defining the expanded heights of dropdown sections.
+  const MACROS_EXPANDED_HEIGHT = 410;
+  const MICROS_EXPANDED_HEIGHT = 300;
+
+  // State to control the visibility and animation of the macronutrient dropdown.
   const [showMacros, setShowMacros] = useState(false);
   const macrosHeight = useRef(new Animated.Value(0)).current;
-
+  
+  // State to control the visibility and animation of the micronutrient dropdown.
   const [showMicros, setShowMicros] = useState(false);
   const microsHeight = useRef(new Animated.Value(0)).current;
 
+  // Retrieve the current authenticated user.
   const { user } = useAuth();
 
+  /**
+   * Toggles the visibility of the macronutrients dropdown.
+   * Expands or collapses the dropdown with an animated height transition.
+   */
   const toggleMacros = () => {
     if (!showMacros) {
       setShowMacros(true);
@@ -65,6 +73,10 @@ const CustomGroceryItemScreen = () => {
     }
   };
 
+  /**
+   * Toggles the visibility of the micronutrients dropdown.
+   * Expands or collapses the dropdown with an animated height transition.
+   */
   const toggleMicros = () => {
     if (!showMicros) {
       setShowMicros(true);
@@ -82,6 +94,13 @@ const CustomGroceryItemScreen = () => {
     }
   };
 
+  /**
+   * Handles form submission.
+   *
+   * Converts nutrient string values to numbers, retrieves the account based on the user,
+   * and calls the addCustomItem service to create a new custom grocery item.
+   * Afterwards, resets the form fields and collapses any expanded dropdowns.
+   */
   const handleSubmit = async () => {
     // Convert nutrient values from strings to numbers
     const macronutrients = {
@@ -318,6 +337,9 @@ const CustomGroceryItemScreen = () => {
 
 export default CustomGroceryItemScreen;
 
+/**
+ * Style definitions for the CustomGroceryItemScreen component.
+ */
 const styles = StyleSheet.create({
   container: {
     flex: 1,

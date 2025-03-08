@@ -205,6 +205,14 @@ export class AccountResolver {
 
     }
 
+    /**
+     * Deletes a custom item from the account's custom_items array.
+     *
+     * @param account_id - The unique ID of the account.
+     * @param food_global_id - The unique ID of the custom food item to remove.
+     * @returns The updated Account document.
+     * @throws Error if the account does not exist or if the custom item is not found.
+     */
     @Mutation(() => Account)
     async deleteCustomItem(
         @Arg("account_id") account_id: string,
@@ -231,6 +239,13 @@ export class AccountResolver {
         return updatedAccountDoc.data() as Account;
     }
 
+    /**
+     * Retrieves all custom items from the specified account.
+     *
+     * @param account_id - The unique ID of the account.
+     * @returns An array of FoodGlobal objects representing the account's custom items.
+     * @throws Error if the account does not exist.
+     */
     @Query(() => [FoodGlobal])
     async getCustomItemsFromAccount(
         @Arg("account_id") account_id: string
@@ -244,6 +259,20 @@ export class AccountResolver {
         return accountData.custom_items;
     }
 
+    /**
+     * Adds a new custom item to an account's custom_items array.
+     *
+     * @param account_id - The unique ID of the account.
+     * @param food_name - The name of the custom food item.
+     * @param food_category - The category of the custom food item.
+     * @param food_picture_url - The URL of the food item's picture.
+     * @param amount_per_serving - The serving size or amount per serving.
+     * @param description - A description of the custom food item.
+     * @param macronutrients - An object containing macronutrient details.
+     * @param micronutrients - An object containing micronutrient details.
+     * @returns The updated Account document.
+     * @throws Error if the account does not exist.
+     */
     @Mutation(() => Account)
     async addCustomItem(
         @Arg("account_id") account_id: string,
@@ -289,6 +318,21 @@ export class AccountResolver {
         return updatedAccountDoc.data() as Account;
     }
 
+    /**
+     * Updates an existing custom item in an account's custom_items array.
+     *
+     * @param account_id - The unique ID of the account.
+     * @param food_global_id - The unique ID of the custom food item to update.
+     * @param food_name - (Optional) The new name for the custom food item.
+     * @param food_category - (Optional) The new category for the custom food item.
+     * @param food_picture_url - (Optional) The new URL for the food item's picture.
+     * @param amount_per_serving - (Optional) The updated serving amount.
+     * @param description - (Optional) The updated description for the food item.
+     * @param macronutrients - (Optional) An updated macronutrients object.
+     * @param micronutrients - (Optional) An updated micronutrients object.
+     * @returns The updated Account document.
+     * @throws Error if the account does not exist or if the custom item is not found.
+     */
     @Mutation(() => Account)
     async updateCustomItem(
         @Arg("account_id") account_id: string,

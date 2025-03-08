@@ -1,7 +1,9 @@
 import { gql } from '@apollo/client';
 import client from '@/src/ApolloClient';
 
-// Existing operations
+/**
+ * GraphQL query to fetch an account by its owner ID.
+ */
 const GET_ACCOUNT_BY_OWNER_ID = gql`
     query GetAccountByOwnerID($owner_id: String!) {
         getAccountByOwnerID(owner_id: $owner_id) {
@@ -21,6 +23,9 @@ const GET_ACCOUNT_BY_OWNER_ID = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to create a new account.
+ */
 const CREATE_ACCOUNT = gql`
     mutation CreateAccount($owner_id: String!, $account_name: String!, $account_type: String!) {
         createAccount(owner_id: $owner_id, account_name: $account_name, account_type: $account_type) {
@@ -29,27 +34,37 @@ const CREATE_ACCOUNT = gql`
     }
 `;
 
+/**
+ * GraphQL mutation to delete a pantry from an account.
+ */
 const DELETE_PANTRY_FROM_ACCOUNT = gql`
     mutation DeletePantryFromAccount($account_id: String!, $pantry_id: String!) {
         deletePantryFromAccount(account_id: $account_id, pantry_id: $pantry_id)
     }
 `;
 
+/**
+ * GraphQL mutation to delete a food abstract from an account.
+ */
 const DELETE_FOOD_ABSTRACT_FROM_ACCOUNT = gql`
     mutation DeleteFoodAbstractFromAccount($account_id: String!, $food_abstract_id: String!) {
         deleteFoodAbstractFromAccount(account_id: $account_id, food_abstract_id: $food_abstract_id)
     }
 `;
 
+
+/**
+ * GraphQL mutation to delete an account.
+ */
 const DELETE_ACCOUNT = gql`
     mutation DeleteAccount($account_id: String!) {
         deleteAccount(account_id: $account_id)
     }
 `;
 
-// === New operations for custom items ===
-
-// Mutation to add a custom item
+/**
+ * GraphQL mutation to add a custom item to an account.
+ */
 const ADD_CUSTOM_ITEM = gql`
   mutation AddCustomItem(
     $account_id: String!,
@@ -80,7 +95,9 @@ const ADD_CUSTOM_ITEM = gql`
   }
 `;
 
-// Mutation to delete a custom item by its id
+/**
+ * GraphQL mutation to delete a custom item by its food_global_id.
+ */
 const DELETE_CUSTOM_ITEM = gql`
   mutation DeleteCustomItem($account_id: String!, $food_global_id: String!) {
     deleteCustomItem(account_id: $account_id, food_global_id: $food_global_id) {
@@ -93,7 +110,9 @@ const DELETE_CUSTOM_ITEM = gql`
   }
 `;
 
-// Mutation to update a custom item
+/**
+ * GraphQL mutation to update an existing custom item.
+ */
 const UPDATE_CUSTOM_ITEM = gql`
   mutation UpdateCustomItem(
     $account_id: String!,
@@ -130,7 +149,9 @@ const UPDATE_CUSTOM_ITEM = gql`
   }
 `;
 
-// Query to fetch all custom items from an account
+/**
+ * GraphQL query to fetch all custom items from a specific account.
+ */
 const GET_CUSTOM_ITEMS_FROM_ACCOUNT = gql`
   query GetCustomItemsFromAccount($account_id: String!) {
     getCustomItemsFromAccount(account_id: $account_id) {
@@ -162,8 +183,13 @@ const GET_CUSTOM_ITEMS_FROM_ACCOUNT = gql`
   }
 `;
 
-// === Exported functions ===
-
+/**
+ * Fetches an account document by owner_id.
+ *
+ * @param owner_id - The owner ID to search for. Owner ID for users is typically the auth user's uid
+ * @returns The account data corresponding to the given owner_id.
+ * @throws An error if the query fails.
+ */
 export async function getAccountByOwnerID(owner_id: string) {
     try {
         const result = await client.query({
@@ -177,6 +203,15 @@ export async function getAccountByOwnerID(owner_id: string) {
     }
 }
 
+/**
+ * Creates a new account.
+ *
+ * @param owner_id - The owner ID for the new account.
+ * @param account_name - The name of the account.
+ * @param account_type - The type of the account (e.g., "user" or "family").
+ * @returns The created account document.
+ * @throws An error if the mutation fails.
+ */
 export async function createAccount(owner_id: string, account_name: string, account_type: string) {
     try {
         const result = await client.mutate({
@@ -190,6 +225,14 @@ export async function createAccount(owner_id: string, account_name: string, acco
     }
 }
 
+/**
+ * Deletes a pantry from an account.
+ *
+ * @param account_id - The ID of the account.
+ * @param pantry_id - The ID of the pantry to delete.
+ * @returns The result of the deletion.
+ * @throws An error if the mutation fails.
+ */
 export async function deletePantryFromAccount(account_id: string, pantry_id: string) {
     try {
         const result = await client.mutate({
@@ -203,6 +246,14 @@ export async function deletePantryFromAccount(account_id: string, pantry_id: str
     }
 }
 
+/**
+ * Deletes a food abstract from an account.
+ *
+ * @param account_id - The ID of the account.
+ * @param food_abstract_id - The ID of the food abstract to delete.
+ * @returns The result of the deletion.
+ * @throws An error if the mutation fails.
+ */
 export async function deleteFoodAbstractFromAccount(account_id: string, food_abstract_id: string) {
     try {
         const result = await client.mutate({
@@ -216,6 +267,13 @@ export async function deleteFoodAbstractFromAccount(account_id: string, food_abs
     }
 }
 
+/**
+ * Deletes an account.
+ *
+ * @param account_id - The ID of the account to delete.
+ * @returns The result of the deletion.
+ * @throws An error if the mutation fails.
+ */
 export async function deleteAccount(account_id: string) { 
     try {
         const result = await client.mutate({
@@ -229,6 +287,20 @@ export async function deleteAccount(account_id: string) {
     }
 }
 
+/**
+ * Adds a custom food item to an account.
+ *
+ * @param account_id - The ID of the account.
+ * @param food_name - The name of the custom food item.
+ * @param food_category - The category of the custom food item.
+ * @param food_picture_url - The URL for the food item's image.
+ * @param amount_per_serving - The serving amount.
+ * @param description - A description of the food item.
+ * @param macronutrients - An object containing macronutrient values.
+ * @param micronutrients - An object containing micronutrient values.
+ * @returns The updated account document after adding the custom item.
+ * @throws An error if the mutation fails.
+ */
 export async function addCustomItem(
     account_id: string,
     food_name: string,
@@ -260,6 +332,14 @@ export async function addCustomItem(
     }
 }
 
+/**
+ * Deletes a custom food item from an account.
+ *
+ * @param account_id - The ID of the account.
+ * @param food_global_id - The ID of the custom food item to delete.
+ * @returns The updated account document after deletion.
+ * @throws An error if the mutation fails.
+ */
 export async function deleteCustomItem(account_id: string, food_global_id: string) {
     try {
         const result = await client.mutate({
@@ -273,6 +353,21 @@ export async function deleteCustomItem(account_id: string, food_global_id: strin
     }
 }
 
+/**
+ * Updates an existing custom food item in an account.
+ *
+ * @param account_id - The ID of the account.
+ * @param food_global_id - The ID of the custom food item to update.
+ * @param food_name - (Optional) The new name for the food item.
+ * @param food_category - (Optional) The new category for the food item.
+ * @param food_picture_url - (Optional) The new picture URL for the food item.
+ * @param amount_per_serving - (Optional) The updated amount per serving.
+ * @param description - (Optional) The updated description.
+ * @param macronutrients - (Optional) An object with updated macronutrient values.
+ * @param micronutrients - (Optional) An object with updated micronutrient values.
+ * @returns The updated account document after the custom item is modified.
+ * @throws An error if the mutation fails.
+ */
 export async function updateCustomItem(
     account_id: string,
     food_global_id: string,
@@ -306,6 +401,13 @@ export async function updateCustomItem(
     }
 }
 
+/**
+ * Fetches all custom food items for a specific account.
+ *
+ * @param account_id - The ID of the account.
+ * @returns An array of custom food items for the account.
+ * @throws An error if the query fails.
+ */
 export async function getCustomItemsFromAccount(account_id: string) {
     try {
         const result = await client.query({

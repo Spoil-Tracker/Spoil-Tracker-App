@@ -1,38 +1,78 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useWindowDimensions, Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity } from 'react-native';
-import { AntDesign } from '@expo/vector-icons'; // For the plus icon
-
+import { 
+  useWindowDimensions, 
+  View, 
+  Text, 
+  StyleSheet,  
+  Pressable, 
+  Image, 
+  TextInput, 
+  ScrollView, 
+} from 'react-native';
 import { getFoodGlobalById, FoodGlobal } from '@/components/Food/FoodGlobalService';
+import { getCustomItemsFromAccount } from '@/components/Account/AccountService';
 
-
-export default function ProductPage({ foodId }: { foodId: string })  {
+/**
+ * ProductPage component displays details about a food product.
+ * Best used as a modal whenever a user clicks on a food / grocery product.
+ * 
+ * If the global food lookup returns no result, it will attempt to
+ * search the account's custom items.
+ *
+ * @param props - Component props.
+ * @param props.foodId - The unique identifier for the food item.
+ * @param props.accountId - The account ID to search for custom items.
+ * @returns A React element representing the product page.
+ */
+export default function ProductPage({ foodId, accountId }: { foodId: string; accountId: string }) {
     const { height, width } = useWindowDimensions();
 
+    // Calculate layout dimensions.
     const pageWidth = width * 0.24;
     const MINWIDTH = 300;
 
+    // State for storing the fetched food data
     const [foodData, setFoodData] = useState<FoodGlobal | null>(null);
+    // Loading state.
     const [loading, setLoading] = useState(false);
+    // Error message state.
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (foodId) {
-          setLoading(true);
-          setError('');
-          getFoodGlobalById(foodId)
-            .then((data) => {
+      if (foodId) {
+        setLoading(true);
+        setError('');
+        // First try to get the FoodGlobal item by ID.
+        getFoodGlobalById(foodId)
+          .then((data) => {
+            if (data) {
+              // Found global food item.
               setFoodData(data);
-            })
-            .catch((err) => {
-              console.error(err);
-              setError('Error fetching product.');
-            })
-            .finally(() => {
-              setLoading(false);
-            });
-        }
-    }, [foodId]);
+            } else {
+              // If not found globally, attempt to fetch the account's custom items
+              return getCustomItemsFromAccount(accountId)
+                .then((customItems) => {
+                  // Search for a custom item with matching id.
+                  const customItem = customItems.find((item: FoodGlobal) => item.id === foodId);
+                  if (customItem) {
+                    setFoodData(customItem);
+                  } else {
+                    setError('Product not found.');
+                  }
+                });
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            setError('Error fetching product.');
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }
+    }, [foodId, accountId]);
 
+    // The rest of the code below is standard React Native UI components, styling, blah, blah, blah
     return (
         <View style={{ backgroundColor: 'transparent' }}>
           <ScrollView

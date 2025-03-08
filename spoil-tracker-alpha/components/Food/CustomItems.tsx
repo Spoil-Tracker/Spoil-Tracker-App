@@ -2,21 +2,43 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, Image, Animated } from 'react-native';
 import { FoodGlobal } from '@/components/Food/FoodGlobalService'; 
 
+/**
+ * Props for the CustomItemsMenu component.
+ */
 interface CustomItemsMenuProps {
+  /** Array of custom food items to display. */
   customItems: FoodGlobal[];
+  /** Optional title for the menu. Defaults to "Custom Items". */
   title?: string;
 }
 
+/**
+ * CustomItemsMenu component renders a dropdown menu for custom food items.
+ *
+ * Currently unused; unsure of where this would go.
+ *
+ * @param {CustomItemsMenuProps} props - Component props.
+ * @returns A React element representing the dropdown menu.
+ */
 const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({ customItems, title = "Custom Items" }) => {
+  // State to track if the dropdown is expanded.
   const [expanded, setExpanded] = useState(false);
-  // Create an animated value that will control the dropdown animation.
+  // Animated value to control the dropdown animation (opacity and translation).
   const animation = useRef(new Animated.Value(0)).current;
 
+  /**
+   * Toggles the expanded state of the dropdown.
+   */
   const toggleDropdown = () => {
     setExpanded(prev => !prev);
   };
 
-  // Animate the dropdown whenever the expanded state changes.
+  /**
+   * Effect to animate the dropdown view whenever the expanded state changes.
+   *
+   * When expanded, the animated value transitions to 1 (fully visible and in position),
+   * otherwise it transitions to 0 (hidden and slightly shifted upward).
+   */
   useEffect(() => {
     Animated.timing(animation, {
       toValue: expanded ? 1 : 0,
@@ -36,6 +58,12 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({ customItems, title = 
     }]
   };
 
+  /**
+   * Renders each item in the dropdown.
+   *
+   * @param item - A FoodGlobal object representing a food item.
+   * @returns A view representing the food item.
+   */
   const renderItem = ({ item }: { item: FoodGlobal }) => (
     <View style={styles.itemContainer}>
       {item.food_picture_url ? (
@@ -67,6 +95,11 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({ customItems, title = 
   );
 };
 
+export default CustomItemsMenu;
+
+/**
+ * Component styles.
+ */
 const styles = StyleSheet.create({
   container: {
     marginVertical: 10,
@@ -122,5 +155,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-export default CustomItemsMenu;

@@ -1,4 +1,3 @@
-// ListButton.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, Modal, StyleSheet, Pressable, TouchableOpacity, 
@@ -12,19 +11,44 @@ import {
   updateGroceryListName 
 } from '@/components/GroceryList/GroceryListService';
 
+/**
+ * Props for the ListButton component.
+ * @property id - The ID of the grocery list.
+ * @property onDelete - Callback function invoked when the list is deleted.
+ */
 type ListButtonProps = {
   id: string;
   onDelete: (listId: string) => void;
 };
 
+/**
+ * ListButton component displays a button for a grocery list.
+ *
+ * It fetches the grocery list details by its ID and renders a header with the list name,
+ * an edit button, and an expandable dropdown with additional details (e.g., creation date,
+ * last opened date, item count, and description). It also provides modals for confirming deletion
+ * and editing the list name.
+ *
+ * @param {ListButtonProps} props - Component properties.
+ * @returns A React element that renders the list button and its dropdown.
+ */
 const ListButton: React.FC<ListButtonProps> = ({ id, onDelete }) => {
+  // Local state for controlling the dropdown visibility.
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  // Local state to control delete confirmation modal visibility.
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Local state to control edit modal visibility.
   const [showEditModal, setShowEditModal] = useState(false);
+  // State to hold the new list name during editing.
   const [newName, setNewName] = useState('');
+  // State to store the fetched grocery list object.
   const [list, setList] = useState<any>(null);
+  // Animated value for controlling dropdown height.
   const dropdownHeight = useRef(new Animated.Value(0)).current;
 
+  /**
+   * useEffect to fetch grocery list details by ID when the component mounts or when the id changes.
+   */
   useEffect(() => {
     (async () => {
       const fetchedList = await fetchGroceryListByID(id);
@@ -34,10 +58,15 @@ const ListButton: React.FC<ListButtonProps> = ({ id, onDelete }) => {
     })();
   }, [id]);
 
+  // If no list is available, render nothing (or optionally a loader).
   if (!list) {
     return null; // Optionally render a loader
   }
 
+  /**
+   * Toggles the visibility of the dropdown.
+   * Animates the dropdown height to either expand (150) or collapse (0).
+   */
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
     Animated.timing(dropdownHeight, {
@@ -47,6 +76,11 @@ const ListButton: React.FC<ListButtonProps> = ({ id, onDelete }) => {
     }).start();
   };
 
+  /**
+   * Formats an ISO date string into a more user-friendly format.
+   * @param isoString - An ISO formatted date string.
+   * @returns A formatted date string (e.g., "January 1, 2020").
+   */
   const formatDate = (isoString: string) => {
     const date = new Date(isoString);
     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -190,6 +224,9 @@ const ListButton: React.FC<ListButtonProps> = ({ id, onDelete }) => {
 
 export default ListButton;
 
+/**
+ * Styles for the ListButton component.
+ */
 const styles = StyleSheet.create({
   container: {
     marginBottom: 10,
