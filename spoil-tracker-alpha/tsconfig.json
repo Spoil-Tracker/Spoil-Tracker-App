@@ -6,7 +6,11 @@
     "allowSyntheticDefaultImports": true,  // For smoother imports
     "strict": true,  // Enable strict type-checking options
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["*"]
+    },
   },
   "extends": "expo/tsconfig.base",
   "include": [

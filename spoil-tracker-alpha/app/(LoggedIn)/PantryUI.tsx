@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'expo-router';
 import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
 import { useTheme } from 'react-native-paper'; // Import useTheme for dark mode, contributed by Kevin
-import FoodDropdownComponent from '../../components/FoodDropdown';
+import FoodDropdownComponent from '@/components/Food/FoodDropdown';
 
 type ListItem = {
   id: string;

@@ -3,8 +3,9 @@ import { COLLECTIONS } from "./CollectionNames";
 import { db } from "../firestore";
 import { FoodAbstractResolver } from "./FoodAbstract";
 
-// New object types for nutrients
-
+/**
+ * Represents the macronutrient values for a food item.
+ */
 @ObjectType()
 class Macronutrients {
     @Field()
@@ -32,6 +33,9 @@ class Macronutrients {
     protein!: number;
 }
 
+/**
+ * Represents the micronutrient values for a food item.
+ */
 @ObjectType()
 class Micronutrients {
     @Field()
@@ -53,8 +57,11 @@ class Micronutrients {
     potassium!: number;
 }
 
-// Input types for mutations
-
+/**
+ * Input type for macronutrient values.
+ *
+ * Use this type when creating or updating a FoodGlobal item.
+ */
 export @InputType()
 class MacronutrientsInput {
     @Field()
@@ -82,6 +89,11 @@ class MacronutrientsInput {
     protein!: number;
 }
 
+/**
+ * Input type for micronutrient values.
+ *
+ * Use this type when creating or updating a FoodGlobal item.
+ */
 export @InputType()
 class MicronutrientsInput {
     @Field()
@@ -103,6 +115,9 @@ class MicronutrientsInput {
     potassium!: number;
 }
 
+/**
+ * Represents a global food item with nutritional information.
+ */
 @ObjectType()
 export class FoodGlobal {
     @Field(type => ID)
@@ -130,14 +145,30 @@ export class FoodGlobal {
     micronutrients!: Micronutrients;
 }
 
+/**
+ * Resolver for FoodGlobal operations.
+ *
+ * Provides queries to retrieve FoodGlobal items and mutations to create, update, or delete them.
+ */
 @Resolver(FoodGlobal)
 export class FoodGlobalResolver {
+    /**
+     * Retrieves all FoodGlobal items.
+     *
+     * @returns An array of FoodGlobal items.
+     */
     @Query(() => [FoodGlobal])
     async getAllFoodGlobal(): Promise<FoodGlobal[]> {
         const snapshot = await db.collection(COLLECTIONS.FOOD_GLOBAL).get();
         return snapshot.docs.map(doc => doc.data() as FoodGlobal);
     }
 
+    /**
+     * Retrieves a FoodGlobal item by its food name.
+     *
+     * @param food_name - The name of the food item to search for.
+     * @returns The matching FoodGlobal item or null if not found.
+     */
     @Query(() => FoodGlobal, { nullable: true })
     async getFoodGlobalByFoodName(
         @Arg("food_name") food_name: string
@@ -153,7 +184,12 @@ export class FoodGlobalResolver {
         return snapshot.docs[0].data() as FoodGlobal;
     }
 
-    // New Query: Get FoodGlobal by its ID
+    /**
+     * Retrieves a FoodGlobal item by its ID.
+     *
+     * @param food_global_id - The unique ID of the FoodGlobal item.
+     * @returns The matching FoodGlobal item or null if not found.
+     */
     @Query(() => FoodGlobal, { nullable: true })
     async getFoodGlobalById(
         @Arg("food_global_id") food_global_id: string
@@ -165,6 +201,22 @@ export class FoodGlobalResolver {
         return doc.data() as FoodGlobal;
     }
 
+    /**
+     * Creates a new FoodGlobal item.
+     *
+     * This mutation first checks if a FoodGlobal item with the given name exists.
+     * If not, it creates a new FoodGlobal document with the provided nutritional details.
+     *
+     * @param food_name - The name of the food.
+     * @param food_category - The category of the food.
+     * @param food_picture_url - The URL of the food's image.
+     * @param amount_per_serving - The serving size information.
+     * @param description - A description of the food.
+     * @param macronutrients - Macronutrient values provided as input.
+     * @param micronutrients - Micronutrient values provided as input.
+     * @returns The newly created FoodGlobal item.
+     * @throws An error if a FoodGlobal with the same name already exists.
+     */
     @Mutation(() => FoodGlobal)
     async createFoodGlobal(
         @Arg("food_name") food_name: string,
@@ -196,6 +248,7 @@ export class FoodGlobalResolver {
             micronutrients: plainMicronutrients,
         };
 
+        // Generate a new document reference and assign its id.
         const docRef = db.collection(COLLECTIONS.FOOD_GLOBAL).doc();
         newFoodGlobal.id = docRef.id;
         // Use set() to store the document including the id field
@@ -203,8 +256,22 @@ export class FoodGlobalResolver {
         return newFoodGlobal;
     }
 
-
-    // New Mutation: Update FoodGlobal fields
+    /**
+     * Updates fields of an existing FoodGlobal item.
+     *
+     * Only the provided fields are updated; if a field is not provided, its current value is retained.
+     *
+     * @param food_global_id - The unique ID of the FoodGlobal item to update.
+     * @param food_name - (Optional) The new name for the food.
+     * @param food_category - (Optional) The new category.
+     * @param food_picture_url - (Optional) The new picture URL.
+     * @param amount_per_serving - (Optional) The new serving size information.
+     * @param description - (Optional) The new description.
+     * @param macronutrients - (Optional) Updated macronutrient values.
+     * @param micronutrients - (Optional) Updated micronutrient values.
+     * @returns The updated FoodGlobal item.
+     * @throws An error if the FoodGlobal item does not exist.
+     */
     @Mutation(() => FoodGlobal)
     async updateFoodGlobal(
         @Arg("food_global_id") food_global_id: string,
@@ -236,19 +303,29 @@ export class FoodGlobalResolver {
         return updatedDoc.data() as FoodGlobal;
     }
 
+    /**
+     * Deletes a FoodGlobal item by its ID.
+     *
+     * Before deleting, this mutation also removes any associated FoodAbstract items.
+     *
+     * @param food_global_id - The ID of the FoodGlobal item to delete.
+     * @returns True if deletion was successful.
+     */
     @Mutation(() => Boolean)
     async deleteFoodGlobal(
         @Arg("food_global_id") food_global_id: string
     ): Promise<boolean> {
         const foodGlobalRef = db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id);
 
-        // Delete associated Abstract Food items (cascades down to Concrete Food items)
+        // Instantiate a FoodAbstractResolver to handle cascading deletion.
         const foodAbstractResolver = new FoodAbstractResolver();
+        // Retrieve all FoodAbstract items associated with this FoodGlobal.
         const foodAbstractSnapshot = await db
             .collection(COLLECTIONS.FOOD_ABSTRACT)
             .where("food_global_id", "==", food_global_id)
             .get();
 
+        // Delete each associated FoodAbstract item.
         for (const doc of foodAbstractSnapshot.docs) {
             await foodAbstractResolver.deleteFoodAbstract(doc.id);
         }
