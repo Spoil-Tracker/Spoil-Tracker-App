@@ -65,10 +65,6 @@ export default function HomeScreen() {
       <TouchableOpacity onPress={handleLogout}>
         <Text style={styles.btnLogout}>Logout</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.push('/FoodUI')}>
-        <Text style={styles.btnLogin}>Food UI</Text>
-      </TouchableOpacity>
     </View>
   );
 }
