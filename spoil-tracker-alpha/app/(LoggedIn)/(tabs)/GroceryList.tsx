@@ -11,7 +11,7 @@ import {
   ScrollView 
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import { useAuth } from "@/services/authContext"; 
+import { getAuth } from 'firebase/auth';
 import { query, collection, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../services/firebaseConfig';
 import ListSection from '../../../components/GroceryList/ListSection';
@@ -26,6 +26,7 @@ import {
   getAccountByOwnerID
 } from '@/components/Account/AccountService';
 
+import { useTheme } from 'react-native-paper'; // allows for dark mode
 
 // Get screen width for responsive design
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -53,6 +54,8 @@ const ButtonListScreen = () => {
   const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
   const [searchQuery, setSearchQuery] = useState(''); // User input for filtering lists
   const { user } = useAuth();
+  const { colors } = useTheme();
+
   /**
    fetches the user's grocery lists from Firestore
    lists are categorized into complete and incomplete
@@ -158,16 +161,20 @@ const ButtonListScreen = () => {
   const sortedIncompleteLists = sortLists(filterLists(incompleteLists));
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollViewContent} 
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
         style={styles.scrollView}
       >
         <Text style={styles.title}>Grocery Lists</Text>
 
         {/* Dropdown for sorting */}
         <View style={styles.sortContainer}>
-          <Text style={styles.sortText}>Sort By:</Text>
+          <Text style={[styles.sortText, { color: colors.text }]}>
+            Sort By:
+          </Text>
           <Dropdown
             style={styles.dropdown}
             data={SORT_OPTIONS}
@@ -188,35 +195,47 @@ const ButtonListScreen = () => {
         />
 
         {loading ? (
-          <ActivityIndicator size="large" color="#2196F3" style={{ marginTop: 20 }} />
+          <ActivityIndicator
+            size="large"
+            color="#2196F3"
+            style={{ marginTop: 20 }}
+          />
         ) : (
           <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
             {/* complete Lists Section */}
             <ListSection title="Complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
 
             {/* Incomplete Lists Section */}
-            <ListSection title="Incomplete Lists" lists={sortedIncompleteLists} fetchLists={fetchLists} />
+            <ListSection
+              title="Incomplete Lists"
+              lists={sortedIncompleteLists}
+              fetchLists={fetchLists}
+            />
           </View>
         )}
 
         {/* Create List Modal */}
-        <CreateListModal visible={modalVisible} onClose={() => setModalVisible(false)} fetchLists={fetchLists} />
+        <CreateListModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          fetchLists={fetchLists}
+        />
       </ScrollView>
 
       {/* Floating Button */}
-      <Pressable onPress={() => setModalVisible(true)} style={styles.floatingButton}>
+      <Pressable
+        onPress={() => setModalVisible(true)}
+        style={styles.floatingButton}
+      >
         <AntDesign name="plus" size={28} color="white" />
       </Pressable>
     </SafeAreaView>
   );
 };
 
-export default ButtonListScreen;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF9F2',
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingTop: 20,
@@ -263,7 +282,7 @@ const styles = StyleSheet.create({
     marginTop: 10, // Space between the sort dropdown and the search bar
   },
   contentContainer: {
-    flex: 1
+    flex: 1,
   },
   columnLayout: {
     flexDirection: 'column',
@@ -340,3 +359,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 });
+
+export default ButtonListScreen;

@@ -9,11 +9,12 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../services/firebaseConfig';
-import { useNavigation } from 'expo-router';
+import { sendPasswordResetEmail } from 'firebase/auth'; // sends reset email from firebase
+import { auth } from '../services/firebaseConfig'; // checks firebase for authentication
+import { useNavigation } from 'expo-router'; // allows navigation through the different displays
 
 const ForgotPassword = () => {
+  // State for Forget Password, allowing user to create new password
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [email, setEmail] = useState('');
   const navigation = useNavigation();
@@ -28,12 +29,15 @@ const ForgotPassword = () => {
     loadFonts();
   }, []);
 
+  // function to reset password
   const handleResetPassword = async () => {
+    // checks to see if user entered email, warns them if not
     if (!email) {
       Alert.alert('Error', 'Please enter your email.');
       return;
     }
 
+    // gives user success or error message
     try {
       await sendPasswordResetEmail(auth, email);
       Alert.alert(
@@ -54,6 +58,7 @@ const ForgotPassword = () => {
     );
   }
 
+  // Displays everything onto the screen
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Reset Password</Text>
@@ -77,6 +82,7 @@ const ForgotPassword = () => {
   );
 };
 
+// style sheet for forgotpassword
 const styles = StyleSheet.create({
   container: {
     flex: 1,

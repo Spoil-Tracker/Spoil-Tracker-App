@@ -5,7 +5,7 @@ import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { useNavigation } from 'expo-router';
 import { Dropdown } from 'react-native-element-dropdown';
 import { v4 as uuidv4 } from 'uuid';
-import FoodDropdownComponent from '../../components/Food/FoodDropdown';
+import FoodDropdownComponent from '@/components/Food/FoodDropdown';
 import {
   fetchGroceryListByID,
   deleteGroceryList,
@@ -22,17 +22,18 @@ import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPD
 import ProductPage from '@/components/Food/FoodUI';
 import { useAuth } from '@/services/authContext';
 import { getAccountByOwnerID } from '@/components/Account/AccountService';
+import { useTheme } from 'react-native-paper';
 
-  // list used for the dropdown located with each grocery list item in the flatlist
-  const FOOD_UNITS = [
-    { label: 'mg', value: 'mg' },
-    { label: 'g', value: 'g' },
-    { label: 'kg', value: 'kg' },
-    { label: 'lb', value: 'lb' },
-    { label: 'L', value: 'L' },
-    { label: 'mL', value: 'mL' },
-    { label: 'unit', value: 'unit' }
-  ];
+// list used for the dropdown located with each grocery list item in the flatlist
+const FOOD_UNITS = [
+  { label: 'mg', value: 'mg' },
+  { label: 'g', value: 'g' },
+  { label: 'kg', value: 'kg' },
+  { label: 'lb', value: 'lb' },
+  { label: 'L', value: 'L' },
+  { label: 'mL', value: 'mL' },
+  { label: 'unit', value: 'unit' },
+];
 
 const GroceryList = () => {
   const { height, width } = useWindowDimensions();
@@ -45,7 +46,8 @@ const GroceryList = () => {
   const [groceryListTitle, setGroceryListTitle] = useState(''); // Grocery list title
   const [groceryListDate, setGroceryListDate] = useState(''); // Grocery list creation date
   const [groceryListDescription, setGroceryListDescription] = useState(''); // Grocery list description
-  const [groceryListCompletion, setGroceryListCompletion] = useState<boolean>(false); // Grocery List Completion status
+  const [groceryListCompletion, setGroceryListCompletion] =
+    useState<boolean>(false); // Grocery List Completion status
   const [scaleAnim] = useState(new Animated.Value(1)); // Animation state, for resizing and re-organizing the UI whenever the user changes screen size
   const local = useLocalSearchParams(); // Retrieve parameters from route, for docRef local.id below
   const [sortModalVisible, setSortModalVisible] = useState(false); // Modal visibility state
@@ -71,6 +73,7 @@ const GroceryList = () => {
     const date = new Date(isoString);
     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   };
+  const { colors } = useTheme(); // allows for dark mode contributed by Kevin
 
   // Effect hook to fetch grocery list data and handle screen resizing
   useEffect(() => {
@@ -210,11 +213,11 @@ const GroceryList = () => {
       setFilteredItems(items);
     } else {
       const filtered = items.filter(item =>
-        item.food_name.toLowerCase().includes(text.toLowerCase())
+        item.food_name.toLowerCase().includes(text.toLowerCase()) ||
+        item.description.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredItems(filtered);
     }
-
   };
   // Function to handle the floating blue button being pressed and animate
   const onFABPress = async () => {
@@ -329,6 +332,25 @@ const GroceryList = () => {
       }
     };
 
+    {
+      /* Allows users to give a 5 star rating to their items CONTRIBUTED BY KEVIN */
+    }
+
+    /*
+    const handleRatingChange = async (rating: number) => {
+      const updatedItems = items.map((i) =>
+        i.id === item.id ? { ...i, rating } : i
+      );
+
+      try {
+        await updateDoc(docRef, { items: updatedItems });
+        setItems(updatedItems);
+      } catch (error) {
+        console.error('Error updating rating:', error);
+      }
+    };
+    */
+
     // the rest of the code below is standard UI components using react native's framework + basic css
     return (
       <View style={[styles.unit, item.isBought ? styles.completedItem : styles.incompleteItem]}>
@@ -365,12 +387,21 @@ const GroceryList = () => {
               <Text style={styles.minusButtonText}>-</Text>
             </Pressable>
           </View>
+          {/* allows for ratings contributed by Kevin */}
+          {/*
+          <Rating
+            startingValue={item.rating || 0} // Default to 0 if no rating exists
+            imageSize={20} // Adjust star size
+            onFinishRating={handleRatingChange}
+            style={{ marginTop: 10, alignSelf: 'flex-start' }}
+          />
+          */}
         </View>
         <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
       </View>
     );
-  }
-  
+  };
+
   const smallScreen = screenWidth < 690;
   const numColumns = width > 1420 ? 2 : 1;
 
@@ -401,7 +432,7 @@ const GroceryList = () => {
 
   const sortItems = (text: string) => {
     let sorted = [...items];
-  
+
     if (text === 'alphabetical') {
       sorted.sort((a, b) => a.food_name.localeCompare(b.food_name));
     } else if (text === 'quantity') {
@@ -413,7 +444,7 @@ const GroceryList = () => {
       ? sorted 
       : sorted.filter(item =>
           item.food_name.toLowerCase().includes(searchText.toLowerCase())
-          //|| item.description.toLowerCase().includes(searchText.toLowerCase())
+          || item.description.toLowerCase().includes(searchText.toLowerCase())
         );
 
     setItems(sorted);
@@ -606,7 +637,7 @@ const GroceryList = () => {
       </View>
     </Modal>
 
-    <Modal
+      <Modal
         animationType="fade"
         transparent={true}
         visible={modalVisible}
@@ -924,7 +955,6 @@ const GroceryList = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF9F2',
   },
   scrollContainer: {
     flexGrow: 1, // Allow the scroll view to grow and fill the available space
@@ -942,7 +972,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 20,
     paddingBottom: 100,
-    paddingLeft: 5
+    paddingLeft: 5,
   },
   unit: {
     flex: 1,
@@ -986,7 +1016,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderColor: 'white',
     borderWidth: 2,
-    backgroundColor: 'white'
+    backgroundColor: 'white',
   },
   floatingButton: {
     position: 'absolute',
@@ -1131,7 +1161,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 10,
     textAlign: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
   },
   itemButton: {
     backgroundColor: '#007bff',
@@ -1148,11 +1178,11 @@ const styles = StyleSheet.create({
   },
   minusButton: {
     backgroundColor: '#dc3545', // Red background for the minus button
-    width: 30,  // Set the width and height to make it circular
+    width: 30, // Set the width and height to make it circular
     height: 30,
-    borderRadius: 20,  // Half of the width/height to make it a perfect circle
+    borderRadius: 20, // Half of the width/height to make it a perfect circle
     alignItems: 'center',
-    justifyContent: 'center' // Space between the buttons
+    justifyContent: 'center', // Space between the buttons
   },
 
   minusButtonText: {
@@ -1160,7 +1190,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 20,
     textAlign: 'center',
-    paddingBottom: 4
+    paddingBottom: 4,
   },
   completedItem: {
     flex: 1,
@@ -1210,23 +1240,23 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 10,
     textAlign: 'center',
-    backgroundColor: '#FFFFFF'
+    backgroundColor: '#FFFFFF',
   },
   completeButton: {
-    backgroundColor: '#cd2525'
+    backgroundColor: '#cd2525',
   },
   incompleteButton: {
-    backgroundColor: '#227730'
+    backgroundColor: '#227730',
   },
-  closeButton: { 
+  closeButton: {
     marginTop: 10,
-    padding: 10, 
-    backgroundColor: '#d9534f', 
-    borderRadius: 5 
+    padding: 10,
+    backgroundColor: '#d9534f',
+    borderRadius: 5,
   },
-  closeButtonText: { 
-    color: 'white', 
-    fontWeight: 'bold' 
+  closeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
   customInputField: {
     height: 40,
@@ -1252,10 +1282,10 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderRadius: 8,
     paddingHorizontal: 8,
-    marginRight: 5
+    marginRight: 5,
   },
   measurementContainer: {
-    height: 38
+    height: 38,
   },
   measurementText: {
     textAlign: 'left',

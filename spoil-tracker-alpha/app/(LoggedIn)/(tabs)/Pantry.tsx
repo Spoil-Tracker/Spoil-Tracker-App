@@ -17,6 +17,7 @@ import { db } from '../../../services/firebaseConfig'; // Import your existing F
 import { useFocusEffect } from '@react-navigation/native';
 import { Link } from 'expo-router';
 import { v4 as uuidv4 } from 'uuid';
+import { useTheme } from 'react-native-paper'; // allows for dark mode contributed by Kevin
 
 const ButtonListScreen = () => {
   const [pantries, setPantries] = useState<string[]>([]);
@@ -25,6 +26,7 @@ const ButtonListScreen = () => {
   );
   const [modalVisible, setModalVisible] = useState(false);
   const [newPantryName, setnewPantryName] = useState('');
+  const { colors } = useTheme(); // allows for dark mode contributed by Kevin
 
   // Fetch lists from Firestore
   const fetchPantries = async () => {
@@ -89,7 +91,9 @@ const ButtonListScreen = () => {
   });
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]} // allows for dark mode contributed by Kevin
+    >
       <View
         style={[
           styles.rowContainer,
