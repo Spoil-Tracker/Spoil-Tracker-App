@@ -2,7 +2,6 @@ import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from '../../../components/useColorScheme';
-import { useClientOnlyValue } from '../../../components/useClientOnlyValue';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -22,11 +21,11 @@ export default function TabLayout() {
           backgroundColor: colorScheme === 'dark' ? '#fff' : '#4CAE4F',
         },
         tabBarLabelStyle: {
-          fontFamily: 'inter-bold'
+          fontFamily: 'inter-bold',
         },
         // headerShown: useClientOnlyValue(false, true), // Prevent web hydration errors COMMENTING THIS OUT FOR DEMO
         headerShown: false,
-        tabBarInactiveTintColor: '#fff'
+        tabBarInactiveTintColor: '#fff',
       }}
     >
       <Tabs.Screen
@@ -66,21 +65,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="Nutrition"
+        options={{
+          tabBarLabel: 'Nutrition',
+          tabBarActiveBackgroundColor: '#39913b',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="cutlery" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="Settings"
         options={{
           tabBarLabel: 'Settings',
           tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="GraphQLDemo"
-        options={{
-          tabBarLabel: 'GraphQL',
-          tabBarActiveBackgroundColor: '#39913b',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="database" color={color} />
-          ),
         }}
       />
     </Tabs>

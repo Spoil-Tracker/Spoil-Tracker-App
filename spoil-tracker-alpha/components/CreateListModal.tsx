@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { Modal, TextInput, Pressable, View, Text, StyleSheet } from 'react-native';
+import {
+  Modal,
+  TextInput,
+  Pressable,
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import { getAuth } from 'firebase/auth';
@@ -15,7 +22,11 @@ type CreateListModalProps = {
  * Modal component for creating a new grocery list.
  * Allows users to enter a list name and save it to Firestore.
  */
-const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps) => {
+const CreateListModal = ({
+  visible,
+  onClose,
+  fetchLists,
+}: CreateListModalProps) => {
   const [newListName, setNewListName] = useState('');
 
   /**
@@ -40,12 +51,13 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
       // Add new list to Firestore under the 'grocery_lists' collection
       await addDoc(collection(db, 'grocery_lists'), {
         name: newListName,
-        owner_id: user.uid,  // Store the user ID for reference
+        owner_id: user.uid, // Store the user ID for reference
         created: new Date().toISOString(), // Store creation timestamp
         last_opened: new Date().toISOString(), // Initial last opened timestamp
         family: false, // Default: not a shared family list
         shared: false, // Default: not shared with others
-        description: 'A newly made list. Edit the description by clicking on this field!', // Default description
+        description:
+          'A newly made list. Edit the description by clicking on this field!', // Default description
         completed: false, // Default: list is incomplete
         items: [], // Default: empty list of items
       });
@@ -60,7 +72,12 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
   };
 
   return (
-    <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Enter New List Name</Text>
@@ -71,7 +88,10 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
             onChangeText={setNewListName}
           />
           <View style={styles.modalButtons}>
-            <Pressable style={[styles.modalButton, { backgroundColor: '#2196F3' }]} onPress={createNewList}>
+            <Pressable
+              style={[styles.modalButton, { backgroundColor: '#2196F3' }]}
+              onPress={createNewList}
+            >
               <Text style={styles.modalButtonText}>Create</Text>
             </Pressable>
             <Pressable
@@ -93,44 +113,44 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
 export default CreateListModal;
 
 const styles = StyleSheet.create({
-    input: {
-        borderBottomWidth: 1,
-        borderColor: '#333',
-        marginBottom: 20,
-        width: '100%',
-        paddingVertical: 8,
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContent: {
-        width: 300,
-        padding: 20,
-        backgroundColor: 'white',
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    modalButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    modalButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 5,
-        alignItems: 'center',
-        marginHorizontal: 5,
-    },
-    modalButtonText: {
-        color: 'white',
-    },
+  input: {
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    marginBottom: 20,
+    width: '100%',
+    paddingVertical: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    width: 300,
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  modalButtonText: {
+    color: 'white',
+  },
 });

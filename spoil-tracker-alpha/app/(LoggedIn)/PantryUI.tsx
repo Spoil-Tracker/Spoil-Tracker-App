@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { AntDesign } from '@expo/vector-icons'; // For the plus and minus icons
-import { Dimensions } from 'react-native';
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
 import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
 import { useTheme } from 'react-native-paper'; // Import useTheme for dark mode, contributed by Kevin
 import FoodDropdownComponent from '../../components/FoodDropdown';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type ListItem = {
   id: string;
@@ -41,8 +41,6 @@ const Pantry = () => {
   const [listToDelete, setListToDelete] = useState(null); // State for the list to be deleted
   const [alertVisible, setAlertVisible] = useState(false); // State to control alert visibility
   const [alertMessage, setAlertMessage] = useState(''); // State to hold the alert message
-  const router = useRouter();
-  const [inputText, setInputText] = useState(''); // State to store the input text by Kevin
   const { colors } = useTheme(); // dark mode by Kevin
 
   const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown visibility state, used in the add item modal UI
@@ -53,6 +51,10 @@ const Pantry = () => {
 
   const [items, setItems] = useState<ListItem[]>([]);
   const [pantryTitle, setPantryTitle] = useState('');
+  const [pantryDescription, setPantryDescription] = useState('');
+  const [pantryName, setPantryName] = useState('Loading...'); // Default value
+  const router = useRouter();
+  const { id } = useLocalSearchParams(); // Get pantry ID from route params
 
   const local = useLocalSearchParams();
   const docRef = doc(db, 'pantries_t', local.id as string);
@@ -110,6 +112,7 @@ const Pantry = () => {
           );
 
           setLists(fetchedLists);
+          setPantryDescription(data.description || ''); // loads description from Firestore
 
           // Extract items from Firestore sections
           const extractedItems: ListItem[] = Object.keys(data.sections).flatMap(
@@ -394,23 +397,23 @@ const Pantry = () => {
     return items.filter((item) => item.sectionId === listId);
   };
 
+  const onDescriptionChange = async (text: string) => {
+    setPantryDescription(text);
+    try {
+      await updateDoc(docRef, {
+        description: text,
+      });
+      console.log('Description updated in Firestore');
+    } catch (error) {
+      console.error('Error updating description:', error);
+    }
+  };
+
   // Render each horizontal list with an editable header
   const renderList = (list) => {
     const listItems = sortItemsByExpiration(
       items.filter((item) => item.sectionId === list.id)
     );
-
-    const onDescriptionChange = async (text: string) => {
-      setPantryDescription(text);
-      try {
-        await updateDoc(docRef, {
-          description: text,
-        });
-        console.log('Description updated in Firestore');
-      } catch (error) {
-        console.error('Error updating description:', error);
-      }
-    };
 
     return (
       <View style={styles.listContainer} key={list.id}>
@@ -522,6 +525,54 @@ const Pantry = () => {
     }
   };
 
+  const addRandomItem = async () => {
+    const newItem = generateRandomItem();
+    try {
+      // Fetch current document
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
+        const updatedItems = [...currentItems, newItem]; // Add the new random item
+
+        // Update Firestore
+        await updateDoc(docRef, {
+          items: updatedItems,
+        });
+
+        // Update local state to reflect the new addition
+        setItems(updatedItems);
+        setFilteredItems(updatedItems);
+        alert(`Added random item: ${newItem.title}`);
+      } else {
+        console.log('No such document!');
+        alert('Failed to load document');
+      }
+    } catch (error) {
+      console.error('Error adding random item to Firestore:', error);
+      alert('Error adding random item');
+    }
+  };
+
+  useEffect(() => {
+    const fetchPantryName = async () => {
+      if (!id) return; // Ensure ID is present
+
+      try {
+        const pantryDoc = await getDoc(doc(db, 'pantry', id));
+        if (pantryDoc.exists()) {
+          setPantryName(pantryDoc.data().name); // Update state with name
+        } else {
+          setPantryName('Pantry Not Found'); // Handle missing pantry
+        }
+      } catch (error) {
+        console.error('Error fetching pantry:', error);
+        setPantryName('Error loading pantry'); // Handle errors
+      }
+    };
+
+    fetchPantryName();
+  }, [id]); // Runs when ID changes
+
   return (
     // allows for dark mode, contributed by Kevin
     <SafeAreaView
@@ -529,35 +580,38 @@ const Pantry = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.mainContent}>
-          {/* Left Column - Adjusted for Flex */}
+          {/* Left Column */}
           <View style={styles.fixedLeftColumn}>
-            {/* allows for dark mode contributed by Kevin */}
-            <Text style={[styles.textBoxTitle, { color: colors.text }]}>
-              Grocery List Example
+            {/* Dynamically Show Pantry Name */}
+            <Text style={[styles.textBoxTitle, { color: 'Black' }]}>
+              <MaterialCommunityIcons
+                name="fridge" // Use "fridge" for a filled icon
+                size={80} // Icon size
+                color="black" // Use theme color for the icon
+              />
+              {pantryName} {/* Pantry name from Firebase */}
             </Text>
 
-            <Pressable style={styles.addListButton} onPress={addNewList}>
-              <Text style={styles.addListButtonText}>Add New List</Text>
+            <Pressable
+              style={[styles.addListButton, { backgroundColor: '#3182f1' }]}
+              onPress={addNewList}
+            >
+              <Text style={styles.addListButtonText}>Sort By</Text>
             </Pressable>
             <Pressable
-              style={styles.addListButton}
+              style={[styles.addListButton, { backgroundColor: '#f13168' }]}
               onPress={() => router.back()}
             >
               <Text style={styles.addListButtonText}>Back</Text>
             </Pressable>
-            {/* Left Column - Text Box */}
 
-            {/* allows for dark mode contributed by Kevin */}
-            <Text style={[styles.label, { color: colors.text }]}>
-              Enter Text:
-            </Text>
-            {/* allows a description box, contributed by Kevin */}
+            {/* Pantry Description */}
             <TextInput
               style={styles.largeTextInput}
               placeholder="Pantry Description..."
-              value={inputText}
-              onChangeText={(text) => setInputText(text)} // Update state on input change
-              multiline={true} // Allow multiple lines of input
+              value={pantryDescription}
+              onChangeText={onDescriptionChange}
+              multiline={true}
             />
           </View>
 
@@ -748,7 +802,7 @@ const styles = StyleSheet.create({
   fixedLeftColumn: {
     flex: 1,
     padding: 10,
-    maxWidth: 250,
+    maxWidth: 300,
     justifyContent: 'flex-start',
   },
   rightColumn: {
@@ -878,6 +932,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+    alignItems: 'center',
   },
   addListButtonText: {
     color: 'white',
@@ -941,14 +996,16 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   textBoxTitle: {
-    fontSize: 18,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 15,
-    textAlign: 'left',
+    backgroundColor: '#FFF1DB',
+    textAlignVertical: 'top',
+    textAlign: 'center',
     paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: '#2196F3',
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: '#954535',
   },
   alertBanner: {
     position: 'absolute',
