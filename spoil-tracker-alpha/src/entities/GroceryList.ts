@@ -36,7 +36,7 @@ export class GroceryList {
     @Field()
     description!: string;
 
-    // Now an array of GroceryListItem objects rather than strings
+    // An array of GroceryListItem objects.
     @Field(() => [GroceryListItem])
     grocery_list_items!: GroceryListItem[];
 
@@ -53,12 +53,23 @@ export class GroceryList {
 @Resolver(GroceryList)
 export class GroceryListResolver {
     
+    /**
+     * Retrieves all grocery lists.
+     *
+     * @returns An array of all GroceryList objects.
+     */
     @Query(() => [GroceryList])
     async getAllGroceryLists(): Promise<GroceryList[]> {
         const snapshot = await db.collection(COLLECTIONS.GROCERYLIST).get();
         return snapshot.docs.map(doc => doc.data() as GroceryList);
     }
 
+    /**
+     * Retrieves all grocery lists associated with a specific account.
+     *
+     * @param account_id - The ID of the account.
+     * @returns An array of GroceryList objects for the given account.
+     */
     @Query(() => [GroceryList])
     async getGroceryListsForAccount(
         @Arg("account_id") account_id: string
@@ -69,6 +80,12 @@ export class GroceryListResolver {
         return snapshot.docs.map(doc => doc.data() as GroceryList);
     }
 
+    /**
+     * Retrieves a single grocery list by its ID.
+     *
+     * @param grocery_list_id - The ID of the grocery list.
+     * @returns The GroceryList object if found; otherwise, null.
+     */
     @Query(() => GroceryList, { nullable: true })
     async getGroceryListByID(
         @Arg("grocery_list_id") grocery_list_id: string
@@ -83,6 +100,17 @@ export class GroceryListResolver {
         return snapshot.docs[0].data() as GroceryList;
     }
 
+    /**
+     * Creates a new grocery list for an account.
+     *
+     * This mutation creates a new GroceryList document and updates the associated Account document's
+     * grocery_lists array with the new list's ID.
+     *
+     * @param account_id - The ID of the account.
+     * @param grocerylist_name - The name of the new grocery list.
+     * @returns The newly created GroceryList object.
+     * @throws An error if the account does not exist.
+     */
     @Mutation(() => GroceryList)
     async createGroceryList(
         @Arg("account_id") account_id: string,
@@ -130,6 +158,16 @@ export class GroceryListResolver {
         return newGroceryList;
     }
 
+    /**
+     * Deletes a grocery list by its ID.
+     *
+     * This mutation deletes the GroceryList document and also removes its ID from the associated Account's
+     * grocery_lists array.
+     *
+     * @param grocerylist_id - The ID of the grocery list to delete.
+     * @returns True if deletion was successful.
+     * @throws An error if the grocery list does not exist.
+     */
     @Mutation(() => Boolean)
     async deleteGroceryList(
         @Arg("grocerylist_id") grocerylist_id: string
@@ -143,8 +181,10 @@ export class GroceryListResolver {
 
         const listData = listDoc.data() as GroceryList;
 
+        // Delete the grocery list document.
         await listRef.delete();
 
+        // Remove the grocery list ID from the associated Account's grocery_lists array.
         const accountSnapshot = await db
             .collection(COLLECTIONS.ACCOUNT)
             .where("id", "==", listData.account_id)
@@ -163,6 +203,13 @@ export class GroceryListResolver {
         return true;
     }
 
+    /**
+     * Updates the name of a grocery list.
+     *
+     * @param grocerylist_id - The ID of the grocery list to update.
+     * @param grocerylist_name - The new name for the grocery list.
+     * @returns The updated GroceryList object.
+     */
     @Mutation(() => GroceryList)
     async updateGroceryListName(
         @Arg("grocerylist_id") grocerylist_id: string,
@@ -173,6 +220,13 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
+    /**
+     * Updates the description of a grocery list.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param description - The new description for the grocery list.
+     * @returns The updated GroceryList object.
+     */
     @Mutation(() => GroceryList)
     async updateGroceryListDescription(
         @Arg("grocerylist_id") grocerylist_id: string,
@@ -183,6 +237,13 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
+    /**
+     * Updates the last opened timestamp of a grocery list.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param last_opened - The new last opened timestamp (ISO string).
+     * @returns The updated GroceryList object.
+     */
     @Mutation(() => GroceryList)
     async updateGroceryListLastOpened(
         @Arg("grocerylist_id") grocerylist_id: string,
@@ -193,6 +254,13 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
+    /**
+     * Updates the isFamily flag of a grocery list.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param isFamily - The new boolean value for isFamily.
+     * @returns The updated GroceryList object.
+     */
     @Mutation(() => GroceryList)
     async updateGroceryListIsFamily(
         @Arg("grocerylist_id") grocerylist_id: string,
@@ -203,6 +271,13 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
+    /**
+     * Updates the isShared flag of a grocery list.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param isShared - The new boolean value for isShared.
+     * @returns The updated GroceryList object.
+     */
     @Mutation(() => GroceryList)
     async updateGroceryListIsShared(
         @Arg("grocerylist_id") grocerylist_id: string,
@@ -213,6 +288,13 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
+    /**
+     * Updates the isComplete flag of a grocery list.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param isComplete - The new boolean value for isComplete.
+     * @returns The updated GroceryList object.
+     */
     @Mutation(() => GroceryList)
     async updateGroceryListIsComplete(
         @Arg("grocerylist_id") grocerylist_id: string,
@@ -223,42 +305,83 @@ export class GroceryListResolver {
         return updatedDoc.data() as GroceryList;
     }
 
-    // Mutation to add a GroceryListItem to the grocery_list_items array.
+    /**
+     * Adds a new grocery list item to a specified grocery list.
+     *
+     * This mutation checks for the food item in the global food collection first. If not found,
+     * it falls back to the account's custom items. A new GroceryListItem is created and added to the
+     * grocery_list_items array.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param account_id - The ID of the account (for custom items lookup).
+     * @param food_global_id - The ID of the food item.
+     * @param food_name - The name of the food item.
+     * @returns True if the item is added successfully.
+     * @throws An error if the food item is not found or if the grocery list document does not exist.
+     */
     @Mutation(() => Boolean)
     async addGroceryListItem(
-    @Arg("grocerylist_id") grocerylist_id: string,
-    @Arg("food_global_id") food_global_id: string,
-    @Arg("food_name") food_name: string
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("account_id") account_id: string,
+        @Arg("food_global_id") food_global_id: string,
+        @Arg("food_name") food_name: string
     ): Promise<boolean> {
-    // Check that the FoodGlobal item exists
-    const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
-    if (!foodGlobalDoc.exists) {
-        throw new Error(`FoodGlobal with id ${food_global_id} does not exist.`);
+        let foodData: FoodGlobal | undefined;
+
+        // Check in the global collection first.
+        const foodGlobalDoc = await db.collection(COLLECTIONS.FOOD_GLOBAL).doc(food_global_id).get();
+        if (foodGlobalDoc.exists) {
+            foodData = foodGlobalDoc.data() as FoodGlobal;
+        } else {
+            // Fall back to the account's custom items if sys can't find it in the foodGlobal collection.
+            const accountDoc = await db.collection(COLLECTIONS.ACCOUNT).doc(account_id).get();
+            if (accountDoc.exists) {
+            const accountData = accountDoc.data() as Account;
+            foodData = accountData.custom_items.find(item => item.id === food_global_id);
+            }
+        }
+
+        if (!foodData) {
+            throw new Error(`Food item with id ${food_global_id} does not exist in either global or custom items.`);
+        }
+
+        // Generate a unique ID for the new GroceryListItem.
+        const newItemId = db.collection(COLLECTIONS.GROCERYLIST).doc().id;
+
+        const newItem: GroceryListItem = {
+            id: newItemId,
+            food_name,
+            food_global_id,
+            measurement: 'unit', // Default measurement; adjust as needed
+            quantity: 1,
+            isBought: false,
+            description: foodData.description ?? "No description available",
+            imageUrl: foodData.food_picture_url ?? "",
+        };
+
+        // Ensure the grocery list document exists.
+        const groceryListRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const groceryListDoc = await groceryListRef.get();
+        if (!groceryListDoc.exists) {
+            throw new Error(`Grocery list document with id ${grocerylist_id} does not exist.`);
+        }
+
+        // Add the new item to the grocery list using admin.firestore.FieldValue.arrayUnion.
+        await groceryListRef.update({
+            grocery_list_items: admin.firestore.FieldValue.arrayUnion(newItem)
+        });
+
+        return true;
     }
-    const foodGlobalData = foodGlobalDoc.data() as FoodGlobal;
-    
-    // Generate a unique ID for the new GroceryListItem.
-    const newItemId = db.collection(COLLECTIONS.GROCERYLIST).doc().id;
 
-    const newItem: GroceryListItem = {
-        id: newItemId,
-        food_name,
-        food_global_id,
-        measurement: 'unit', // Default measurement; adjust as needed
-        quantity: 1,
-        isBought: false,
-        description: foodGlobalData.description ?? "No description available",
-        imageUrl: foodGlobalData.food_picture_url ?? "",
-    };
-
-    // Add the new item using arrayUnion
-    await db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id).update({
-        grocery_list_items: admin.firestore.FieldValue.arrayUnion(newItem)
-    });
-
-    return true;
-    }
-
+    /**
+     * Deletes a grocery list item from a grocery list.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param item_id - The ID of the grocery list item to delete.
+     * @returns True if deletion was successful.
+     * @throws An error if the grocery list does not exist.
+     */
     @Mutation(() => Boolean)
     async deleteGroceryListItem(
         @Arg("grocerylist_id") grocerylist_id: string,
@@ -277,7 +400,15 @@ export class GroceryListResolver {
         return true;
     }
 
-    // Mutation to update the measurement field of a specific embedded grocery list item
+    /**
+     * Updates the measurement of a specific grocery list item.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param item_id - The ID of the grocery list item.
+     * @param measurement - The new measurement value.
+     * @returns True if the update was successful.
+     * @throws An error if the grocery list does not exist or if grocery_list_items is not an array.
+     */
     @Mutation(() => Boolean)
     async updateGroceryListItemMeasurement(
     @Arg("grocerylist_id") grocerylist_id: string,
@@ -311,6 +442,15 @@ export class GroceryListResolver {
     }
     }
 
+    /**
+     * Updates the quantity of a specific grocery list item.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param item_id - The ID of the grocery list item.
+     * @param quantity - The new quantity (integer).
+     * @returns True if the update was successful.
+     * @throws An error if the grocery list does not exist or if grocery_list_items is not an array.
+     */
     @Mutation(() => Boolean)
     async updateGroceryListItemQuantity(
     @Arg("grocerylist_id") grocerylist_id: string,
@@ -339,12 +479,20 @@ export class GroceryListResolver {
         await listRef.update({ grocery_list_items: updatedItems });
         console.log("Successfully updated grocery list item quantity");
         return true;
-    } catch (error) {
-        console.error("Error updating grocery list item quantity:", error);
-        return false;
-    }
+        } catch (error) {
+            console.error("Error updating grocery list item quantity:", error);
+            return false;
+        }
     }
 
+    /**
+     * Toggles the isBought flag for a specific grocery list item.
+     *
+     * @param grocerylist_id - The ID of the grocery list.
+     * @param item_id - The ID of the grocery list item.
+     * @returns True if the toggle was successful.
+     * @throws An error if the grocery list does not exist or if grocery_list_items is not an array.
+     */
     @Mutation(() => Boolean)
     async updateGroceryListItemIsBought(
         @Arg("grocerylist_id") grocerylist_id: string,

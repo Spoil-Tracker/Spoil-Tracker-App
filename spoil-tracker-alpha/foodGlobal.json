@@ -1,0 +1,1303 @@
+[
+    {
+      "id": "1",
+      "food_name": "Apple",
+      "food_category": "Fruit",
+      "food_picture_url": "https://example.com/images/apple.jpg",
+      "amount_per_serving": "1 medium apple",
+      "description": "A fresh and crispy red apple.",
+      "macronutrients": {
+        "total_fat": 0.3,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 25,
+        "fiber": 4,
+        "total_sugars": 19,
+        "added_sugars": 0,
+        "protein": 0.5
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 1,
+        "vitamin_d": 0,
+        "calcium": 6,
+        "iron": 0.1,
+        "potassium": 195
+      }
+    },
+    {
+      "id": "2",
+      "food_name": "Banana",
+      "food_category": "Fruit",
+      "food_picture_url": "https://example.com/images/banana.jpg",
+      "amount_per_serving": "1 medium banana",
+      "description": "A ripe and sweet banana.",
+      "macronutrients": {
+        "total_fat": 0.3,
+        "sat_fat": 0.1,
+        "trans_fat": 0.0,
+        "carbohydrate": 27,
+        "fiber": 3,
+        "total_sugars": 14,
+        "added_sugars": 0,
+        "protein": 1.3
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 1,
+        "vitamin_d": 0,
+        "calcium": 5,
+        "iron": 0.3,
+        "potassium": 422
+      }
+    },
+    {
+      "id": "3",
+      "food_name": "Orange",
+      "food_category": "Fruit",
+      "food_picture_url": "https://example.com/images/orange.jpg",
+      "amount_per_serving": "1 medium orange",
+      "description": "A juicy and tangy orange.",
+      "macronutrients": {
+        "total_fat": 0.2,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 15,
+        "fiber": 3,
+        "total_sugars": 12,
+        "added_sugars": 0,
+        "protein": 1.2
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 0,
+        "vitamin_d": 0,
+        "calcium": 60,
+        "iron": 0.1,
+        "potassium": 237
+      }
+    },
+    {
+      "id": "4",
+      "food_name": "Grapes",
+      "food_category": "Fruit",
+      "food_picture_url": "https://example.com/images/grapes.jpg",
+      "amount_per_serving": "1 cup of grapes",
+      "description": "A bowl of sweet, seedless grapes.",
+      "macronutrients": {
+        "total_fat": 0.2,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 16,
+        "fiber": 1,
+        "total_sugars": 15,
+        "added_sugars": 0,
+        "protein": 0.6
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 2,
+        "vitamin_d": 0,
+        "calcium": 10,
+        "iron": 0.4,
+        "potassium": 288
+      }
+    },
+    {
+      "id": "5",
+      "food_name": "Strawberries",
+      "food_category": "Fruit",
+      "food_picture_url": "https://example.com/images/strawberries.jpg",
+      "amount_per_serving": "1 cup of strawberries",
+      "description": "Bright red and sweet strawberries.",
+      "macronutrients": {
+        "total_fat": 0.3,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 7,
+        "fiber": 2,
+        "total_sugars": 4,
+        "added_sugars": 0,
+        "protein": 0.7
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 1,
+        "vitamin_d": 0,
+        "calcium": 20,
+        "iron": 0.6,
+        "potassium": 220
+      }
+    },
+    {
+      "id": "6",
+      "food_name": "Blueberries",
+      "food_category": "Fruit",
+      "food_picture_url": "https://example.com/images/blueberries.jpg",
+      "amount_per_serving": "1 cup of blueberries",
+      "description": "Fresh and antioxidant-rich blueberries.",
+      "macronutrients": {
+        "total_fat": 0.4,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 14,
+        "fiber": 2.4,
+        "total_sugars": 10,
+        "added_sugars": 0,
+        "protein": 0.7
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 1,
+        "vitamin_d": 0,
+        "calcium": 6,
+        "iron": 0.4,
+        "potassium": 77
+      }
+    },
+    {
+      "id": "7",
+      "food_name": "Broccoli",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/broccoli.jpg",
+      "amount_per_serving": "1 cup of broccoli florets",
+      "description": "Fresh and nutrient-packed broccoli.",
+      "macronutrients": {
+        "total_fat": 0.4,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 6,
+        "fiber": 2.4,
+        "total_sugars": 1.5,
+        "added_sugars": 0,
+        "protein": 2.6
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 30,
+        "vitamin_d": 0,
+        "calcium": 62,
+        "iron": 0.7,
+        "potassium": 316
+      }
+    },
+    {
+      "id": "8",
+      "food_name": "Carrot",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/carrot.jpg",
+      "amount_per_serving": "1 medium carrot",
+      "description": "Crunchy and sweet carrot.",
+      "macronutrients": {
+        "total_fat": 0.1,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 10,
+        "fiber": 3,
+        "total_sugars": 5,
+        "added_sugars": 0,
+        "protein": 0.9
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 50,
+        "vitamin_d": 0,
+        "calcium": 33,
+        "iron": 0.3,
+        "potassium": 320
+      }
+    },
+    {
+      "id": "9",
+      "food_name": "Lettuce",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/lettuce.jpg",
+      "amount_per_serving": "1 cup shredded lettuce",
+      "description": "Crisp and refreshing lettuce.",
+      "macronutrients": {
+        "total_fat": 0.1,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 2,
+        "fiber": 1,
+        "total_sugars": 1,
+        "added_sugars": 0,
+        "protein": 0.5
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 10,
+        "vitamin_d": 0,
+        "calcium": 18,
+        "iron": 0.6,
+        "potassium": 194
+      }
+    },
+    {
+      "id": "10",
+      "food_name": "Spinach",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/spinach.jpg",
+      "amount_per_serving": "1 cup raw spinach",
+      "description": "Leafy green spinach full of vitamins.",
+      "macronutrients": {
+        "total_fat": 0.4,
+        "sat_fat": 0.1,
+        "trans_fat": 0.0,
+        "carbohydrate": 1.1,
+        "fiber": 0.7,
+        "total_sugars": 0.4,
+        "added_sugars": 0,
+        "protein": 0.9
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 24,
+        "vitamin_d": 0,
+        "calcium": 30,
+        "iron": 0.8,
+        "potassium": 167
+      }
+    },
+    {
+      "id": "11",
+      "food_name": "Tomato",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/tomato.jpg",
+      "amount_per_serving": "1 medium tomato",
+      "description": "Juicy and flavorful tomato.",
+      "macronutrients": {
+        "total_fat": 0.2,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 3.9,
+        "fiber": 1.2,
+        "total_sugars": 2.6,
+        "added_sugars": 0,
+        "protein": 0.9
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 5,
+        "vitamin_d": 0,
+        "calcium": 10,
+        "iron": 0.3,
+        "potassium": 237
+      }
+    },
+    {
+      "id": "12",
+      "food_name": "Cucumber",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/cucumber.jpg",
+      "amount_per_serving": "1 medium cucumber",
+      "description": "Cool and hydrating cucumber.",
+      "macronutrients": {
+        "total_fat": 0.1,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 3.6,
+        "fiber": 0.5,
+        "total_sugars": 1.7,
+        "added_sugars": 0,
+        "protein": 0.6
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 2,
+        "vitamin_d": 0,
+        "calcium": 16,
+        "iron": 0.3,
+        "potassium": 147
+      }
+    },
+    {
+      "id": "13",
+      "food_name": "Potato",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/potato.jpg",
+      "amount_per_serving": "1 medium potato",
+      "description": "A versatile and filling potato.",
+      "macronutrients": {
+        "total_fat": 0.1,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 37,
+        "fiber": 4,
+        "total_sugars": 1.7,
+        "added_sugars": 0,
+        "protein": 4.3
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 7,
+        "vitamin_d": 0,
+        "calcium": 20,
+        "iron": 0.8,
+        "potassium": 620
+      }
+    },
+    {
+      "id": "14",
+      "food_name": "Sweet Potato",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/sweet_potato.jpg",
+      "amount_per_serving": "1 medium sweet potato",
+      "description": "Naturally sweet and nutritious sweet potato.",
+      "macronutrients": {
+        "total_fat": 0.1,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 27,
+        "fiber": 4,
+        "total_sugars": 6,
+        "added_sugars": 0,
+        "protein": 2
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 41,
+        "vitamin_d": 0,
+        "calcium": 40,
+        "iron": 0.8,
+        "potassium": 438
+      }
+    },
+    {
+      "id": "15",
+      "food_name": "Onion",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/onion.jpg",
+      "amount_per_serving": "1 medium onion",
+      "description": "A flavorful onion perfect for cooking.",
+      "macronutrients": {
+        "total_fat": 0.1,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 9,
+        "fiber": 1.7,
+        "total_sugars": 4.2,
+        "added_sugars": 0,
+        "protein": 1.1
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 4,
+        "vitamin_d": 0,
+        "calcium": 23,
+        "iron": 0.2,
+        "potassium": 146
+      }
+    },
+    {
+      "id": "16",
+      "food_name": "Garlic",
+      "food_category": "Vegetable",
+      "food_picture_url": "https://example.com/images/garlic.jpg",
+      "amount_per_serving": "1 clove of garlic",
+      "description": "A small clove of aromatic garlic.",
+      "macronutrients": {
+        "total_fat": 0.0,
+        "sat_fat": 0.0,
+        "trans_fat": 0.0,
+        "carbohydrate": 1,
+        "fiber": 0.1,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0.1
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 1,
+        "vitamin_d": 0,
+        "calcium": 5,
+        "iron": 0.2,
+        "potassium": 36
+      }
+    },
+    {
+      "id": "17",
+      "food_name": "Chicken Breast",
+      "food_category": "Meat",
+      "food_picture_url": "https://example.com/images/chicken_breast.jpg",
+      "amount_per_serving": "100g serving",
+      "description": "Lean and protein-rich chicken breast.",
+      "macronutrients": {
+        "total_fat": 3.6,
+        "sat_fat": 1,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 31
+      },
+      "micronutrients": {
+        "cholesterol": 85,
+        "sodium": 74,
+        "vitamin_d": 0,
+        "calcium": 15,
+        "iron": 0.9,
+        "potassium": 256
+      }
+    },
+    {
+      "id": "18",
+      "food_name": "Beef Steak",
+      "food_category": "Meat",
+      "food_picture_url": "https://example.com/images/beef_steak.jpg",
+      "amount_per_serving": "100g serving",
+      "description": "A hearty and juicy beef steak.",
+      "macronutrients": {
+        "total_fat": 15,
+        "sat_fat": 6,
+        "trans_fat": 0.5,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 26
+      },
+      "micronutrients": {
+        "cholesterol": 90,
+        "sodium": 55,
+        "vitamin_d": 0,
+        "calcium": 18,
+        "iron": 2.6,
+        "potassium": 270
+      }
+    },
+    {
+      "id": "19",
+      "food_name": "Pork Chop",
+      "food_category": "Meat",
+      "food_picture_url": "https://example.com/images/pork_chop.jpg",
+      "amount_per_serving": "100g serving",
+      "description": "A savory and tender pork chop.",
+      "macronutrients": {
+        "total_fat": 10,
+        "sat_fat": 3.5,
+        "trans_fat": 0.2,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 25
+      },
+      "micronutrients": {
+        "cholesterol": 80,
+        "sodium": 65,
+        "vitamin_d": 0,
+        "calcium": 10,
+        "iron": 1.0,
+        "potassium": 250
+      }
+    },
+    {
+      "id": "20",
+      "food_name": "Salmon",
+      "food_category": "Seafood",
+      "food_picture_url": "https://example.com/images/salmon.jpg",
+      "amount_per_serving": "100g serving",
+      "description": "Fresh and omega-rich salmon.",
+      "macronutrients": {
+        "total_fat": 13,
+        "sat_fat": 3,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 20
+      },
+      "micronutrients": {
+        "cholesterol": 60,
+        "sodium": 50,
+        "vitamin_d": 10,
+        "calcium": 12,
+        "iron": 0.5,
+        "potassium": 363
+      }
+    },
+    {
+      "id": "21",
+      "food_name": "Tuna",
+      "food_category": "Seafood",
+      "food_picture_url": "https://example.com/images/tuna.jpg",
+      "amount_per_serving": "100g serving",
+      "description": "Canned tuna, a lean protein source.",
+      "macronutrients": {
+        "total_fat": 1,
+        "sat_fat": 0.3,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 23
+      },
+      "micronutrients": {
+        "cholesterol": 40,
+        "sodium": 40,
+        "vitamin_d": 0,
+        "calcium": 10,
+        "iron": 1.3,
+        "potassium": 300
+      }
+    },
+    {
+      "id": "22",
+      "food_name": "Shrimp",
+      "food_category": "Seafood",
+      "food_picture_url": "https://example.com/images/shrimp.jpg",
+      "amount_per_serving": "100g serving",
+      "description": "Succulent shrimp, great for various dishes.",
+      "macronutrients": {
+        "total_fat": 0.5,
+        "sat_fat": 0.1,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 24
+      },
+      "micronutrients": {
+        "cholesterol": 150,
+        "sodium": 150,
+        "vitamin_d": 0,
+        "calcium": 70,
+        "iron": 1.2,
+        "potassium": 220
+      }
+    },
+    {
+      "id": "23",
+      "food_name": "Eggs",
+      "food_category": "Dairy/Protein",
+      "food_picture_url": "https://example.com/images/eggs.jpg",
+      "amount_per_serving": "1 large egg",
+      "description": "A protein-packed whole egg.",
+      "macronutrients": {
+        "total_fat": 5,
+        "sat_fat": 1.6,
+        "trans_fat": 0,
+        "carbohydrate": 0.6,
+        "fiber": 0,
+        "total_sugars": 0.6,
+        "added_sugars": 0,
+        "protein": 6
+      },
+      "micronutrients": {
+        "cholesterol": 186,
+        "sodium": 70,
+        "vitamin_d": 1,
+        "calcium": 28,
+        "iron": 0.8,
+        "potassium": 63
+      }
+    },
+    {
+      "id": "24",
+      "food_name": "Milk",
+      "food_category": "Dairy",
+      "food_picture_url": "https://example.com/images/milk.jpg",
+      "amount_per_serving": "1 cup (240ml)",
+      "description": "A glass of nutrient-rich milk.",
+      "macronutrients": {
+        "total_fat": 8,
+        "sat_fat": 5,
+        "trans_fat": 0.3,
+        "carbohydrate": 12,
+        "fiber": 0,
+        "total_sugars": 12,
+        "added_sugars": 0,
+        "protein": 8
+      },
+      "micronutrients": {
+        "cholesterol": 24,
+        "sodium": 98,
+        "vitamin_d": 2.4,
+        "calcium": 276,
+        "iron": 0,
+        "potassium": 322
+      }
+    },
+    {
+      "id": "25",
+      "food_name": "Yogurt",
+      "food_category": "Dairy",
+      "food_picture_url": "https://example.com/images/yogurt.jpg",
+      "amount_per_serving": "1 cup",
+      "description": "Plain yogurt, rich in probiotics.",
+      "macronutrients": {
+        "total_fat": 3.25,
+        "sat_fat": 2,
+        "trans_fat": 0,
+        "carbohydrate": 17,
+        "fiber": 0,
+        "total_sugars": 17,
+        "added_sugars": 0,
+        "protein": 9
+      },
+      "micronutrients": {
+        "cholesterol": 15,
+        "sodium": 75,
+        "vitamin_d": 1.2,
+        "calcium": 415,
+        "iron": 0.1,
+        "potassium": 380
+      }
+    },
+    {
+      "id": "26",
+      "food_name": "Cheese",
+      "food_category": "Dairy",
+      "food_picture_url": "https://example.com/images/cheese.jpg",
+      "amount_per_serving": "1 slice",
+      "description": "A slice of cheddar cheese.",
+      "macronutrients": {
+        "total_fat": 9,
+        "sat_fat": 6,
+        "trans_fat": 0.4,
+        "carbohydrate": 0.4,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 7
+      },
+      "micronutrients": {
+        "cholesterol": 30,
+        "sodium": 180,
+        "vitamin_d": 0,
+        "calcium": 200,
+        "iron": 0.2,
+        "potassium": 30
+      }
+    },
+    {
+      "id": "27",
+      "food_name": "Butter",
+      "food_category": "Dairy",
+      "food_picture_url": "https://example.com/images/butter.jpg",
+      "amount_per_serving": "1 tablespoon",
+      "description": "Creamy butter perfect for cooking.",
+      "macronutrients": {
+        "total_fat": 11,
+        "sat_fat": 7,
+        "trans_fat": 0.5,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0.1
+      },
+      "micronutrients": {
+        "cholesterol": 31,
+        "sodium": 90,
+        "vitamin_d": 0.1,
+        "calcium": 7,
+        "iron": 0,
+        "potassium": 3
+      }
+    },
+    {
+      "id": "28",
+      "food_name": "Bread",
+      "food_category": "Bakery",
+      "food_picture_url": "https://example.com/images/bread.jpg",
+      "amount_per_serving": "1 slice",
+      "description": "Soft and fresh white bread.",
+      "macronutrients": {
+        "total_fat": 1,
+        "sat_fat": 0.2,
+        "trans_fat": 0,
+        "carbohydrate": 15,
+        "fiber": 1,
+        "total_sugars": 2,
+        "added_sugars": 1,
+        "protein": 3
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 150,
+        "vitamin_d": 0,
+        "calcium": 80,
+        "iron": 1.0,
+        "potassium": 80
+      }
+    },
+    {
+      "id": "29",
+      "food_name": "Rice",
+      "food_category": "Grains",
+      "food_picture_url": "https://example.com/images/rice.jpg",
+      "amount_per_serving": "1 cup cooked",
+      "description": "Steamed white rice.",
+      "macronutrients": {
+        "total_fat": 0.4,
+        "sat_fat": 0.1,
+        "trans_fat": 0,
+        "carbohydrate": 45,
+        "fiber": 0.6,
+        "total_sugars": 0.1,
+        "added_sugars": 0,
+        "protein": 4
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 0,
+        "vitamin_d": 0,
+        "calcium": 16,
+        "iron": 0.2,
+        "potassium": 55
+      }
+    },
+    {
+      "id": "30",
+      "food_name": "Pasta",
+      "food_category": "Grains",
+      "food_picture_url": "https://example.com/images/pasta.jpg",
+      "amount_per_serving": "1 cup cooked",
+      "description": "Classic pasta perfect for any sauce.",
+      "macronutrients": {
+        "total_fat": 1.3,
+        "sat_fat": 0.3,
+        "trans_fat": 0,
+        "carbohydrate": 43,
+        "fiber": 2.5,
+        "total_sugars": 1.1,
+        "added_sugars": 0,
+        "protein": 8
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 1,
+        "vitamin_d": 0,
+        "calcium": 11,
+        "iron": 0.6,
+        "potassium": 70
+      }
+    },
+    {
+      "id": "31",
+      "food_name": "Cereal",
+      "food_category": "Grains",
+      "food_picture_url": "https://example.com/images/cereal.jpg",
+      "amount_per_serving": "1 cup",
+      "description": "Crunchy and sweet breakfast cereal.",
+      "macronutrients": {
+        "total_fat": 2,
+        "sat_fat": 0.5,
+        "trans_fat": 0,
+        "carbohydrate": 26,
+        "fiber": 3,
+        "total_sugars": 10,
+        "added_sugars": 5,
+        "protein": 3
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 210,
+        "vitamin_d": 2,
+        "calcium": 100,
+        "iron": 8,
+        "potassium": 200
+      }
+    },
+    {
+      "id": "32",
+      "food_name": "Oatmeal",
+      "food_category": "Grains",
+      "food_picture_url": "https://example.com/images/oatmeal.jpg",
+      "amount_per_serving": "1 cup cooked",
+      "description": "Warm and hearty oatmeal.",
+      "macronutrients": {
+        "total_fat": 3.2,
+        "sat_fat": 0.5,
+        "trans_fat": 0,
+        "carbohydrate": 27,
+        "fiber": 4,
+        "total_sugars": 1,
+        "added_sugars": 0,
+        "protein": 6
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 2,
+        "vitamin_d": 0,
+        "calcium": 80,
+        "iron": 1.8,
+        "potassium": 150
+      }
+    },
+    {
+      "id": "33",
+      "food_name": "Orange Juice",
+      "food_category": "Beverage",
+      "food_picture_url": "https://example.com/images/orange_juice.jpg",
+      "amount_per_serving": "1 cup",
+      "description": "Freshly squeezed orange juice.",
+      "macronutrients": {
+        "total_fat": 0.5,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 26,
+        "fiber": 0.5,
+        "total_sugars": 21,
+        "added_sugars": 0,
+        "protein": 1.7
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 2,
+        "vitamin_d": 2,
+        "calcium": 27,
+        "iron": 0.5,
+        "potassium": 496
+      }
+    },
+    {
+      "id": "34",
+      "food_name": "Apple Juice",
+      "food_category": "Beverage",
+      "food_picture_url": "https://example.com/images/apple_juice.jpg",
+      "amount_per_serving": "1 cup",
+      "description": "Sweet and refreshing apple juice.",
+      "macronutrients": {
+        "total_fat": 0.1,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 28,
+        "fiber": 0.5,
+        "total_sugars": 24,
+        "added_sugars": 0,
+        "protein": 0.5
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 5,
+        "vitamin_d": 0,
+        "calcium": 20,
+        "iron": 0.2,
+        "potassium": 260
+      }
+    },
+    {
+      "id": "35",
+      "food_name": "Coffee",
+      "food_category": "Beverage",
+      "food_picture_url": "https://example.com/images/coffee.jpg",
+      "amount_per_serving": "1 cup",
+      "description": "Hot and energizing black coffee.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0.3
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 5,
+        "vitamin_d": 0,
+        "calcium": 2,
+        "iron": 0,
+        "potassium": 116
+      }
+    },
+    {
+      "id": "36",
+      "food_name": "Tea",
+      "food_category": "Beverage",
+      "food_picture_url": "https://example.com/images/tea.jpg",
+      "amount_per_serving": "1 cup",
+      "description": "A soothing cup of tea.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 3,
+        "vitamin_d": 0,
+        "calcium": 2,
+        "iron": 0,
+        "potassium": 26
+      }
+    },
+    {
+      "id": "37",
+      "food_name": "Bottled Water",
+      "food_category": "Beverage",
+      "food_picture_url": "https://example.com/images/bottled_water.jpg",
+      "amount_per_serving": "8 oz",
+      "description": "Pure and refreshing bottled water.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 0,
+        "vitamin_d": 0,
+        "calcium": 0,
+        "iron": 0,
+        "potassium": 0
+      }
+    },
+    {
+      "id": "38",
+      "food_name": "Soda",
+      "food_category": "Beverage",
+      "food_picture_url": "https://example.com/images/soda.jpg",
+      "amount_per_serving": "12 oz can",
+      "description": "A fizzy and sweet soda.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 39,
+        "fiber": 0,
+        "total_sugars": 39,
+        "added_sugars": 35,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 30,
+        "vitamin_d": 0,
+        "calcium": 0,
+        "iron": 0,
+        "potassium": 0
+      }
+    },
+    {
+      "id": "39",
+      "food_name": "Energy Drink",
+      "food_category": "Beverage",
+      "food_picture_url": "https://example.com/images/energy_drink.jpg",
+      "amount_per_serving": "8 oz",
+      "description": "An energizing drink with a kick.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 27,
+        "fiber": 0,
+        "total_sugars": 27,
+        "added_sugars": 25,
+        "protein": 1
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 75,
+        "vitamin_d": 0,
+        "calcium": 10,
+        "iron": 0,
+        "potassium": 200
+      }
+    },
+    {
+      "id": "40",
+      "food_name": "Peanut Butter",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/peanut_butter.jpg",
+      "amount_per_serving": "2 tablespoons",
+      "description": "Creamy peanut butter, perfect for sandwiches.",
+      "macronutrients": {
+        "total_fat": 16,
+        "sat_fat": 3.3,
+        "trans_fat": 0,
+        "carbohydrate": 6,
+        "fiber": 2,
+        "total_sugars": 3,
+        "added_sugars": 1,
+        "protein": 8
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 150,
+        "vitamin_d": 0,
+        "calcium": 20,
+        "iron": 0.6,
+        "potassium": 208
+      }
+    },
+    {
+      "id": "41",
+      "food_name": "Jelly",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/jelly.jpg",
+      "amount_per_serving": "1 tablespoon",
+      "description": "Sweet jelly to spread on toast.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 13,
+        "fiber": 0,
+        "total_sugars": 13,
+        "added_sugars": 12,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 5,
+        "vitamin_d": 0,
+        "calcium": 1,
+        "iron": 0,
+        "potassium": 2
+      }
+    },
+    {
+      "id": "42",
+      "food_name": "Honey",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/honey.jpg",
+      "amount_per_serving": "1 tablespoon",
+      "description": "Natural honey, sweet and smooth.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 17,
+        "fiber": 0,
+        "total_sugars": 17,
+        "added_sugars": 0,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 1,
+        "vitamin_d": 0,
+        "calcium": 2,
+        "iron": 0,
+        "potassium": 11
+      }
+    },
+    {
+      "id": "43",
+      "food_name": "Mayonnaise",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/mayonnaise.jpg",
+      "amount_per_serving": "1 tablespoon",
+      "description": "Creamy mayonnaise for sandwiches.",
+      "macronutrients": {
+        "total_fat": 10,
+        "sat_fat": 1.5,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 5,
+        "sodium": 95,
+        "vitamin_d": 0,
+        "calcium": 4,
+        "iron": 0,
+        "potassium": 0
+      }
+    },
+    {
+      "id": "44",
+      "food_name": "Ketchup",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/ketchup.jpg",
+      "amount_per_serving": "1 tablespoon",
+      "description": "Tangy ketchup for burgers and fries.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 4,
+        "fiber": 0,
+        "total_sugars": 4,
+        "added_sugars": 4,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 160,
+        "vitamin_d": 0,
+        "calcium": 4,
+        "iron": 0,
+        "potassium": 20
+      }
+    },
+    {
+      "id": "45",
+      "food_name": "Mustard",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/mustard.jpg",
+      "amount_per_serving": "1 teaspoon",
+      "description": "Zesty mustard to spice up your meal.",
+      "macronutrients": {
+        "total_fat": 0.2,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 0.5,
+        "fiber": 0.3,
+        "total_sugars": 0.4,
+        "added_sugars": 0,
+        "protein": 0.3
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 55,
+        "vitamin_d": 0,
+        "calcium": 8,
+        "iron": 0.3,
+        "potassium": 7
+      }
+    },
+    {
+      "id": "46",
+      "food_name": "Salad Dressing",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/salad_dressing.jpg",
+      "amount_per_serving": "2 tablespoons",
+      "description": "A light vinaigrette salad dressing.",
+      "macronutrients": {
+        "total_fat": 14,
+        "sat_fat": 2,
+        "trans_fat": 0,
+        "carbohydrate": 6,
+        "fiber": 0,
+        "total_sugars": 4,
+        "added_sugars": 0,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 250,
+        "vitamin_d": 0,
+        "calcium": 10,
+        "iron": 0,
+        "potassium": 50
+      }
+    },
+    {
+      "id": "47",
+      "food_name": "Olive Oil",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/olive_oil.jpg",
+      "amount_per_serving": "1 tablespoon",
+      "description": "Extra virgin olive oil, rich in flavor.",
+      "macronutrients": {
+        "total_fat": 14,
+        "sat_fat": 2,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 0,
+        "vitamin_d": 0,
+        "calcium": 0,
+        "iron": 0,
+        "potassium": 0
+      }
+    },
+    {
+      "id": "48",
+      "food_name": "Vinegar",
+      "food_category": "Condiments",
+      "food_picture_url": "https://example.com/images/vinegar.jpg",
+      "amount_per_serving": "1 tablespoon",
+      "description": "A tangy vinegar ideal for dressings.",
+      "macronutrients": {
+        "total_fat": 0,
+        "sat_fat": 0,
+        "trans_fat": 0,
+        "carbohydrate": 0,
+        "fiber": 0,
+        "total_sugars": 0,
+        "added_sugars": 0,
+        "protein": 0
+      },
+      "micronutrients": {
+        "cholesterol": 0,
+        "sodium": 0,
+        "vitamin_d": 0,
+        "calcium": 0,
+        "iron": 0,
+        "potassium": 0
+      }
+    },
+    {
+      "id": "49",
+      "food_name": "Frozen Pizza",
+      "food_category": "Frozen Foods",
+      "food_picture_url": "https://example.com/images/frozen_pizza.jpg",
+      "amount_per_serving": "1 serving",
+      "description": "A ready-to-bake frozen pizza.",
+      "macronutrients": {
+        "total_fat": 12,
+        "sat_fat": 5,
+        "trans_fat": 0.5,
+        "carbohydrate": 30,
+        "fiber": 2,
+        "total_sugars": 4,
+        "added_sugars": 2,
+        "protein": 12
+      },
+      "micronutrients": {
+        "cholesterol": 40,
+        "sodium": 650,
+        "vitamin_d": 0,
+        "calcium": 150,
+        "iron": 2,
+        "potassium": 300
+      }
+    },
+    {
+      "id": "50",
+      "food_name": "Ice Cream",
+      "food_category": "Frozen Foods",
+      "food_picture_url": "https://example.com/images/ice_cream.jpg",
+      "amount_per_serving": "1 cup",
+      "description": "Creamy and indulgent ice cream.",
+      "macronutrients": {
+        "total_fat": 14,
+        "sat_fat": 9,
+        "trans_fat": 0.5,
+        "carbohydrate": 28,
+        "fiber": 2,
+        "total_sugars": 28,
+        "added_sugars": 20,
+        "protein": 4
+      },
+      "micronutrients": {
+        "cholesterol": 50,
+        "sodium": 75,
+        "vitamin_d": 2,
+        "calcium": 120,
+        "iron": 0.5,
+        "potassium": 150
+      }
+    }
+  ]
+  
