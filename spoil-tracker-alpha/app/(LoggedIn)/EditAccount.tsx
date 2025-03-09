@@ -4,33 +4,32 @@ import { useRouter } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
+import { useTheme } from 'react-native-paper';
 
 interface EditAccountRouteParams {
   userID: string;
-  currentFirstName: string;
-  currentLastName: string;
+  currentName: string;
 }
 
 export default function EditAccount() {
   const route = useRoute();
-  const { userID, currentFirstName, currentLastName } =
-    route.params as EditAccountRouteParams;
+  const { userID, currentName } = route.params as EditAccountRouteParams;
 
-  const [firstName, setFirstName] = useState(currentFirstName || '');
-  const [lastName, setLastName] = useState(currentLastName || '');
+  const [name, setName] = useState(currentName || '');
   const router = useRouter();
+
+  const {colors} = useTheme();
 
   // Log the current values for debugging
   useEffect(() => {
-    console.log('Current first name:', currentFirstName);
-    console.log('Current last name:', currentLastName);
-  }, [currentFirstName, currentLastName]);
+    console.log('Current name:', currentName);
+  }, [currentName]);
 
   const updateUserData = async () => {
     try {
-      const userRef = doc(db, 'user_profiles', userID); // Reference to the user document
+      const userRef = doc(db, 'users', userID); // Reference to the user document
       await updateDoc(userRef, {
-        name: `${firstName} ${lastName}`,
+        name: name,
       });
       console.log('User account updated successfully!');
 
@@ -42,28 +41,17 @@ export default function EditAccount() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Edit Account</Text>
+    <View style={[styles.container, {backgroundColor: colors.background}]}>
+      <Text style={[styles.title, {color: colors.onSurface }]}>Edit Account</Text>
 
-      {/* First Name Input */}
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>First Name:</Text>
+        <Text style={[styles.label, { color: colors.onSurface }]}>Name:</Text>
         <TextInput
-          style={styles.input}
-          value={firstName}
-          onChangeText={setFirstName}
-          placeholder="Enter your first name"
-        />
-      </View>
-
-      {/* Last Name Input */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Last Name:</Text>
-        <TextInput
-          style={styles.input}
-          value={lastName}
-          onChangeText={setLastName}
-          placeholder="Enter your last name"
+          style={[styles.input, { color: colors.onSurface }]}
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter your name"
+          placeholderTextColor={colors.outline || '#ccc'}
         />
       </View>
 
@@ -84,22 +72,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FEF9F2',
   },
+
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 16,
   },
+
   inputContainer: {
     width: '50%',
     marginBottom: 16,
   },
+
   label: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
+
   input: {
     height: 40,
     backgroundColor: 'white',
@@ -110,6 +101,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: '100%',
   },
+
   space: {
     marginBottom: 20,
   },
