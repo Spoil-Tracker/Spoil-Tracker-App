@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "spoil-tracker-alpha",
-    "slug": "spoil-tracker-alpha",
+    "slug": "spoil-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -36,6 +36,14 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {
@@ -48,6 +56,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "692dd7a6-a5a3-47bf-bb67-d2951acc314d"
+      }
+    },
+    "owner": "rekusu"
   }
 }
