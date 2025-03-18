@@ -1,41 +1,35 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Camera } from 'expo-camera';
 
-// Conditionally import the camera component
-let CameraComponent: React.ComponentType<any>;
-if (Platform.OS === 'web') {
-  // Dummy component for web: displays a message indicating camera is not supported.
-  CameraComponent = (props: any) => (
-    <View style={[props.style, { backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }]}>
-      <Text style={{ color: 'white' }}>Camera not supported on desktop</Text>
-    </View>
-  );
-} else {
-  // On mobile, import and cast the RNCamera component to any so we can access Constants.
-  CameraComponent = (require('react-native-camera').RNCamera) as any;
-}
-
-/**
- * CameraScreen component demonstrates basic camera functionality.
- *
- * On mobile, it renders the RNCamera component to capture photos.
- * On web/desktop, it renders a dummy component so the app compiles.
- *
- * @returns A React element that displays the camera preview (or a fallback message) and a button to take a picture.
- */
 const CameraScreen = () => {
-  const cameraRef = useRef<any>(null);
-  const [hasPermission, setHasPermission] = useState(true); // Adjust permission handling as needed
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const cameraRef = useRef<Camera>(null);
+
+  // Request camera permissions on mount
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+  }, []);
 
   const takePicture = async () => {
-    if (cameraRef.current && Platform.OS !== 'web') {
+    if (cameraRef.current) {
       const options = { quality: 0.5, base64: true };
       const data = await cameraRef.current.takePictureAsync(options);
       console.log('Photo URI:', data.uri);
     }
   };
 
-  if (!hasPermission) {
+  if (hasPermission === null) {
+    return (
+      <View style={styles.container}>
+        <Text>Requesting permissions...</Text>
+      </View>
+    );
+  }
+  if (hasPermission === false) {
     return (
       <View style={styles.container}>
         <Text>No access to camera</Text>
@@ -45,17 +39,13 @@ const CameraScreen = () => {
 
   return (
     <View style={styles.container}>
-      <CameraComponent
-        ref={cameraRef}
-        style={styles.preview}
-        // Only pass these props on mobile platforms.
-        {...(Platform.OS !== 'web' && {
-          type: (CameraComponent as any).Constants.Type.back,
-          captureAudio: false,
-        })}
+      <Camera 
+        style={styles.preview} 
+        type={Camera.Constants.Type.back} 
+        ref={cameraRef} 
       />
       <TouchableOpacity onPress={takePicture} style={styles.capture}>
-        <Text style={styles.captureText}> SNAP </Text>
+        <Text style={styles.captureText}>SNAP</Text>
       </TouchableOpacity>
     </View>
   );
@@ -64,7 +54,6 @@ const CameraScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'column',
     backgroundColor: 'black',
   },
   preview: {
