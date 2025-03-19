@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
 
   contentContainer: {
     flexDirection: 'row',
-    flex: 1,
+    alignItems: 'flex-start',
   },
 
   leftSection: {
@@ -66,7 +66,6 @@ const styles = StyleSheet.create({
     width: 2,
     backgroundColor: '#4CAE4F',
     marginHorizontal: 15,
-    alignSelf: 'stretch',
   },
 
   formGroup: {

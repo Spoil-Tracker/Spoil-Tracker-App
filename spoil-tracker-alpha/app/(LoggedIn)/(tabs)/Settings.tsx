@@ -42,6 +42,9 @@ const SettingsPage = (): JSX.Element => {
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedback, setFeedback] = useState('');
 
+  const [leftSectionHeight, setLeftSectionHeight] = useState(0);
+  const [rightSectionHeight, setRightSectionHeight] = useState(0);
+
   // Dark mode
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark'; // checks to see if dark mode is active, contributed by Kevin
@@ -342,6 +345,8 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
+  const dividerHeight = Math.max(leftSectionHeight, rightSectionHeight);
+
   // Displays everything to the user, all the isDarkMode messages contributed by Kevin
   return (
     <ScrollView
@@ -367,7 +372,8 @@ const SettingsPage = (): JSX.Element => {
 
       {/* Change Email feature. */}
       <View style={styles.contentContainer}>
-        <View style={styles.leftSection}>
+        <View style={styles.leftSection} onLayout={(e) => {setLeftSectionHeight(e.nativeEvent.layout.height);
+          }}>
           <View style={styles.formGroup}>
             <Text
               style={[
@@ -468,10 +474,11 @@ const SettingsPage = (): JSX.Element => {
         </View>
 
         {/* Divider in the middle of page. */}
-        <View style={styles.divider} />
+        <View style={[styles.divider, {height: dividerHeight}]} />
 
         {/* Notification Preferences feature. */}
-        <View style={styles.rightSection}>
+        <View style={styles.rightSection} onLayout={(e) => {setRightSectionHeight(e.nativeEvent.layout.height);
+          }}>
           <Text
             style={[
               styles.label,
