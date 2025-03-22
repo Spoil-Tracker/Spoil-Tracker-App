@@ -15,6 +15,6 @@
     ".expo/types/**/*.ts",  // Expo-specific types
     "expo-env.d.ts",  // Expo environment types
     "src/services/**/*.js"  // Include JavaScript files in the services folder
-  ]
+, "services/barcodeAPI.ts"  ]
 }
 
