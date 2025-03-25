@@ -364,7 +364,7 @@ const SettingsPage = (): JSX.Element => {
         }}
       >
         <Image
-          source={require('../../../assets/images/favicon.png')}
+          source={require('../../../assets/images/icon.png')}
           style={styles.icon}
         />
         <Text style={styles.title}>Settings</Text>

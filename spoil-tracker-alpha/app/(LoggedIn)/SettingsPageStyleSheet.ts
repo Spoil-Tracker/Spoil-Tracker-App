@@ -25,15 +25,15 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 60,
-    fontFamily: 'inter-bold',
+    fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 16,
     color: '#4CAE4F',
   },
 
   icon: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
     marginRight: 10,
   },
 

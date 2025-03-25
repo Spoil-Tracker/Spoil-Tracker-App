@@ -2,14 +2,17 @@ import React, { useEffect, useState } from 'react';
 import {
   Text,
   View,
-  Button,
   Modal,
   StyleSheet,
   Image,
   TouchableOpacity,
   TextInput,
+  ScrollView,
+  ImageSourcePropType,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { db, auth } from '../../../services/firebaseConfig';
 import { deleteUser } from 'firebase/auth';
@@ -20,22 +23,48 @@ import { useTheme } from 'react-native-paper'; // allows for dark mode, contribu
 const userIcon = require('../../../assets/images/icon.png');
 
 export default function HomeScreen() {
-  const { colors } = useTheme(); // allows for dark mode, contributed by Kevin
+  const { colors, dark } = useTheme(); // allows for dark mode, contributed by Kevin
   const { user } = useAuth();
   const userID = user?.uid;
   const router = useRouter();
   const [isModalVisible, setModalVisible] = useState(false);
   const [isShareModalVisible, setShareModalVisible] = useState(false);
+  const [isIconModalVisible, setIconModalVisible] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
   const [userData, setUserData] = useState({
     email: '',
     name: '',
+    biography: '',
     notificationSetting: 'Notify Everyday',
   });
+
+  const [leftColumnHeight, setLeftColumnHeight] = useState(0);
+  const [rightColumnHeight, setRightColumnHeight] = useState(0);
+
+  const [profileIcon, setProfileIcon] = useState<ImageSourcePropType>(userIcon);
+  const [isCustomIcon, setIsCustomIcon] = useState(false);
 
   // Reward notification state.
   const [rewardAvailable, setRewardAvailable] = useState(false);
   const [unclaimedRewards, setUnclaimedRewards] = useState(0);
+
+  useEffect(() => {
+    const loadProfileIcon = async () => {
+      try {
+        const storedIcon = await AsyncStorage.getItem('profileIcon');
+        if (storedIcon) {
+          setProfileIcon({uri: storedIcon});
+          setIsCustomIcon(true);
+        } else {
+          setProfileIcon(userIcon);
+          setIsCustomIcon(false);
+        }
+      } catch (e) {
+        console.error('Failed to load profile icon', e);
+      }
+    };
+    loadProfileIcon();
+  }, []);
 
   // Fetch or initialize reward state from Firestore.
   useEffect(() => {
@@ -108,6 +137,7 @@ export default function HomeScreen() {
           setUserData({
             email: data.email,
             name: data.name || '',
+            biography: data.biography || '',
             notificationSetting: data.notificationSetting || 'Notify Everyday',
           });
         }
@@ -169,9 +199,30 @@ export default function HomeScreen() {
     }
   };
 
+  const pickImage = async () => {
+    let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.status !== 'granted') {
+      alert("Permission to access the gallery is required!");
+      return;
+    }
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      setProfileIcon({uri: asset.uri});
+      setIsCustomIcon(true);
+      await AsyncStorage.setItem('profileIcon', asset.uri);
+      setIconModalVisible(false);
+    }
+  };
+
   return (
     // allows for dark mode, contributed by Kevin
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
       {/* Unclaimed rewards storage */}
       {userData.notificationSetting !== 'Notify Never' && unclaimedRewards > 0 && (
         <TouchableOpacity style={styles.unclaimedBadge} onPress={handleShowRewardNotification}>
@@ -187,56 +238,80 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.actionButtonsContainer}>
             <TouchableOpacity style={styles.claimButton} onPress={handleClaimReward}>
-              <Text style={styles.buttonText}>Claim</Text>
+              <Text style={styles.customButtonText}>Claim</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.ignoreButton} onPress={handleIgnoreReward}>
-              <Text style={styles.buttonText}>Ignore</Text>
+              <Text style={styles.customButtonText}>Ignore</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
       <View style={styles.accountHeader}>
-        <Image source={userIcon} style={styles.icon} />
+        <TouchableOpacity onPress={() => setIconModalVisible(true)}>
+          <Image source={profileIcon} style={styles.icon} />
+        </TouchableOpacity>
         <Text style={styles.accountTitle}>My Account</Text>
       </View>
 
-      {/* First Group */}
-      <View style={styles.group}>
-        <Text style={styles.label}>Email</Text>
-        <Text style={styles.info}>{userData.email || 'Loading...'}</Text>
+      <View style={styles.columnsContainer}>
+        <View
+          style={styles.leftColumn}
+          onLayout={(event) => setLeftColumnHeight(event.nativeEvent.layout.height)}
+        >
+          {/* First Group */}
+          <View style={styles.group}>
+            <Text style={styles.label}>Email</Text>
+            <Text style={styles.info}>{userData.email || 'Loading...'}</Text>
 
-        <Text style={styles.label}>Name</Text>
-        <Text style={styles.info}>{userData.name || 'Loading...'}</Text>
+            <Text style={styles.label}>Name</Text>
+            <Text style={styles.info}>{userData.name || 'Loading...'}</Text>
 
-        <View style={styles.space2} />
-        <Button
-          title="Edit Account"
-          onPress={() =>
-            router.push({
-              pathname: '/EditAccount',
-              params: {
-                userID, // Pass the userID
-                currentName: userData.name,
-              },
-            })
-          }
-        />
-      </View>
+            <Text style={styles.label}>Biography</Text>
+            <Text style={styles.info}>{userData.biography || 'No biography set'}</Text>
 
-      {/* Second Group */}
-      <View style={styles.group}>
-        <Text style={styles.dangerText}>Permanently Delete Your Account</Text>
-        <Button title="Delete Account" onPress={toggleModal} />
-      </View>
+            <View style={styles.space2} />
+            <TouchableOpacity
+              style={styles.customButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/EditAccount',
+                  params: {
+                    userID, // Pass the userID
+                    currentName: userData.name,
+                    currentBio: userData.biography,
+                  },
+                })
+              }
+            >
+              <Text style={styles.customButtonText}>Edit Account</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Second Group */}
+          <View style={styles.group}>
+            <Text style={styles.dangerText}>Permanently Delete Your Account</Text>
+            <TouchableOpacity style={styles.customButton} onPress={toggleModal}>
+              <Text style={styles.customButtonText}>Delete Account</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      {/* Share Kitchen Section */}
-      <View style={styles.group}>
-        <Text style={styles.info}>
-          Share your kitchen with friends and family to manage the kitchen
-          together.
-        </Text>
-        <Button title="Share Kitchen" onPress={generateShareLink} />
+        <View style={[styles.divider, {height: Math.max(leftColumnHeight, rightColumnHeight)}]} />
+
+        <View
+          style={styles.rightColumn}
+          onLayout={(event) => setRightColumnHeight(event.nativeEvent.layout.height)}
+        >
+          {/* Share Kitchen Section */}
+          <View style={styles.group}>
+            <Text style={styles.info}>
+              Share your kitchen with friends and family to manage together.
+            </Text>
+            <TouchableOpacity style={styles.customButton} onPress={generateShareLink}>
+              <Text style={styles.customButtonText}>Share Kitchen</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <Modal
@@ -252,7 +327,14 @@ export default function HomeScreen() {
               Share this link with your family members.
             </Text>
             <TextInput
-              style={styles.linkBox}
+              style={[
+                styles.linkBox, 
+                {
+                  color: dark ? '#FFF' : '#000',
+                  backgroundColor: dark ? '#222' : '#f5f5f5',
+                  borderColor: dark ? '#444' : '#ccc',
+                },
+              ]}
               value={generatedLink}
               editable={false}
             />
@@ -262,7 +344,9 @@ export default function HomeScreen() {
             >
               <Text style={styles.copyButtonText}>Copy Link</Text>
             </TouchableOpacity>
-            <Button title="Close" onPress={() => setShareModalVisible(false)} />
+            <TouchableOpacity style={styles.customButton} onPress={() => setShareModalVisible(false)}>
+              <Text style={styles.customButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -284,17 +368,61 @@ export default function HomeScreen() {
 
             {/* Buttons for the modal */}
             <View style={styles.modalButtons}>
-              <Button title="No! I change my mind!" onPress={toggleModal} />
-              <Button
-                title="Yes! Delete it forever!"
-                color="red" // Red instead of usual green color to make it stand out more.
-                onPress={handleDeleteAccount}
-              />
+              <TouchableOpacity style={styles.customButton} onPress={toggleModal}>
+                <Text style={styles.customButtonText}>No! I change my mind!</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.customButton, { backgroundColor: 'red' }]} onPress={handleDeleteAccount}>
+                <Text style={styles.customButtonText}>Yes! Delete it forever!</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isIconModalVisible}
+        onRequestClose={() => setIconModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.iconModalContainer}>
+            <Text style={styles.modalTitle}>Change Profile Icon</Text>
+            <View style={styles.iconOptionsContainer}>
+              <TouchableOpacity
+                style={styles.iconOptionButton}
+                onPress={async () => {
+                  setProfileIcon(userIcon);
+                  setIsCustomIcon(false);
+                  await AsyncStorage.removeItem('profileIcon');
+                  setIconModalVisible(false);
+                }}
+              >
+                <Text style={styles.customButtonText}>Use App Provided</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconOptionButton} onPress={pickImage}>
+                <Text style={styles.customButtonText}>Use Custom Image</Text>
+              </TouchableOpacity>
+            </View>
+            {isCustomIcon && (
+              <TouchableOpacity 
+                style={[styles.customButton, {backgroundColor: 'red', width: '80%', marginVertical: 8}]} 
+                onPress={async () => {
+                  setProfileIcon(userIcon);
+                  setIsCustomIcon(false);
+                  await AsyncStorage.removeItem('profileIcon');
+                }}
+              >
+                <Text style={styles.customButtonText}>Use Default Icon</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.customButton} onPress={() => setIconModalVisible(false)}>
+              <Text style={styles.customButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </ScrollView>
   );
 }
 
@@ -306,7 +434,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   accountTitle: {
-    fontSize: 40,
+    fontSize: 60,
     fontWeight: 'bold',
     color: '#4CAE4F',
     marginBottom: 16,
@@ -321,9 +449,30 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   icon: {
-    width: 40, // Adjust the size as needed
-    height: 40, // Adjust the size as needed
+    width: 60, // Adjust the size as needed
+    height: 60, // Adjust the size as needed
     marginRight: 10,
+  },
+  columnsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    width: '100%',
+    paddingHorizontal: 16,
+  },
+  leftColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  rightColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  divider: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 2,
+    backgroundColor: '#4CAE4F'
   },
   group: {
     width: '50%',
@@ -364,6 +513,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     alignItems: 'center',
+  },
+  iconModalContainer: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    alignItems: 'center'
   },
   modalTitle: {
     fontSize: 18,
@@ -434,11 +590,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
 
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-
   unclaimedBadge: {
     position: 'absolute',
     top: 20,
@@ -456,5 +607,35 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+
+  customButton: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+
+  customButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+
+  iconOptionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 16,
+  },
+
+  iconOptionButton: {
+    flex: 1,
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginHorizontal: 5,
   },
 });
