@@ -21,6 +21,9 @@ import { useAuth } from '../../../services/authContext';
 import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
 
 const userIcon = require('../../../assets/images/icon.png');
+const appleIcon = require('../../../assets/images/apple.png');
+const fridgeIcon = require('../../../assets/images/fridge.png');
+const milkIcon = require('../../../assets/images/milk.png');
 
 export default function HomeScreen() {
   const { colors, dark } = useTheme(); // allows for dark mode, contributed by Kevin
@@ -30,6 +33,8 @@ export default function HomeScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isShareModalVisible, setShareModalVisible] = useState(false);
   const [isIconModalVisible, setIconModalVisible] = useState(false);
+  const [isAppIconModalVisible, setAppIconModalVisible] = useState(false);
+  const [selectedAppIcon, setSelectedAppIcon] = useState<string | null>(null);
   const [generatedLink, setGeneratedLink] = useState('');
   const [userData, setUserData] = useState({
     email: '',
@@ -53,8 +58,22 @@ export default function HomeScreen() {
       try {
         const storedIcon = await AsyncStorage.getItem('profileIcon');
         if (storedIcon) {
-          setProfileIcon({uri: storedIcon});
-          setIsCustomIcon(true);
+          if (storedIcon.startsWith('appIcon:')) {
+            const iconName = storedIcon.replace('appIcon:', '');
+            let icon;
+            if (iconName === 'Apple') {
+              icon = appleIcon;
+            } else if (iconName === 'Fridge') {
+              icon = fridgeIcon;
+            } else if (iconName === 'Milk') {
+              icon = milkIcon;
+            }
+            setProfileIcon(icon);
+            setIsCustomIcon(true);
+          } else {
+            setProfileIcon({uri: storedIcon});
+            setIsCustomIcon(true);
+          }
         } else {
           setProfileIcon(userIcon);
           setIsCustomIcon(false);
@@ -392,10 +411,8 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={styles.iconOptionButton}
                 onPress={async () => {
-                  setProfileIcon(userIcon);
-                  setIsCustomIcon(false);
-                  await AsyncStorage.removeItem('profileIcon');
                   setIconModalVisible(false);
+                  setAppIconModalVisible(true);
                 }}
               >
                 <Text style={styles.customButtonText}>Use App Provided</Text>
@@ -419,6 +436,64 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.customButton} onPress={() => setIconModalVisible(false)}>
               <Text style={styles.customButtonText}>Close</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isAppIconModalVisible}
+        onRequestClose={() => setAppIconModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Select an Icon</Text>
+            <View style={styles.appIconsRow}>
+              <TouchableOpacity 
+                onPress={() => setSelectedAppIcon('Apple')}
+                style={[styles.iconModalContainer, selectedAppIcon === 'Apple' && styles.selectedIconContainer]}
+              >
+                <Image source={appleIcon} style={styles.icon} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => setSelectedAppIcon('Fridge')}
+                style={[styles.iconModalContainer, selectedAppIcon === 'Fridge' && styles.selectedIconContainer]}
+              >
+                <Image source={fridgeIcon} style={styles.icon} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => setSelectedAppIcon('Milk')}
+                style={[styles.iconModalContainer, selectedAppIcon === 'Milk' && styles.selectedIconContainer]}  
+              >
+                <Image source={milkIcon} style={styles.icon} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.customButton, {flex: 1, marginRight: 10}]} onPress={() => {
+                setAppIconModalVisible(false);
+                setIconModalVisible(true);
+              }}>
+                <Text style={styles.customButtonText}>Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.customButton, {flex: 1, marginLeft: 10}]} onPress={async () => {
+                if (!selectedAppIcon) return;
+                let newIcon;
+                if (selectedAppIcon === 'Apple') {
+                  newIcon = appleIcon;
+                } else if (selectedAppIcon === 'Fridge') {
+                  newIcon = fridgeIcon;
+                } else if (selectedAppIcon === 'Milk') {
+                  newIcon = milkIcon;
+                }
+                setProfileIcon(newIcon);
+                setIsCustomIcon(true);
+                await AsyncStorage.setItem('profileIcon', 'appIcon:' + selectedAppIcon);
+                setAppIconModalVisible(false);
+              }} disabled={!selectedAppIcon}>
+                <Text style={styles.customButtonText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -449,8 +524,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   icon: {
-    width: 60, // Adjust the size as needed
-    height: 60, // Adjust the size as needed
+    width: 100, // Adjust the size as needed
+    height: 100, // Adjust the size as needed
     marginRight: 10,
   },
   columnsContainer: {
@@ -637,5 +712,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginHorizontal: 5,
+  },
+
+  appIconsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    width: '20%',
+  },
+
+  iconContainer: {
+    padding: 5,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+
+  selectedIconContainer: {
+    borderWidth: 2,
+    borderColor: '#4CAE4F',
   },
 });
