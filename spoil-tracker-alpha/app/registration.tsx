@@ -15,6 +15,9 @@ import { auth, db } from '../services/firebaseConfig'; // Import Firebase auth c
 import { doc, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { isToday } from 'date-fns';
+import {
+  createAccount
+} from '@/components/Account/AccountService';
 
 const Registration = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -74,6 +77,7 @@ const Registration = () => {
         dailyGoals: [],
         dailyLogs: [],
       });
+      await createAccount(user.uid, username, "user");
 
       Alert.alert('Success', 'Account created successfully!');
       // navigates to login or home after successful registration

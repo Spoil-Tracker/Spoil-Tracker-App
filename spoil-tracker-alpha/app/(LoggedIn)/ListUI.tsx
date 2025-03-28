@@ -1,85 +1,28 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import {
-  Animated,
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  SafeAreaView,
-  Pressable,
-  Image,
-  Dimensions,
-  TextInput,
-  ScrollView,
-  Modal,
-  TouchableOpacity,
-} from 'react-native';
-import { AntDesign, Ionicons } from '@expo/vector-icons'; // For the plus icon
+import { useWindowDimensions, Animated, View, Text, StyleSheet, FlatList, SafeAreaView, Pressable, Image, Dimensions, TextInput, ScrollView, Modal, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { AntDesign } from '@expo/vector-icons'; // For the plus icon
 import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
-import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useNavigation } from 'expo-router';
 import { Dropdown } from 'react-native-element-dropdown';
-import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
-import { Picker } from '@react-native-picker/picker';
 import { v4 as uuidv4 } from 'uuid';
-import FoodDropdownComponent from '../../components/FoodDropdown';
-import { log } from 'console';
-import { Rating } from 'react-native-ratings'; // imports ability to rate items contributed by Kevin
-import { useTheme } from 'react-native-paper'; // allows for dark mode contributed by Kevin
-
-// Mock data to simulate Firestore documents
-const foodItems = [
-  {
-    title: 'Apples',
-    description: 'Fresh and juicy apples',
-    imageUrl: 'https://via.placeholder.com/100?text=Apples',
-  },
-  {
-    title: 'Bananas',
-    description: 'Sweet and ripe bananas',
-    imageUrl: 'https://via.placeholder.com/100?text=Bananas',
-  },
-  {
-    title: 'Carrots',
-    description: 'Crunchy and nutritious carrots',
-    imageUrl: 'https://via.placeholder.com/100?text=Carrots',
-  },
-  {
-    title: 'Milk',
-    description: 'Cold and fresh milk',
-    imageUrl: 'https://via.placeholder.com/100?text=Milk',
-  },
-  {
-    title: 'Eggs',
-    description: 'Organic farm-fresh eggs',
-    imageUrl: 'https://via.placeholder.com/100?text=Eggs',
-  },
-  {
-    title: 'Bread',
-    description: 'Freshly baked bread',
-    imageUrl: 'https://via.placeholder.com/100?text=Bread',
-  },
-  {
-    title: 'Cheese',
-    description: 'A variety of cheeses',
-    imageUrl: 'https://via.placeholder.com/100?text=Cheese',
-  },
-  {
-    title: 'Chicken',
-    description: 'Farm-raised chicken',
-    imageUrl: 'https://via.placeholder.com/100?text=Chicken',
-  },
-  {
-    title: 'Fish',
-    description: 'Fresh fish from the ocean',
-    imageUrl: 'https://via.placeholder.com/100?text=Fish',
-  },
-  {
-    title: 'Potatoes',
-    description: 'Perfect for any meal',
-    imageUrl: 'https://via.placeholder.com/100?text=Potatoes',
-  },
-];
+import FoodDropdownComponent from '@/components/Food/FoodDropdown';
+import {
+  fetchGroceryListByID,
+  deleteGroceryList,
+  addGroceryListItem,
+  deleteGroceryListItem,
+  updateGroceryListItemMeasurement,
+  updateGroceryListItemQuantity,
+  GroceryListItem,
+  updateGroceryListIsComplete,
+  updateGroceryListDescription,
+  updateGroceryListItemIsBought
+} from '@/components/GroceryList/GroceryListService';
+import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPDF, exportGroceryListToPDFWeb } from '@/components/ExportService';
+import ProductPage from '@/components/Food/FoodUI';
+import { useAuth } from '@/services/authContext';
+import { getAccountByOwnerID } from '@/components/Account/AccountService';
+import { useTheme } from 'react-native-paper';
 
 // list used for the dropdown located with each grocery list item in the flatlist
 const FOOD_UNITS = [
@@ -92,24 +35,14 @@ const FOOD_UNITS = [
   { label: 'unit', value: 'unit' },
 ];
 
-type ListItem = {
-  id: string;
-  title: string;
-  description: string;
-  quantity: number;
-  measurement: string;
-  complete: boolean;
-  imageUrl: string;
-};
-
 const GroceryList = () => {
-  const [items, setItems] = useState<ListItem[]>([]); // List of grocery items
+  const { height, width } = useWindowDimensions();
+  const [items, setItems] = useState<GroceryListItem[]>([]); // List of grocery items
   const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
-  const [screenWidth, setScreenWidth] = useState(
-    Dimensions.get('window').width
-  ); // Store screen width
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
+  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Store screen width
   const [searchText, setSearchText] = useState(''); // Search text state
-  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state, hook used whenever the Sort By button is used or user searches through text input
+  const [filteredItems, setFilteredItems] = useState<GroceryListItem[]>([]); // Filtered items state, hook used whenever the Sort By button is used or user searches through text input
   const [groceryListTitle, setGroceryListTitle] = useState(''); // Grocery list title
   const [groceryListDate, setGroceryListDate] = useState(''); // Grocery list creation date
   const [groceryListDescription, setGroceryListDescription] = useState(''); // Grocery list description
@@ -117,69 +50,80 @@ const GroceryList = () => {
     useState<boolean>(false); // Grocery List Completion status
   const [scaleAnim] = useState(new Animated.Value(1)); // Animation state, for resizing and re-organizing the UI whenever the user changes screen size
   const local = useLocalSearchParams(); // Retrieve parameters from route, for docRef local.id below
-  const docRef = doc(db, 'grocery_lists', local.id as string); // Reference to Firestore document in the grocery_list collection, uses the id fed by the previous list main menu
   const [sortModalVisible, setSortModalVisible] = useState(false); // Modal visibility state
   const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown visibility state, used in the add item modal UI
   const dropdownHeight = useRef(new Animated.Value(0)).current; // Dropdown animation height, used in the add item modal UI
+  const [dropdownVisibleMobile, setDropdownVisibleMobile] = useState(false); // Dropdown visibility state, used in the add item modal UI
+  const dropdownHeightMobile = 400;
   const [customName, setCustomName] = useState(''); // Custom item name, used in the add item modal UI for when a user wants to add a custom item
   const [customDescription, setCustomDescription] = useState(''); // Custom item description, used in the add item modal UI for when a user wants to add a custom item
+  const dropdownAnimMobile = useRef(new Animated.Value(-dropdownHeightMobile)).current;
+  const groceryListId = local.id as string;
+  const navigation = useNavigation(); // Navigation hook, allows for a back button on the top left of the header
+  const [selectedFood, setSelectedFood] = useState<{ label: string; value: string } | null>(null);
+  const [productModalVisible, setProductModalVisible] = useState(false);
+  const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const { user } = useAuth();
+  
+
+
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
   const { colors } = useTheme(); // allows for dark mode contributed by Kevin
 
   // Effect hook to fetch grocery list data and handle screen resizing
   useEffect(() => {
     const onChange = () => {
       setScreenWidth(Dimensions.get('window').width);
+      setScreenHeight(Dimensions.get('window').height);
     };
 
     const fetchGroceryList = async () => {
       try {
-        const snapshot = await getDoc(docRef);
-
+        
+        const snapshot = await fetchGroceryListByID(local.id as string);    
         // if a grocery list with the id specified by the local param exists
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          const itemsFromFirestore: ListItem[] = data?.items || [];
-
-          // dates are formatted differently between expo native and firebase, so we reformat it into something readable here
-          const formatDate = (isoString: string) => {
-            const date = new Date(isoString);
-            return date.toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-            });
-          };
-
-          setItems(itemsFromFirestore);
-          setFilteredItems(itemsFromFirestore); // Load items into filteredItems
-          setGroceryListTitle(data.name || 'Untitled List');
-          setGroceryListDate(
-            data.created ? formatDate(data.created) : 'Unknown Date'
-          );
-          setGroceryListDescription(data.description || ''); // Load description from Firestore
-          setGroceryListCompletion(data.completed || false);
-          console.log('Fetched grocery list:', data);
-        } else {
-          console.log('No such document!');
+        if (snapshot) {
+          setItems(snapshot.grocery_list_items);
+          setFilteredItems(snapshot.grocery_list_items);
+          setGroceryListTitle(snapshot.grocerylist_name || 'Untitled List');
+          setGroceryListDate(snapshot.createdAt ? formatDate(snapshot.createdAt) : 'Unknown Date');
+          setGroceryListDescription(snapshot.description || '');
+          setGroceryListCompletion(snapshot.isComplete || false);
+          console.log('Fetched grocery list:', snapshot);
         }
       } catch (error) {
         console.error('Error fetching grocery list data:', error);
       }
     };
+    
+    const fetchAccountId = async () => {
+      if (user) {
+        const account = await getAccountByOwnerID(user.uid);
+        setAccountId(account.id);
+      }
+    };
 
+    fetchAccountId();
     fetchGroceryList();
     Dimensions.addEventListener('change', onChange);
-  }, [local.id]);
 
-  const navigation = useNavigation(); // Navigation hook, allows for a back button on the top left of the header
+  }, [groceryListId, user]);
+
+  if (!accountId) {
+    return <ActivityIndicator size="large" color="blue" />;
+  }
 
   // handler for when a user chooses to delete the list, called after user presses the delete button
   const handleDeleteList = async () => {
     try {
-      await deleteDoc(docRef);
-
+      await deleteGroceryList(groceryListId);
       alert('List deleted successfully');
-      navigation.goBack(); // Navigate back to the previous screen
+      navigation.goBack();
     } catch (error) {
       console.error('Error deleting list:', error);
       alert('Failed to delete the list');
@@ -189,137 +133,77 @@ const GroceryList = () => {
   // Function to add a custom item to the list
   // used whenever user opens up the FAB modal and then inputs a custom name and description for an item
   const addCustomItem = async () => {
-    if (!customName || !customDescription) {
-      return; // Exit the function early if any field is empty
-    }
+    if (!customName) return;
     const newItem = generateCustomItem();
     try {
-      // Fetch current document
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
-        const updatedItems = [...currentItems, newItem]; // Add the new random item
-
-        // Update Firestore
-        await updateDoc(docRef, {
-          items: updatedItems,
-        });
-
-        // Update local state to reflect the new addition
-        setItems(updatedItems);
-        setFilteredItems(updatedItems);
-        alert(`Added random item: ${newItem.title}`);
-      } else {
-        console.log('No such document!');
-        alert('Failed to load document');
+      const success = await addGroceryListItem(groceryListId, accountId, newItem.food_global_id, newItem.food_name);
+      if (success) {
+        const snapshot = await fetchGroceryListByID(groceryListId);
+        if (snapshot) {
+          setItems(snapshot.grocery_list_items);
+          setFilteredItems(snapshot.grocery_list_items);
+        }
+        alert(`Added custom item: ${newItem.food_name}`);
       }
     } catch (error) {
-      console.error('Error adding random item to Firestore:', error);
-      alert('Error adding random item');
+      console.error('Error adding custom item:', error);
+      alert('Error adding custom item');
     }
-  };
-
-  // Function to generate a random item
-  // addRandomItem uses this to generate a grocery list item object
-  const generateRandomItem = (): ListItem => {
-    const randomIndex = Math.floor(Math.random() * foodItems.length);
-    const randomFood = foodItems[randomIndex];
-    const randomId = Math.random().toString(36).substring(7); // Random unique ID
-    return {
-      id: randomId,
-      title: randomFood.title,
-      description: randomFood.description,
-      quantity: 1,
-      measurement: 'unit',
-      complete: false,
-      imageUrl: randomFood.imageUrl,
-    };
   };
 
   // Function to generate a custom item
   // addCustomItem uses this to generate a grocery list item object
-  const generateCustomItem = (): ListItem => {
-    const cTitle = customName;
-    const cDesc = customDescription;
+  const generateCustomItem = (): GroceryListItem => {
+    const newItem: GroceryListItem = {
+      id: uuidv4(),
+      food_name: customName,
+      food_global_id: 'custom', // mark as custom
+      measurement: 'unit',
+      quantity: 1,
+      isBought: false,
+      description: '',
+      imageUrl: ''
+    };
     setCustomName('');
     setCustomDescription('');
-    return {
-      id: uuidv4(),
-      title: cTitle,
-      description: cDesc,
-      quantity: 1,
-      measurement: 'unit',
-      complete: false,
-      imageUrl: 'https://www.placekittens.com/100/100',
-    };
+    return newItem;
   };
-
-  // Function to generate a random item
-  // placeholder for now until we have a food database running
-  // used whenever user opens up the FAB modal and then presses the add item button
-  const addRandomItem = async () => {
-    const newItem = generateRandomItem();
-    try {
-      // Fetch current document
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
-        const updatedItems = [...currentItems, newItem]; // Add the new random item
-
-        // Update Firestore
-        await updateDoc(docRef, {
-          items: updatedItems,
-        });
-
-        // Update local state to reflect the new addition
-        setItems(updatedItems);
-        setFilteredItems(updatedItems);
-        alert(`Added random item: ${newItem.title}`);
-      } else {
-        console.log('No such document!');
-        alert('Failed to load document');
-      }
-    } catch (error) {
-      console.error('Error adding random item to Firestore:', error);
-      alert('Error adding random item');
-    }
-  };
+  
 
   // Function called whenever user presses the mark as complete/incomplete button in the List UI
   const toggleCompletion = async () => {
     try {
-      await updateDoc(docRef, {
-        completed: !groceryListCompletion, // Toggle between true/false
-      });
-      setGroceryListCompletion(!groceryListCompletion); // Update local state to reflect the change
+      // Call the service to update isComplete, toggling the current state
+      const updatedList = await updateGroceryListIsComplete(groceryListId, !groceryListCompletion);
+      // Update local state with the updated value from Firestore
+      setGroceryListCompletion(updatedList.isComplete);
       console.log(
-        groceryListCompletion
-          ? 'Marked as incomplete in Firestore'
-          : 'Marked as done in Firestore'
+        updatedList.isComplete 
+          ? 'Marked as completed in Firestore' 
+          : 'Marked as incomplete in Firestore'
       );
       alert(
-        groceryListCompletion
-          ? 'Grocery list marked as incomplete!'
-          : 'Grocery list marked as completed!'
+        updatedList.isComplete 
+          ? 'Grocery list marked as completed!' 
+          : 'Grocery list marked as incomplete!'
       );
     } catch (error) {
       console.error('Error toggling completion:', error);
       alert('Failed to toggle completion.');
     }
   };
+  
 
-  // Function called whenever the user onBlurs (i believe) the description text field
   const onDescriptionChange = async (text: string) => {
     setGroceryListDescription(text);
     try {
-      await updateDoc(docRef, {
-        description: text,
-      });
+      await updateGroceryListDescription(groceryListId, text);
       console.log('Description updated in Firestore');
     } catch (error) {
       console.error('Error updating description:', error);
     }
   };
+
 
   // Function to filter items based on the search text
   const filterItems = (text: string) => {
@@ -328,10 +212,9 @@ const GroceryList = () => {
     if (text.trim() === '') {
       setFilteredItems(items);
     } else {
-      const filtered = items.filter(
-        (item) =>
-          item.title.toLowerCase().includes(text.toLowerCase()) ||
-          item.description.toLowerCase().includes(text.toLowerCase())
+      const filtered = items.filter(item =>
+        item.food_name.toLowerCase().includes(text.toLowerCase()) ||
+        item.description.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredItems(filtered);
     }
@@ -358,97 +241,102 @@ const GroceryList = () => {
   const closeModal = () => {
     setModalVisible(false); // Close modal
   };
+  
+  const openProductModal = (foodGlobalId: string) => {
+    setSelectedFoodId(foodGlobalId);
+    setProductModalVisible(true);
+  };
+
+  // Handler to close ProductPage modal
+  const closeProductModal = () => {
+    setSelectedFoodId(null);
+    setProductModalVisible(false);
+  };
 
   /**
    render each item in the list
    used for the items in the flatlist that renders all of the grocery list items
    includes all the UI elements for one item cell
   */
-  const renderItem = ({ item }: { item: ListItem }) => {
+   const renderItem = ({ item }: { item: GroceryListItem }) => {
     /**
      toggles the completion status of the current item
      updates the Firestore document and local state accordingly
      */
-    const toggleCompleteStatus = async () => {
-      try {
-        // Create a new array with the item's completion status toggled
-        const updatedItems = items.map((i) =>
-          i.id === item.id ? { ...i, complete: !i.complete } : i
-        );
-        // Update Firestore document
-        await updateDoc(docRef, { items: updatedItems });
 
-        // Update local state
-        setItems(updatedItems);
-        setFilteredItems(updatedItems);
-      } catch (error) {
-        console.error('Error toggling complete status:', error);
-        alert('Failed to toggle status');
-      }
+    const toggleCompleteStatus = async () => {
+      // This example toggles locally; you might later add a service call to update the item.
+      await updateGroceryListItemIsBought(groceryListId, item.id);
+      const updatedItems = items.map(i =>
+        i.id === item.id ? { ...i, isBought: !i.isBought } : i
+      );
+      const updatedFilterItems = filteredItems.map(i =>
+        i.id === item.id ? { ...i, isBought: !i.isBought } : i
+      );
+      setItems(updatedItems);
+      setFilteredItems(updatedFilterItems);
+      // Optionally refetch the grocery list from the backend.
     };
 
     /**
      deletes the current item from the list
      updates Firestore and local state
      */
-    const deleteItem = async () => {
+     const deleteItem = async () => {
       try {
-        const updatedItems = items.filter((i) => i.id !== item.id);
-
-        await updateDoc(docRef, { items: updatedItems });
-        setItems(updatedItems);
-        setFilteredItems(updatedItems);
-        alert('Item deleted');
+        const success = await deleteGroceryListItem(groceryListId, item.id);
+        if (success) {
+          const snapshot = await fetchGroceryListByID(groceryListId);
+          if (snapshot) {
+            setItems(snapshot.grocery_list_items);
+            setFilteredItems(snapshot.grocery_list_items);
+          }
+          alert('Item deleted');
+        }
       } catch (error) {
         console.error('Error deleting item:', error);
         alert('Failed to delete item');
       }
     };
 
-    /**
-     updates the quantity of the current item.
-     ensures the input is a valid number before updating Firestore and state.
-     @param {string} value - The new quantity value as a string input.
-     */
     const handleQuantityChange = async (value: string) => {
       const numericQuantity = value.trim() === '' ? 0 : parseInt(value, 10);
-
-      if (isNaN(numericQuantity)) {
-        return;
-      }
-
-      const updatedItems = items.map((i) =>
-        i.id === item.id ? { ...i, quantity: numericQuantity } : i
-      );
-
+      if (isNaN(numericQuantity)) return;
       try {
-        await updateDoc(docRef, { items: updatedItems });
-        setItems(updatedItems);
+        const updated = await updateGroceryListItemQuantity(groceryListId, item.id, numericQuantity);
+        if (updated) {
+          const snapshot = await fetchGroceryListByID(groceryListId);
+          if (snapshot) {
+            setItems(snapshot.grocery_list_items);
+          }
+        } else {
+          console.error("Update returned false");
+        }
       } catch (error) {
         console.error('Error updating quantity:', error);
       }
     };
 
-    /**
-     updates the measurement unit of the current item.
-     @param {string} measure - The new measurement unit.
-     */
     const handleUnitChange = async (measure: string) => {
-      const updatedItems = items.map((i) =>
-        i.id === item.id ? { ...i, measurement: measure } : i
-      );
-
       try {
-        await updateDoc(docRef, { items: updatedItems });
-        setItems(updatedItems);
+        const updated = await updateGroceryListItemMeasurement(groceryListId, item.id, measure);
+        if (updated) {
+          const snapshot = await fetchGroceryListByID(groceryListId);
+          if (snapshot) {
+            setItems(snapshot.grocery_list_items);
+            setFilteredItems(snapshot.grocery_list_items);
+          }
+        }
       } catch (error) {
-        console.error('Error updating quantity:', error);
+        console.error('Error updating measurement:', error);
       }
     };
 
     {
       /* Allows users to give a 5 star rating to their items CONTRIBUTED BY KEVIN */
     }
+
+    /*
     const handleRatingChange = async (rating: number) => {
       const updatedItems = items.map((i) =>
         i.id === item.id ? { ...i, rating } : i
@@ -461,18 +349,18 @@ const GroceryList = () => {
         console.error('Error updating rating:', error);
       }
     };
+    */
 
     // the rest of the code below is standard UI components using react native's framework + basic css
     return (
-      <View
-        style={[
-          styles.unit,
-          item.complete ? styles.completedItem : styles.incompleteItem,
-        ]}
-      >
+      <View style={[styles.unit, item.isBought ? styles.completedItem : styles.incompleteItem]}>
         <View style={styles.textContainer}>
-          <Text style={styles.unitTitle}>{item.title}</Text>
+          <Pressable
+            onPress={() => openProductModal(item.food_global_id)}
+          >
+          <Text style={styles.unitTitle}>{item.food_name}</Text>
           <Text style={styles.unitDescription}>{item.description}</Text>
+          </Pressable>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.itemTextInput}
@@ -492,28 +380,22 @@ const GroceryList = () => {
               itemContainerStyle={styles.measurementContainer}
               itemTextStyle={styles.measurementText}
             />
-            <Pressable
-              style={[
-                styles.itemButton,
-                item.complete ? styles.completeButton : styles.incompleteButton,
-              ]}
-              onPress={toggleCompleteStatus}
-            >
-              <Text style={styles.itemButtonText}>
-                {item.complete ? 'X' : '✔'}
-              </Text>
+            <Pressable style={[styles.itemButton, item.isBought ? styles.completeButton: styles.incompleteButton]} onPress={toggleCompleteStatus}>
+              <Text style={styles.itemButtonText}>{item.isBought ? 'X' : '✔'}</Text>
             </Pressable>
             <Pressable style={styles.minusButton} onPress={deleteItem}>
               <Text style={styles.minusButtonText}>-</Text>
             </Pressable>
           </View>
           {/* allows for ratings contributed by Kevin */}
+          {/*
           <Rating
             startingValue={item.rating || 0} // Default to 0 if no rating exists
             imageSize={20} // Adjust star size
             onFinishRating={handleRatingChange}
             style={{ marginTop: 10, alignSelf: 'flex-start' }}
           />
+          */}
         </View>
         <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
       </View>
@@ -521,7 +403,7 @@ const GroceryList = () => {
   };
 
   const smallScreen = screenWidth < 690;
-  const numColumns = screenWidth < 1090 ? 1 : 2;
+  const numColumns = width > 1420 ? 2 : 1;
 
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
@@ -532,177 +414,228 @@ const GroceryList = () => {
     }).start();
   };
 
+  const buttonTranslateY = dropdownAnimMobile.interpolate({
+    inputRange: [-dropdownHeightMobile, 0],
+    outputRange: [0, dropdownHeightMobile],
+  });
+
+  const toggleDropdownMobile = () => {
+    const toValue = dropdownVisibleMobile ? -dropdownHeightMobile : 0;
+    Animated.timing(dropdownAnimMobile, {
+      toValue,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setDropdownVisibleMobile(!dropdownVisibleMobile);
+  };
+
+
   const sortItems = (text: string) => {
     let sorted = [...items];
 
     if (text === 'alphabetical') {
-      sorted.sort((a, b) => a.title.localeCompare(b.title));
+      sorted.sort((a, b) => a.food_name.localeCompare(b.food_name));
     } else if (text === 'quantity') {
       sorted.sort((a, b) => b.quantity - a.quantity);
     } else if (text === 'completed') {
-      sorted.sort((a, b) => Number(b.complete) - Number(a.complete));
+      sorted.sort((a, b) => Number(b.isBought) - Number(a.isBought));
     }
-    const newFilteredItems =
-      searchText.trim() === ''
-        ? sorted
-        : sorted.filter(
-            (item) =>
-              item.title.toLowerCase().includes(searchText.toLowerCase()) ||
-              item.description.toLowerCase().includes(searchText.toLowerCase())
-          );
+    const newFilteredItems = searchText.trim() === '' 
+      ? sorted 
+      : sorted.filter(item =>
+          item.food_name.toLowerCase().includes(searchText.toLowerCase())
+          || item.description.toLowerCase().includes(searchText.toLowerCase())
+        );
 
     setItems(sorted);
     setFilteredItems(newFilteredItems);
   };
+  
+  function handleExportCSV(items: GroceryListItem[]) {
+    if (Platform.OS === 'web') {
+      exportGroceryListToCSVWeb(items);
+    } else {
+      exportGroceryListToCSV(items);
+    }
+  }
+  
+  function handleExportPDF(items: GroceryListItem[]) {
+    if (Platform.OS === 'web') {
+      exportGroceryListToPDFWeb(items, groceryListTitle, groceryListDescription);
+    } else {
+      exportGroceryListToPDF(items, groceryListTitle, groceryListDescription);
+    }
+  }
+
+  const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+  if(width > 1100){
 
   return (
-    // allows for dark mode, contributed by Kevin
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View
-          style={[
-            styles.mainContent,
-            { flexDirection: smallScreen ? 'column' : 'row' },
-          ]}
-        >
-          {/* Left column (fixed position) */}
-          <View
-            style={[
-              styles.fixedLeftColumn,
-              { maxWidth: smallScreen ? screenWidth : 300 },
-            ]}
-          >
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search items..."
-              value={searchText}
-              onChangeText={filterItems}
-            />
-
-            {/* Box with text */}
-            <View style={styles.textBox}>
-              <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
-              <Text style={styles.textBoxContent}>
-                Created: {groceryListDate}
+    <SafeAreaView style={styles.container}>
+      
+      <View style={{marginHorizontal: (screenWidth * 0.17) > 350 ? screenWidth * 0.17: 350, top: 15, alignContent:'center', flex: 1}}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={{fontFamily: 'inter-bold', fontSize: 20, color: '#007bff', marginBottom: 20, paddingRight: 10}}>Search: </Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder=" . . . "
+          value={searchText}
+          onChangeText={filterItems}
+        />
+        <Pressable style={[styles.topBarButton, {marginHorizontal: 40, marginBottom: 18 }]} onPress={onFABPress}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AntDesign name="plus" size={15} color="#007bff"  />
+            {width > 1800 && (
+              <Text style={[styles.buttonText, { marginLeft: 8 }]}>
+                Add New Item
               </Text>
-            </View>
-
-            {/* Large Text Input below the text box */}
-            <TextInput
-              style={styles.largeTextInput}
-              placeholder="Grocery List Description..."
-              value={groceryListDescription}
-              onChangeText={onDescriptionChange}
-              multiline={true}
-            />
-
-            {/* Buttons below the text input */}
-            <View style={styles.buttonsContainer}>
-              <Pressable
-                style={styles.markAsDoneButton}
-                onPress={toggleCompletion}
-              >
-                <Text style={styles.buttonText}>
-                  {groceryListCompletion
-                    ? 'Mark as Incomplete'
-                    : 'Mark as Done'}
-                </Text>
-              </Pressable>
-              <Pressable style={styles.deleteButton} onPress={handleDeleteList}>
-                <Text style={styles.buttonText}>Delete</Text>
-              </Pressable>
-              <Pressable
-                style={styles.exportButton}
-                onPress={() => alert('Export clicked!')}
-              >
-                <Text style={styles.buttonText}>Export</Text>
-              </Pressable>
-              <Pressable
-                style={styles.sortByButton}
-                onPress={() => setSortModalVisible(true)}
-              >
-                <Text style={styles.buttonText}>Sort By</Text>
-              </Pressable>
-              <Modal
-                transparent={true}
-                visible={sortModalVisible}
-                animationType="fade"
-                onRequestClose={() => setSortModalVisible(false)}
-              >
-                <View style={styles.modalOverlay}>
-                  <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Sort By</Text>
-                    <ScrollView
-                      contentContainerStyle={styles.scrollContainer}
-                      horizontal={smallScreen ? false : true}
-                    >
-                      <TouchableOpacity
-                        style={[styles.sortByButton]}
-                        onPress={() => {
-                          sortItems('alphabetical');
-                          setSortModalVisible(false);
-                        }}
-                      >
-                        <Text style={styles.buttonText}>Alphabetical</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.sortByButton]}
-                        onPress={() => {
-                          sortItems('quantity');
-                          setSortModalVisible(false);
-                        }}
-                      >
-                        <Text style={styles.buttonText}>Quantity</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.sortByButton]}
-                        onPress={() => {
-                          sortItems('completed');
-                          setSortModalVisible(false);
-                        }}
-                      >
-                        <Text style={styles.buttonText}>Completed</Text>
-                      </TouchableOpacity>
-                    </ScrollView>
-                    <TouchableOpacity
-                      style={styles.closeButton}
-                      onPress={() => setSortModalVisible(false)}
-                    >
-                      <Text style={styles.closeButtonText}>Close</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Modal>
-            </View>
+            )}
           </View>
+        </Pressable>
+      </View>
+        
+        <View style={[styles.mainContent, { flexDirection: smallScreen ? 'column' : 'row', flex: 1 }]}>
+          {/* Left column (fixed position) */}
 
           {/* Right column (scrollable list) */}
-          <View style={styles.listContainer}>
+          <View style={[styles.listContainer, {flex: 1}]}>
             <FlatList
               data={filteredItems} // Use filtered items based on search
               renderItem={renderItem}
               keyExtractor={(item) => item.id}
               key={numColumns}
               numColumns={numColumns}
-              contentContainerStyle={[
-                styles.listContent,
-                { paddingBottom: 260 },
-              ]}
+              contentContainerStyle={[styles.listContent, { paddingBottom: 260 }]}
+              showsHorizontalScrollIndicator={false}
             />
           </View>
+
         </View>
+      
+      </View>
+      
+      <ScrollView style={[styles.leftSideBar, {height: height - 100, width: width * 0.15, minWidth: 300}]}>  
+          {/* Box with text */}
+          <View style={styles.textBox}>
+            <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
+            <Text style={styles.textBoxContent}>Created: {groceryListDate}</Text>
+          </View>
+
+
+          {/* Buttons below the text input */}
+          <View style={styles.buttonsContainer}>
+            <Pressable style={styles.sidebarButton} onPress={toggleCompletion}>
+              <Text style={styles.buttonText}>{groceryListCompletion ? 'Mark as Incomplete' : 'Mark as Done'}</Text>
+            </Pressable>
+              <Pressable style={styles.sidebarButton} onPress={handleDeleteList}>
+              <Text style={styles.buttonText}>Delete</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => setExportModalVisible(true)}>
+              <Text style={styles.buttonText}>Export</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => setSortModalVisible(true)}>
+              <Text style={styles.buttonText}>Sort By</Text>
+            </Pressable>
+          </View>
+
+
+        {/* Large Text Input below the text box */}
+          <TextInput
+              style={[styles.largeTextInput, {height: height - 750, minHeight: 100}]}
+              placeholder="Grocery List Description..."
+              value={groceryListDescription}
+              onChangeText={setGroceryListDescription}
+              onBlur={() => onDescriptionChange(groceryListDescription)}
+              multiline={true}
+          />
+
+          <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
+            
+          <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
+          <Pressable
+            style={[styles.sidebarButton, styles.transferButton]}
+            onPress={async () => {
+              if (selectedFood) {
+                await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
+                const newFood = await fetchGroceryListByID(groceryListId);
+                if(newFood){
+                  setItems(newFood.grocery_list_items);
+                  setFilteredItems(newFood.grocery_list_items);
+                  setSearchText('');
+                  setSelectedFood(null);
+                }
+              } else {
+                alert('Please select a food item first.');
+              }
+            }}
+          >
+            <Text style={[styles.buttonText, { fontSize: 28, color: '#39913b' }]}>
+              Transfer
+            </Text>
+          </Pressable>
+  
       </ScrollView>
 
-      {/* Floating plus button */}
-      <Animated.View
-        style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}
-      >
-        <Pressable onPress={onFABPress}>
-          <AntDesign name="plus" size={24} color="white" />
-        </Pressable>
-      </Animated.View>
+      <ScrollView style={[styles.rightSideBar, {height: height - 100, width: width * 0.15, minWidth: 300}]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
+        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
+          Grocery List Value
+        </Text>
+        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
+        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
+          Summary
+        </Text>
+        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
+        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
+          Settings
+        </Text>
+        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
+      </View>
+      </ScrollView> 
+
+
+    {/* Modals below (primarily for clicking on buttons*/}
+
+
+    <Modal
+      transparent={true}
+      visible={sortModalVisible}
+      animationType="fade"
+      onRequestClose={() => setSortModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Sort By</Text>
+          <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Alphabetical</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Quantity</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Completed</Text>
+            </TouchableOpacity>
+          </ScrollView>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
 
       <Modal
         animationType="fade"
@@ -713,60 +646,310 @@ const GroceryList = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add New Item</Text>
-            <FoodDropdownComponent />
-            <Pressable
+            <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
+            <Pressable 
               style={styles.modalButton}
-              onPress={() => {
-                // Add item to the list
-                addRandomItem();
-                closeModal();
-              }}
-            >
+              onPress={async () => {
+                if (selectedFood) {
+                  await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
+                  const newFood = await fetchGroceryListByID(groceryListId);
+                  if(newFood){
+                    setItems(newFood.grocery_list_items);
+                    setFilteredItems(newFood.grocery_list_items);
+                    setSearchText('');
+                    setSelectedFood(null);
+                  }
+                  closeModal();
+                } else {
+                  alert('Please select a food item first.');
+                }
+            }}>
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
-            <View
-              style={{
-                borderBottomColor: 'white',
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                alignSelf: 'stretch',
-                marginBottom: 10,
-              }}
-            />
-            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
-              <Text style={styles.buttonText}>Add Custom Item</Text>
+            <Pressable 
+              style={styles.modalButton}
+              onPress={closeModal}>
+              <Text style={styles.buttonText}>Close</Text>
             </Pressable>
-            {/* Animated dropdown */}
-            <Animated.View
-              style={[styles.dropdown, { height: dropdownHeight }]}
-            >
-              {/* Conditionally hide the content based on dropdown visibility */}
-              <View>
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter name"
-                  value={customName}
-                  onChangeText={setCustomName} // setName should be defined with useState
-                />
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter description"
-                  value={customDescription}
-                  onChangeText={setCustomDescription} // setDescription should be defined with useState
-                />
-                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
-                  <Text style={styles.buttonText}>Submit</Text>
-                </Pressable>
-              </View>
-            </Animated.View>
+          </View>
+        </View>
+      </Modal>
+    
+      <Modal
+        visible={productModalVisible}     
+        transparent={true}               
+        animationType= "fade"          
+        onRequestClose={closeProductModal} 
+      >
+        <View style={styles.modalOverlay}>
+          <View>
+              {/* Circular Close Button */}
+              <Pressable onPress={closeProductModal} style={styles.closeButtonModal}>
+                  <Text style={styles.closeButtonTextModal}>✕</Text>
+              </Pressable>
 
+              {/* Only render ProductPage if we have a selectedFoodId */}
+              {selectedFoodId && (
+                  <ScrollView style={{ flex: 1 }}>
+                      <ProductPage foodId={selectedFoodId} accountId={accountId} />
+                  </ScrollView>
+              )}
+          </View>
+        </View>
+      </Modal>
+      <Modal
+          transparent={true}
+          visible={exportModalVisible}
+          animationType="fade"
+          onRequestClose={() => setExportModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Export Options</Text>
+              <Pressable style={styles.modalButton} onPress={() => handleExportPDF(items)}>
+                <Text style={styles.buttonText}>Export as PDF</Text>
+              </Pressable>
+              <Pressable style={styles.modalButton} onPress={() => handleExportCSV(items)}>
+                <Text style={styles.buttonText}>Export as CSV</Text>
+              </Pressable>
+              <Pressable style={styles.closeButton} onPress={() => setExportModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+    </SafeAreaView>
+  );
+  }
+  else{
+    return (
+      <SafeAreaView style={styles.container}>
+      {/* Animated Dropdown - positioned above the sticky button */}
+      <View style={{ flex: 1, marginHorizontal: 10, marginTop: 65 }}>
+        <FlatList
+          style={{ flex: 1, paddingHorizontal: 10 }}
+          data={filteredItems}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          // No marginTop or marginHorizontal
+          // If you want an empty-state message:
+          ListEmptyComponent={<Text>No items available</Text>}
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+
+      <Animated.View
+        style={[
+          styles.dropdownMobile,
+          { position: 'absolute', height: dropdownHeightMobile, width: width, justifyContent: 'center', alignItems: 'center',  transform: [{ translateY: dropdownAnimMobile }] },
+        ]}
+      >
+        <ScrollView contentContainerStyle={[styles.dropdownScrollMobile, {width: width - 40, marginTop: 20}]} showsHorizontalScrollIndicator={false}>
+          <View style={styles.textBox}>
+            <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
+            <Text style={styles.textBoxContent}>Created: {groceryListDate}</Text>
+          </View>
+
+
+          {/* Buttons below the text input */}
+          <View style={styles.buttonsContainer}>
+            <Pressable style={styles.sidebarButton} onPress={toggleCompletion}>
+              <Text style={styles.buttonText}>{groceryListCompletion ? 'Mark as Incomplete' : 'Mark as Done'}</Text>
+            </Pressable>
+              <Pressable style={styles.sidebarButton} onPress={handleDeleteList}>
+              <Text style={styles.buttonText}>Delete</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => setExportModalVisible(true)}>
+              <Text style={styles.buttonText}>Export</Text>
+            </Pressable>
+            <Pressable style={styles.sidebarButton} onPress={() => setSortModalVisible(true)}>
+              <Text style={styles.buttonText}>Sort By</Text>
+            </Pressable>
+          </View>
+          <TextInput
+              style={[styles.largeTextInput, {height: height - 750, minHeight: 100}]}
+              placeholder="Grocery List Description..."
+              value={groceryListDescription}
+              onChangeText={setGroceryListDescription}
+              onBlur={() => onDescriptionChange(groceryListDescription)}
+              multiline={true}
+          />
+          <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
+            
+          <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
+          <Pressable
+            style={[styles.sidebarButton, styles.transferButton]}
+            onPress={async () => {
+              if (selectedFood) {
+                await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
+                const newFood = await fetchGroceryListByID(groceryListId);
+                if(newFood){
+                  setItems(newFood.grocery_list_items);
+                  setFilteredItems(newFood.grocery_list_items);
+                  setSearchText('');
+                  setSelectedFood(null);
+                }
+              } else {
+                alert('Please select a food item first.');
+              }
+            }}
+          >
+            <Text style={[styles.buttonText, { fontSize: 28, color: '#39913b' }]}>
+              Transfer
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </Animated.View>
+
+      {/* Animated Sticky Button */}
+      <AnimatedPressable
+        style={[styles.stickyButton, { transform: [{ translateY: buttonTranslateY }] }]}
+        onPress={toggleDropdownMobile}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <AntDesign
+            name={dropdownVisibleMobile ? 'up' : 'down'}
+            size={16}
+            color="#007bff"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.buttonText}>Toggle Dropdown</Text>
+          <AntDesign
+            name={dropdownVisibleMobile ? 'up' : 'down'}
+            size={16}
+            color="#007bff"
+            style={{ marginLeft: 8 }}
+          />
+        </View>
+      </AnimatedPressable>
+      
+      <Animated.View style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}>
+        <Pressable onPress={onFABPress}>
+          <AntDesign name="plus" size={24} color="white" />
+        </Pressable>
+      </Animated.View>
+
+      <Modal
+      transparent={true}
+      visible={sortModalVisible}
+      animationType="fade"
+      onRequestClose={() => setSortModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Sort By</Text>
+          <ScrollView contentContainerStyle={styles.scrollContainer} horizontal={smallScreen ? false : true}>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('alphabetical'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Alphabetical</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('quantity'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Quantity</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.sortByButton]} 
+              onPress={() => { sortItems('completed'); setSortModalVisible(false); }}>
+              <Text style={styles.buttonText}>Completed</Text>
+            </TouchableOpacity>
+          </ScrollView>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setSortModalVisible(false)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+
+    <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add New Item</Text>
+            <FoodDropdownComponent 
+              accountId={accountId} 
+              onValueChange={setSelectedFood}  />
+            <Pressable 
+              style={styles.modalButton}
+              onPress={async () => {
+                if (selectedFood) {
+                  await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
+                  const newFood = await fetchGroceryListByID(groceryListId);
+                  if(newFood){
+                    setItems(newFood.grocery_list_items);
+                    setFilteredItems(newFood.grocery_list_items);
+                    setSearchText('');
+                    setSelectedFood(null);
+                  }
+                  closeModal();
+                } else {
+                  alert('Please select a food item first.');
+                }
+            }}>
+              <Text style={styles.buttonText}>Add Item</Text>
+            </Pressable>
             <Pressable style={styles.modalButton} onPress={closeModal}>
               <Text style={styles.buttonText}>Close</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={productModalVisible}     
+        transparent={true}               
+        animationType= "fade"          
+        onRequestClose={closeProductModal} 
+      >
+        <View style={styles.modalOverlay}>
+          <View>
+              {/* Circular Close Button */}
+              <Pressable onPress={closeProductModal} style={styles.closeButtonModal}>
+                  <Text style={styles.closeButtonTextModal}>✕</Text>
+              </Pressable>
+
+              {/* Only render ProductPage if we have a selectedFoodId */}
+              {selectedFoodId && (
+                  <ScrollView style={{ flex: 1 }}>
+                      <ProductPage foodId={selectedFoodId} accountId={accountId} />
+                  </ScrollView>
+              )}
+          </View>
+        </View>
+      </Modal>
+      <Modal
+          transparent={true}
+          visible={exportModalVisible}
+          animationType="fade"
+          onRequestClose={() => setExportModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Export Options</Text>
+              <Pressable style={styles.modalButton} onPress={() => handleExportPDF(items)}>
+                <Text style={styles.buttonText}>Export as PDF</Text>
+              </Pressable>
+              <Pressable style={styles.modalButton} onPress={() => handleExportCSV(items)}>
+                <Text style={styles.buttonText}>Export as CSV</Text>
+              </Pressable>
+              <Pressable style={styles.closeButton} onPress={() => setExportModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
     </SafeAreaView>
-  );
+    );
+  }
 };
 
 const styles = StyleSheet.create({
@@ -775,6 +958,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1, // Allow the scroll view to grow and fill the available space
+    marginHorizontal: 100
   },
   mainContent: {
     justifyContent: 'flex-start',
@@ -818,6 +1002,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
+    color: '#007bff'
   },
   unitDescription: {
     fontSize: 14,
@@ -852,7 +1037,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#4CAE4F',
+    backgroundColor: '#1e81b0',
     padding: 20,
     borderRadius: 8,
     width: '30%',
@@ -874,7 +1059,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#e2e6ea',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -882,74 +1067,69 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 10,
   },
-  fixedLeftColumn: {
-    padding: 20,
-    zIndex: 999, // Ensure it stays on top of other content
-    marginBottom: 20, // Space below when screen is small
-  },
   searchInput: {
     height: 40,
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingLeft: 10,
     marginBottom: 20,
     backgroundColor: 'white',
+    fontSize: 15,
+    width: 300
   },
   textBox: {
     backgroundColor: '#c4c4c4',
     padding: 15,
     borderRadius: 8,
-    marginBottom: 20,
   },
   textBoxTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'inter-bold',
     marginBottom: 5,
   },
   textBoxContent: {
     fontSize: 14,
+    fontFamily: 'inter-bold',
     color: '#555',
   },
   largeTextInput: {
-    height: 240,
     borderColor: '#ccc',
-    borderWidth: 1,
+    borderWidth: 2,
     borderRadius: 8,
     paddingLeft: 10,
     paddingTop: 10,
     textAlignVertical: 'top',
     backgroundColor: 'white',
+    fontSize: 18
   },
   buttonsContainer: {
     marginTop: 20,
+    marginBottom: 20,
   },
-  markAsDoneButton: {
-    backgroundColor: '#007bff', // Blue color for Mark as Done
+  sidebarButton: {
+    backgroundColor: '#e2e6ea', // Blue color for Mark as Done
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 15,
+    borderStyle: 'solid',
+    borderWidth: 5,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10, // Add space between buttons
+    borderColor: '#007bff',
   },
-  deleteButton: {
-    backgroundColor: '#dc3545', // Red color for Delete
+  topBarButton: {
+    backgroundColor: '#e2e6ea', // Blue color for Mark as Done
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 20,
+    borderStyle: 'solid',
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10, // Add space between buttons
-  },
-  exportButton: {
-    backgroundColor: 'green',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10, // Add space between buttons
+    borderColor: '#007bff',
   },
   sortByButton: {
     backgroundColor: '#1e81b0',
@@ -961,9 +1141,9 @@ const styles = StyleSheet.create({
     marginBottom: 10, // Add space between buttons
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: '#007bff',
+    fontFamily: 'inter-bold',
+    textAlign: 'center'
   },
   inputContainer: {
     flexDirection: 'row',
@@ -1033,12 +1213,12 @@ const styles = StyleSheet.create({
   },
   incompleteItem: {
     flex: 1,
-    backgroundColor: '#f5e9d9', // Light blue
+    backgroundColor: '#e2e6ea', // Light blue
     padding: 15,
     marginBottom: 15,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#f5e9d9',
+    borderColor: 'white',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 1,
@@ -1081,6 +1261,7 @@ const styles = StyleSheet.create({
   customInputField: {
     height: 40,
     borderColor: '#ccc',
+    backgroundColor: 'white',
     borderWidth: 1,
     marginBottom: 3,
     marginTop: 3,
@@ -1109,6 +1290,84 @@ const styles = StyleSheet.create({
   measurementText: {
     textAlign: 'left',
   },
+  leftSideBar: {
+    position: 'absolute',
+    top: 15,
+    left: 15,
+    padding: 20,
+    zIndex: 999, // Ensure it stays on top of other content
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+    width: 400,
+  },
+  rightSideBar: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    padding: 20,
+    zIndex: 999, // Ensure it stays on top of other content
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+    width: 400,
+  },
+  transferButton: {
+    marginTop: 10,
+    borderColor: '#39913b',
+    height: 60, 
+    backgroundColor: '#e0e9e0'
+  },
+  stickyButton: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    padding: 15,
+    alignItems: 'center',
+    zIndex: 999, // higher than dropdown and list
+    borderColor: '#007bff',
+    backgroundColor: 'white',
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 25,  // adjust value for more/less curvature
+    borderBottomRightRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1},
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
+  },
+  dropdownMobile: {
+    backgroundColor: 'white',
+    zIndex: 1000,
+    flex: 1
+  },
+  dropdownScrollMobile: {
+    flex: 1
+  },
+  closeButtonModal: {
+    position: 'absolute',
+    right: 0,
+    width: 50,
+    height: 50,
+    borderRadius: 25, // Makes it circular
+    backgroundColor: 'red',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999
+  },
+  closeButtonTextModal: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  }
+
 });
 
 export default GroceryList;

@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Modal, TextInput, Pressable, View, Text, StyleSheet } from 'react-native';
 import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../services/firebaseConfig';
+import { db } from '../../services/firebaseConfig';
 import { getAuth } from 'firebase/auth';
-
+import { useAuth } from "@/services/authContext"; 
+import { 
+  createGroceryList
+} from '@/components/GroceryList/GroceryListService';
+import {
+  getAccountByOwnerID
+} from '@/components/Account/AccountService';
 // Type definition for component props
 type CreateListModalProps = {
   visible: boolean; // Determines whether the modal is visible
   onClose: () => void; // Function to close the modal
-  fetchLists: () => void; // Function to refresh the list of grocery lists after creation
+  fetchLists: () => Promise<void>
 };
 
 /**
@@ -17,47 +23,28 @@ type CreateListModalProps = {
  */
 const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps) => {
   const [newListName, setNewListName] = useState('');
+  const { user } = useAuth();
+  const id = user?.uid;
 
-  /**
-   * Handles the creation of a new grocery list in Firestore.
-   */
-  const createNewList = async () => {
-    // Validate input to ensure a name is entered
-    if (!newListName.trim()) {
-      alert('Please enter a valid list name');
-      return;
-    }
-
-    // Get the current user
-    const user = getAuth().currentUser;
-
-    if (!user) {
-      alert('User is not logged in');
-      return;
-    }
-
+  if (id) {
+    console.log("User UID:", id);
+  } else {
+    console.log("No user is logged in.");
+    return;
+  }
+  
+  const handleCreateList = async () => {
+    
     try {
-      // Add new list to Firestore under the 'grocery_lists' collection
-      await addDoc(collection(db, 'grocery_lists'), {
-        name: newListName,
-        owner_id: user.uid,  // Store the user ID for reference
-        created: new Date().toISOString(), // Store creation timestamp
-        last_opened: new Date().toISOString(), // Initial last opened timestamp
-        family: false, // Default: not a shared family list
-        shared: false, // Default: not shared with others
-        description: 'A newly made list. Edit the description by clicking on this field!', // Default description
-        completed: false, // Default: list is incomplete
-        items: [], // Default: empty list of items
-      });
-
-      // Clear the input field and refresh the list display
+      const account = await getAccountByOwnerID(id);
+      await createGroceryList(account.id, newListName);
+      onClose();
       setNewListName('');
-      fetchLists(); // Refresh the list after creation
-      onClose(); // Close the modal
-    } catch (error) {
-      console.error('Error creating new list: ', error);
+      fetchLists();
+    } catch (err: any) {
+      alert(err);
     }
-  };
+  }
 
   return (
     <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
@@ -66,12 +53,12 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
           <Text style={styles.modalTitle}>Enter New List Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter list name"
+            placeholder="Enter list name..."
             value={newListName}
             onChangeText={setNewListName}
           />
           <View style={styles.modalButtons}>
-            <Pressable style={[styles.modalButton, { backgroundColor: '#2196F3' }]} onPress={createNewList}>
+            <Pressable style={[styles.modalButton, { backgroundColor: '#2196F3' }]} onPress={handleCreateList}>
               <Text style={styles.modalButtonText}>Create</Text>
             </Pressable>
             <Pressable
@@ -114,8 +101,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     modalTitle: {
+        fontFamily: 'inter-bold',
         fontSize: 18,
-        fontWeight: 'bold',
         marginBottom: 10,
     },
     modalButtons: {
