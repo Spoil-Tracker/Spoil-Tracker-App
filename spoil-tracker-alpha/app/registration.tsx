@@ -14,6 +14,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth'; // Import Fireba
 import { auth, db } from '../services/firebaseConfig'; // Import Firebase auth configuration
 import { doc, setDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import { isToday } from 'date-fns';
 
 const Registration = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -66,6 +67,12 @@ const Registration = () => {
         username,
         email,
         createdAt: new Date(),
+      });
+
+      await setDoc(doc(db, "nutrition", user.uid), {
+        userID: user.uid,
+        dailyGoals: [],
+        dailyLogs: [],
       });
 
       Alert.alert('Success', 'Account created successfully!');

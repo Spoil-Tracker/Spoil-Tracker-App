@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, Alert } from 'react-native';
 import { Svg, Circle } from 'react-native-svg';
+import { useNavigation } from 'expo-router';
+import { auth, db } from '../../services/firebaseConfig';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 export default function ManageNutritionScreen() {
+  const navigation = useNavigation();
+  const userID = auth.currentUser?.uid;
+
   const [dailyCalories, setDailyCalories] = useState('');
   const [calculated, setCalculated] = useState(false);
   const [customMacros, setCustomMacros] = useState(false);
@@ -17,6 +23,36 @@ export default function ManageNutritionScreen() {
       setProtein((calories * 0.20) / 4);
       setFat((calories * 0.35) / 9);
       setCalculated(true);
+    }
+  };
+
+  const saveDailyGoals = async () => {
+    if (!userID) {
+      Alert.alert('Error', 'User not logged in.');
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const nutritionRef = doc(db, 'nutrition', userID);
+
+    try {
+      const nutritionSnapshot = await getDoc(nutritionRef);
+      if (!nutritionSnapshot.exists()) {
+        Alert.alert('Error', 'Nutrition profile not found.');
+        return;
+      }
+
+      let dailyGoals = nutritionSnapshot.data()?.dailyGoals || [];
+      dailyGoals = dailyGoals.filter((goal: any) => goal.date !== today);
+      dailyGoals.push({ date: today, caloriesGoal: parseInt(dailyCalories), proteinGoal: protein, carbsGoal: carbs, fatsGoal: fat });
+
+      await updateDoc(nutritionRef, { dailyGoals });
+
+      Alert.alert('Success', 'Daily goals saved successfully!');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error saving daily nutrition goal:', error);
+      Alert.alert('Error', 'Failed to save daily goals.');
     }
   };
 
@@ -144,6 +180,13 @@ export default function ManageNutritionScreen() {
           </View>
         </View>
       )}
+
+      {calculated && (
+        <TouchableOpacity style={styles.button} onPress={saveDailyGoals}>
+          <Text style={styles.buttonText}>Save</Text>
+        </TouchableOpacity>
+      )}
+
     </View>
   );
 }
@@ -158,10 +201,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 40,
+    fontSize: 30,
     color: '#4CAE4F',
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   input: {
     width: '80%',
@@ -179,7 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: '80%',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 5,
   },
   buttonText: {
     fontSize: 18,
@@ -200,8 +243,9 @@ const styles = StyleSheet.create({
     width: '48%',
     alignItems: 'center',
     backgroundColor: '#FFF1DB',
-    padding: 20,
+    padding: 10,
     borderRadius: 10,
+    marginBottom: 10,
   },
 
   // Right Box
@@ -209,8 +253,9 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: '#FFF1DB',
     borderRadius: 10,
-    padding: 25,
+    padding: 10,
     justifyContent: 'center',
+    marginBottom: 10,
   },
   centeredRightBox: {
     width: '80%',
