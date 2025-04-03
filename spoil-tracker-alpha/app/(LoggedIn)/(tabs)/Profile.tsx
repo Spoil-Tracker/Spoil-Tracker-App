@@ -24,6 +24,7 @@ const userIcon = require('../../../assets/images/icon.png');
 const appleIcon = require('../../../assets/images/apple.png');
 const fridgeIcon = require('../../../assets/images/fridge.png');
 const milkIcon = require('../../../assets/images/milk.png');
+const coinIcon = require('../../../assets/images/coin.png');
 
 export default function HomeScreen() {
   const { colors, dark } = useTheme(); // allows for dark mode, contributed by Kevin
@@ -41,6 +42,7 @@ export default function HomeScreen() {
     name: '',
     biography: '',
     notificationSetting: 'Notify Everyday',
+    favoriteFoods: ['', '', ''],
   });
 
   const [leftColumnHeight, setLeftColumnHeight] = useState(0);
@@ -48,6 +50,8 @@ export default function HomeScreen() {
 
   const [profileIcon, setProfileIcon] = useState<ImageSourcePropType>(userIcon);
   const [isCustomIcon, setIsCustomIcon] = useState(false);
+
+  const [rewardProgress, setRewardProgress] = useState(0);
 
   // Reward notification state.
   const [rewardAvailable, setRewardAvailable] = useState(false);
@@ -97,11 +101,13 @@ export default function HomeScreen() {
           // If user has not claimed reward, then it will be available.
           setRewardAvailable(!data.weeklyRewardClaimed);
           setUnclaimedRewards(data.unclaimedRewards || 0);
+          setRewardProgress(data.rewardProgress || 0);
         } else {
           // Initialize reward data: reward available and no unclaimed rewards.
-          await setDoc(rewardDocRef, {weeklyRewardClaimed: false, unclaimedRewards: 0});
+          await setDoc(rewardDocRef, {weeklyRewardClaimed: false, unclaimedRewards: 0, rewardProgress: 0});
           setRewardAvailable(true);
           setUnclaimedRewards(0);
+          setRewardProgress(0);
         }
       } catch (error) {
         console.error('Error fetching reward data:', error);
@@ -116,9 +122,11 @@ export default function HomeScreen() {
     const rewardDocRef = doc(db, 'user_rewards', userID);
     try {
       // Mark reward as claimed.
-      await setDoc(rewardDocRef, {weeklyRewardClaimed: true, unclaimedRewards: 0});
+      const newProgress = Math.min(rewardProgress + 1, 4);
+      await setDoc(rewardDocRef, {weeklyRewardClaimed: true, unclaimedRewards: 0, rewardProgress: newProgress, rewardCollectedAt: new Date(),}, {merge: true});
       setRewardAvailable(false);
       setUnclaimedRewards(0);
+      setRewardProgress(prev => Math.min(prev + 1, 4));
     } catch (error) {
       console.error('Error claiming reward:', error);
     }
@@ -158,6 +166,7 @@ export default function HomeScreen() {
             name: data.name || '',
             biography: data.biography || '',
             notificationSetting: data.notificationSetting || 'Notify Everyday',
+            favoriteFoods: data.favoriteFoods || ['', '', ''],
           });
         }
       },
@@ -236,6 +245,20 @@ export default function HomeScreen() {
       setIsCustomIcon(true);
       await AsyncStorage.setItem('profileIcon', asset.uri);
       setIconModalVisible(false);
+    }
+  };
+
+  const handleFavoriteFoodChange = async (index: number, value: string) => {
+    const updatedFoods = [...userData.favoriteFoods];
+    updatedFoods[index] = value;
+    setUserData({...userData, favoriteFoods: updatedFoods});
+    if (userID) {
+      const userDocRef = doc(db, 'users', userID);
+      try {
+        await setDoc(userDocRef, {favoriteFoods: updatedFoods}, {merge: true});
+      } catch (error) {
+        console.error('Error updating favorite foods: ', error);
+      }
     }
   };
 
@@ -321,6 +344,49 @@ export default function HomeScreen() {
           style={styles.rightColumn}
           onLayout={(event) => setRightColumnHeight(event.nativeEvent.layout.height)}
         >
+          <View style={styles.rewardContainer}>
+            <Text style={[styles.rewardTitle, { color: dark ? '#FFF' : '#000' }]}>
+              Reward Progress: Level 1
+            </Text>
+            <View style={styles.rewardMeterRow}>
+              <Image source={coinIcon} style={styles.coinIcon} />
+              <View style={styles.rewardMeter}>
+                <View style={[styles.rewardBar, rewardProgress >= 1 && styles.rewardBarFilled]} />
+                <View style={[styles.rewardBar, rewardProgress >= 2 && styles.rewardBarFilled]} />
+                <View style={[styles.rewardBar, rewardProgress >= 3 && styles.rewardBarFilled]} />
+                <View style={[styles.rewardBar, rewardProgress >= 4 && styles.rewardBarFilled]} />
+              </View>
+            </View>
+          </View>
+
+          <View style={[styles.group, {marginBottom: 16}]}>
+            <Text style={styles.favoriteFoodTitle}>Favorite Food(s)</Text>
+            <TextInput
+              style={styles.favoriteFoodInput}
+              value={userData.favoriteFoods[0]}
+              onChangeText={(text) => handleFavoriteFoodChange(0, text)}
+              maxLength={25}
+              placeholder="Favorite Food 1"
+              placeholderTextColor="#FFF"
+            />
+            <TextInput
+              style={styles.favoriteFoodInput}
+              value={userData.favoriteFoods[1]}
+              onChangeText={(text) => handleFavoriteFoodChange(1, text)}
+              maxLength={25}
+              placeholder="Favorite Food 2"
+              placeholderTextColor="#FFF"
+            />
+            <TextInput
+              style={styles.favoriteFoodInput}
+              value={userData.favoriteFoods[2]}
+              onChangeText={(text) => handleFavoriteFoodChange(2, text)}
+              maxLength={25}
+              placeholder="Favorite Food 3"
+              placeholderTextColor="#FFF"
+            />
+          </View>
+
           {/* Share Kitchen Section */}
           <View style={styles.group}>
             <Text style={styles.info}>
@@ -388,7 +454,7 @@ export default function HomeScreen() {
             {/* Buttons for the modal */}
             <View style={styles.modalButtons}>
               <TouchableOpacity style={styles.customButton} onPress={toggleModal}>
-                <Text style={styles.customButtonText}>No! I change my mind!</Text>
+                <Text style={styles.customButtonText}>No! I changed my mind!</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.customButton, { backgroundColor: 'red' }]} onPress={handleDeleteAccount}>
                 <Text style={styles.customButtonText}>Yes! Delete it forever!</Text>
@@ -562,7 +628,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   dangerText: {
-    //marginTop: 16,
     marginBottom: 16,
     color: 'red',
     fontWeight: 'bold',
@@ -732,4 +797,61 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#4CAE4F',
   },
+
+  favoriteFoodTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#000',
+  },
+
+  favoriteFoodInput: {
+    backgroundColor: '#4CAE4F',
+    color: '#FFF',
+    fontWeight: 'bold',
+    padding: 10,
+    marginBottom: 8,
+    borderRadius: 5,
+  },
+
+  rewardContainer: {
+    width: '100%',
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+
+  rewardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+
+  rewardMeterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  coinIcon: {
+    width: 60,
+    height: 60,
+    marginRight: 8,
+  },
+
+  rewardMeter: {
+    flexDirection: 'row',
+  },
+
+  rewardBar: {
+    width: 30,
+    height: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 4,
+    backgroundColor: 'transparent',
+  },
+
+  rewardBarFilled: {
+    backgroundColor: '#4CAE4F',
+    borderColor: '#4CAE4F',
+  }
 });
