@@ -12,13 +12,13 @@ import {
 } from 'react-native';
 import { useAuth } from '../../../services/authContext'; // Import the authentication context
 import { useTheme, Text, Icon } from 'react-native-paper'; // Import useTheme and Text from react-native-paper
-import { db, auth } from '../../../services/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
-import { onAuthStateChanged, getAuth } from 'firebase/auth';
-import { fetchPantries } from '../../../src/utils/pantryUtils';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { fetchGroceryLists } from '../../../src/utils/groceryUtils';
-import CalorieProgress from '../../../components/calorieProgress';
+import { db, auth } from '../../../services/firebaseConfig'; // imports authentication
+import { doc, getDoc } from 'firebase/firestore'; // imports user information from firestore
+import { onAuthStateChanged, getAuth } from 'firebase/auth'; // gets authentication from firebase
+import { fetchPantries } from '../../../src/utils/pantryUtils'; // calls fetchpantries to display on home
+import { fetchGroceryLists } from '../../../src/utils/groceryUtils'; // calls fetchgrocerylists to display on home
+import { MaterialCommunityIcons } from '@expo/vector-icons'; // for fridge icon
+import CalorieProgress from '../../../components/calorieProgress'; // // calls calorieprogress to display on home
 
 export default function HomeScreen() {
   // State for Home screen
@@ -27,14 +27,15 @@ export default function HomeScreen() {
   const { logout } = useAuth(); // Get the logout function
   const { colors } = useTheme(); // Adds dark mode
   const [username, setUsername] = useState('');
-  const [pantries, setPantries] = useState<any[]>([]);
+  const [pantries, setPantries] = useState<any[]>([]); // pantries to display on home
   const [loading, setLoading] = useState(true);
-  const [grocery, setGrocery] = useState<any[]>([]);
-  const user = getAuth().currentUser;
+  const [grocery, setGrocery] = useState<any[]>([]); // groceries to display on home
+  const user = getAuth().currentUser; // gets user auth to display username on home
   const [screenWidth, setScreenWidth] = useState(
     Dimensions.get('window').width
   );
 
+  // function to fetch incomplete lists in order to display those on home
   const fetchIncompleteLists = async () => {
     setLoading(true);
     try {
@@ -51,6 +52,7 @@ export default function HomeScreen() {
     fetchIncompleteLists();
   }, []);
 
+  // function to display correct text
   useEffect(() => {
     const loadFonts = async () => {
       await Font.loadAsync({
@@ -61,6 +63,7 @@ export default function HomeScreen() {
     loadFonts();
   }, []);
 
+  // fetches user's pantries to display on home
   useEffect(() => {
     if (!user) return; // Don't fetch if user is null
 
@@ -71,6 +74,7 @@ export default function HomeScreen() {
       });
   }, [user]); // Re-run when user changes
 
+  // fetches user's username to display on home
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -112,6 +116,7 @@ export default function HomeScreen() {
     }
   };
 
+  // call the first four pantries and grocery lists from firebase
   const limitedPantries = pantries.slice(0, 4);
   const limitedGroceryLists = grocery.slice(0, 4);
 

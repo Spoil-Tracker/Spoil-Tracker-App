@@ -259,10 +259,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   button: {
-    width: 155, // Fixed width for each pantry card
-    height: 155, // Fixed height for each pantry card
     backgroundColor: '#FFF1DB',
-    marginHorizontal: 8,
+
+    paddingVertical: 15,
+    paddingHorizontal: 30,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -285,7 +285,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 18,
-    margin: 5,
     fontFamily: 'inter-bold',
     color: 'white',
     textAlign: 'center',

@@ -1,18 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions, Modal, Pressable, Alert, TouchableOpacity, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Dimensions,
+  Modal,
+  Pressable,
+  Alert,
+  TouchableOpacity,
+  Animated,
+} from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
 import { deleteDoc, doc } from 'firebase/firestore'; // Import Firestore delete function
 import { db } from '../services/firebaseConfig'; // Firebase db import
 
 type ListButtonProps = {
-  list: { id: string; name: string, completed: boolean, created: string, description: string };
+  list: {
+    id: string;
+    name: string;
+    completed: boolean;
+    created: string;
+    description: string;
+  };
   handleDelete: (listId: string) => void; // Accept handleDelete as a prop
 };
 
 type ListSectionProps = {
   title: string;
-  lists: { id: string; name: string, completed: boolean, created: string, description: string }[];
+  lists: {
+    id: string;
+    name: string;
+    completed: boolean;
+    created: string;
+    description: string;
+  }[];
   fetchLists: () => void;
 };
 
@@ -21,7 +44,9 @@ type ListSectionProps = {
  * Dynamically adjusts dimensions based on screen size.
  */
 const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
-  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Get initial screen height
+  const [screenHeight, setScreenHeight] = useState(
+    Dimensions.get('window').height
+  ); // Get initial screen height
   const screenWidth = Dimensions.get('window').width; // Get screen width
 
   // Calculate width dynamically based on the screen size
@@ -57,7 +82,12 @@ const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
   };
 
   return (
-    <View style={[styles.listSection, { width: listSectionWidth, height: listSectionHeight }]}>
+    <View
+      style={[
+        styles.listSection,
+        { width: listSectionWidth, height: listSectionHeight },
+      ]}
+    >
       <Text style={styles.sectionTitle}>{title}</Text>
       <ScrollView style={styles.scrollView}>
         {lists.map((list) => (
@@ -103,7 +133,10 @@ const ListButton = ({ list, handleDelete }: ListButtonProps) => {
             {/* Buttons on the left */}
             <View style={styles.buttonsContainer}>
               <View>
-                <Link href={`../ListUI?id=${list.id}`} style={[styles.button, styles.viewButton]}>
+                <Link
+                  href={`../ListUI?id=${list.id}`}
+                  style={[styles.button, styles.viewButton]}
+                >
                   <Text style={styles.buttonText}>View</Text>
                 </Link>
 
@@ -117,14 +150,15 @@ const ListButton = ({ list, handleDelete }: ListButtonProps) => {
             </View>
 
             {/* Text on the right */}
-            <View style={styles.dropdownTextContainer}>  
+            <View style={styles.dropdownTextContainer}>
               <Text style={styles.dropdownText}>Created: {list.created}</Text>
-              <Text style={styles.dropdownText}>Description: {list.description}</Text>
+              <Text style={styles.dropdownText}>
+                Description: {list.description}
+              </Text>
             </View>
           </View>
         </View>
       </Animated.View>
-
 
       {/* Custom Delete Confirmation Modal */}
       <Modal
@@ -135,16 +169,21 @@ const ListButton = ({ list, handleDelete }: ListButtonProps) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to delete this list?</Text>
+            <Text style={styles.modalTitle}>
+              Are you sure you want to delete this list?
+            </Text>
             <View style={styles.modalButtonsContainer}>
-              <Pressable onPress={() => setShowDeleteModal(false)} style={[styles.modalButton, styles.cancelButton]}>
+              <Pressable
+                onPress={() => setShowDeleteModal(false)}
+                style={[styles.modalButton, styles.cancelButton]}
+              >
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </Pressable>
-              <Pressable 
+              <Pressable
                 onPress={() => {
                   handleDelete(list.id); // Use handleDelete from parent
                   setShowDeleteModal(false);
-                }} 
+                }}
                 style={[styles.modalButton, styles.deleteButton]}
               >
                 <Text style={styles.modalButtonText}>Delete</Text>
@@ -228,14 +267,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  buttonsContainer: { 
-    flexDirection: 'column', 
-    alignItems: 'flex-start', 
-    marginRight: 10, 
-  }, 
+  buttonsContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginRight: 10,
+  },
   viewButton: {
     flex: 1,
-    width: 110
+    width: 110,
   },
   deleteButton: {
     flex: 1,
@@ -281,14 +320,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  rowContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-start', 
-    justifyContent: 'flex-start', 
-    paddingVertical: 5, 
-  }, 
-  dropdownTextContainer: { 
-    flex: 1, 
-    alignItems: 'flex-start', 
-  }, 
+  rowContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    paddingVertical: 5,
+  },
+  dropdownTextContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
 });

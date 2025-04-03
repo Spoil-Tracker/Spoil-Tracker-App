@@ -57,7 +57,7 @@ const Pantry = () => {
   const { id } = useLocalSearchParams(); // Get pantry ID from route params
 
   const local = useLocalSearchParams();
-  const docRef = doc(db, 'pantries_t', local.id as string);
+  const docRef = doc(db, 'pantry', local.id as string);
 
   useEffect(() => {
     fetchPantryData();
@@ -108,10 +108,14 @@ const Pantry = () => {
           }));
 
           const sortedLists = fetchedLists.sort((a, b) =>
-            a.header === 'Unordered' ? -1 : b.header === 'Unordered' ? 1 : 0
+            a.header === 'Unordered'
+              ? -1
+              : b.header === 'Unordered'
+              ? 1
+              : a.header.localeCompare(b.header)
           );
 
-          setLists(fetchedLists);
+          setLists(sortedLists);
           setPantryDescription(data.description || ''); // loads description from Firestore
 
           // Extract items from Firestore sections
@@ -123,7 +127,7 @@ const Pantry = () => {
                 description: item.description,
                 quantity: item.quantity,
                 expirationDate: item.expirationDate,
-                imageUrl: 'https://www.placekittens.com/100/100',
+                imageUrl: 'https://www.placecats.com/100/100',
                 sectionId: key,
               })) || []
           );
@@ -165,7 +169,7 @@ const Pantry = () => {
       expirationDate: new Date(
         Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
       ).toISOString(),
-      imageUrl: 'https://www.placekittens.com/100/100',
+      imageUrl: 'https://www.placecats.com/100/100',
     };
 
     // Select a random list
@@ -206,46 +210,6 @@ const Pantry = () => {
       }
     } catch (error) {
       console.error('Error adding random item:', error);
-    }
-  };
-
-  // Function to add a new horizontal list
-  const addNewList = async () => {
-    const newListName = `List ${lists.length + 1}`;
-    const newListId = uuidv4(); // Generate a unique ID for the new list
-
-    try {
-      const snapshot = await getDoc(docRef);
-
-      if (snapshot.exists()) {
-        const currentSections = snapshot.data()?.sections || {};
-
-        // Add a new list only if it's dynamically created, not overwriting unordered
-        const updatedSections = {
-          ...currentSections,
-          [newListId]: { name: newListName, items: [] },
-        };
-
-        await updateDoc(docRef, { sections: updatedSections });
-
-        const newList = {
-          id: newListId,
-          header: newListName,
-          isEditable: true,
-        };
-        setLists((prevLists) => [...prevLists, newList]);
-
-        setAlertMessage(`Successfully added ${newListName}`);
-        setAlertVisible(true);
-
-        setTimeout(() => {
-          setAlertVisible(false);
-        }, 3000);
-      } else {
-        console.error('No such document in Firestore!');
-      }
-    } catch (error) {
-      console.error('Error adding new list:', error);
     }
   };
 
@@ -419,7 +383,7 @@ const Pantry = () => {
       <View style={styles.listContainer} key={list.id}>
         {/* Conditional rendering based on the list's header name */}
         {list.header === 'Unordered' ? (
-          <Text style={styles.listHeaderStatic}>{list.header}</Text>
+          <Text style={styles.listHeader}>{list.header}</Text>
         ) : (
           <TextInput
             style={styles.listHeader}
@@ -583,20 +547,31 @@ const Pantry = () => {
           {/* Left Column */}
           <View style={styles.fixedLeftColumn}>
             {/* Dynamically Show Pantry Name */}
-            <Text style={[styles.textBoxTitle, { color: 'Black' }]}>
+            <Text
+              style={[styles.textBoxTitle, { color: 'Black', paddingTop: 10 }]}
+            >
               <MaterialCommunityIcons
+                style={[
+                  styles.textBoxTitle,
+                  {
+                    color: 'Black',
+                    backgroundColor: '#fffde7',
+                    fontSize: 70,
+                  },
+                ]}
                 name="fridge" // Use "fridge" for a filled icon
-                size={80} // Icon size
-                color="black" // Use theme color for the icon
               />
               {pantryName} {/* Pantry name from Firebase */}
+              <Text style={[{ fontSize: 15, textAlign: 'center' }]}>
+                Total Items:
+              </Text>
             </Text>
 
             <Pressable
               style={[styles.addListButton, { backgroundColor: '#3182f1' }]}
-              onPress={addNewList}
+              onPress={sortItemsByExpiration}
             >
-              <Text style={styles.addListButtonText}>Sort By</Text>
+              <Text style={styles.addListButtonText}>Sort by</Text>
             </Pressable>
             <Pressable
               style={[styles.addListButton, { backgroundColor: '#f13168' }]}
@@ -830,16 +805,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  listHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#4CAE4F',
-    color: '#fff',
-    borderRadius: 6,
-  },
   removeListButton: {
     backgroundColor: '#d32f2f',
     width: 25,
@@ -860,6 +825,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 6,
   },
+  // pantry items
   unit: {
     width: 120,
     marginRight: 8,
@@ -1002,7 +968,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF1DB',
     textAlignVertical: 'top',
     textAlign: 'center',
-    paddingBottom: 8,
+    paddingBottom: 2,
     borderWidth: 2,
     borderRadius: 8,
     borderColor: '#954535',
@@ -1043,14 +1009,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-
-  listHeaderStatic: {
+  listHeader: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 6,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: '#347736',
+    backgroundColor: '#4CAE4F',
     color: '#fff',
     borderRadius: 6,
   },
