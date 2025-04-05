@@ -75,6 +75,7 @@ export async function MealDBSearchMealByName(meal_name: string): Promise<MealDBJ
 
     const data: MealDBJSON = await response.json();
 
+    console.log("---Meal Name Search---")
     console.log(data);
 
     return data;
@@ -83,7 +84,7 @@ export async function MealDBSearchMealByName(meal_name: string): Promise<MealDBJ
 //We would need premium to search with more than one ingredient
 export async function MealDBSearchMealByIngredient(ingredient: string): Promise<MealDBJSON> {
 
-    const apiUrl = `https://www.themealdb.com/api/json/v1/${MEAL_DB_API_KEY}/search.php?i=${ingredient}`;
+    const apiUrl = `https://www.themealdb.com/api/json/v1/${MEAL_DB_API_KEY}/filter.php?i=${ingredient}`;
     const response = await fetch(apiUrl);
 
     
@@ -92,6 +93,7 @@ export async function MealDBSearchMealByIngredient(ingredient: string): Promise<
 
     const data: MealDBJSON = await response.json();
 
+    console.log("---Meal Ingredient Search---")
     console.log(data);
 
     return data;
@@ -108,6 +110,7 @@ export async function MealDBRandomMeal(): Promise<MealDBJSON> {
 
     const data: MealDBJSON = await response.json();
 
+    console.log("---Random Meal---")
     console.log(data);
 
     return data;
@@ -115,6 +118,6 @@ export async function MealDBRandomMeal(): Promise<MealDBJSON> {
 
 
 //Test code
-MealDBRandomMeal();
-MealDBSearchMealByIngredient("chicken_breast");
-MealDBSearchMealByName("Arrabiata")
+//MealDBRandomMeal();
+//MealDBSearchMealByIngredient("chicken");
+//MealDBSearchMealByName("Arrabiata")
