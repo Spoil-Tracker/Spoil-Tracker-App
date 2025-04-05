@@ -16,7 +16,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@apollo/client": "^3.13.1",
+    "@apollo/client": "^3.13.6",
     "@expo-google-fonts/inter": "^0.2.3",
     "@expo/vector-icons": "^14.0.2",
     "@react-native-async-storage/async-storage": "^1.24.0",
@@ -46,9 +46,9 @@
     "expo-system-ui": "~4.0.4",
     "expo-web-browser": "~14.0.1",
     "firebase": "^11.0.2",
-    "firebase-admin": "^13.1.0",
+    "firebase-admin": "^13.2.0",
     "graphql": "^16.10.0",
-    "graphql-scalars": "^1.24.1",
+    "graphql-scalars": "^1.24.2",
     "jspdf": "^3.0.0",
     "lodash.debounce": "^4.0.8",
     "react": "^18.3.1",
@@ -80,7 +80,7 @@
     "@graphql-codegen/typescript-operations": "^4.4.1",
     "@graphql-codegen/typescript-react-apollo": "^4.3.2",
     "@types/jest": "^29.5.12",
-    "@types/node": "^22.13.5",
+    "@types/node": "^22.14.0",
     "@types/react": "~18.3.12",
     "@types/react-datepicker": "^6.2.0",
     "@types/react-test-renderer": "^18.3.0",
@@ -88,7 +88,7 @@
     "jest-expo": "~52.0.4",
     "react-test-renderer": "18.3.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   },
   "private": true
 }
