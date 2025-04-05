@@ -12,12 +12,18 @@ import {
 import { addCustomItem, getAccountByOwnerID } from '@/components/Account/AccountService'; // Adjust the path as needed
 import { useAuth } from '@/services/authContext';
 
-const CustomGroceryItemScreen = () => {
+interface CustomGroceryItemScreenProps {
+  onItemAdded?: () => void;
+}
+
+const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({ onItemAdded }) => {
   // Basic grocery item details.
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
+  // New state for the image link.
+  const [imageLink, setImageLink] = useState('');
 
   // Macronutrients state (stored as strings, to be converted to numbers)
   const [totalFat, setTotalFat] = useState('');
@@ -38,8 +44,8 @@ const CustomGroceryItemScreen = () => {
   const [potassium, setPotassium] = useState('');
 
   // Constants defining the expanded heights of dropdown sections.
-  const MACROS_EXPANDED_HEIGHT = 410;
-  const MICROS_EXPANDED_HEIGHT = 300;
+  const MACROS_EXPANDED_HEIGHT = 480;
+  const MICROS_EXPANDED_HEIGHT = 360;
 
   // State to control the visibility and animation of the macronutrient dropdown.
   const [showMacros, setShowMacros] = useState(false);
@@ -54,7 +60,6 @@ const CustomGroceryItemScreen = () => {
 
   /**
    * Toggles the visibility of the macronutrients dropdown.
-   * Expands or collapses the dropdown with an animated height transition.
    */
   const toggleMacros = () => {
     if (!showMacros) {
@@ -75,7 +80,6 @@ const CustomGroceryItemScreen = () => {
 
   /**
    * Toggles the visibility of the micronutrients dropdown.
-   * Expands or collapses the dropdown with an animated height transition.
    */
   const toggleMicros = () => {
     if (!showMicros) {
@@ -96,10 +100,6 @@ const CustomGroceryItemScreen = () => {
 
   /**
    * Handles form submission.
-   *
-   * Converts nutrient string values to numbers, retrieves the account based on the user,
-   * and calls the addCustomItem service to create a new custom grocery item.
-   * Afterwards, resets the form fields and collapses any expanded dropdowns.
    */
   const handleSubmit = async () => {
     // Convert nutrient values from strings to numbers
@@ -124,25 +124,27 @@ const CustomGroceryItemScreen = () => {
     };
 
     try {
-      // Replace this with your actual account ID (from context, props, etc.)
-      if (!user){
-        return
+      if (!user) {
+        return;
       }
 
-      const account = await getAccountByOwnerID(user?.uid);
+      const account = await getAccountByOwnerID(user.uid);
       
-      // Call the AccountService addCustomItem function.
+      // Use the imageLink state as the food_picture_url value.
       const response = await addCustomItem(
         account.id,
         name,
         category,
-        '', // Provide the food_picture_url if available; here an empty string is used.
+        imageLink,
         amount,
         description,
         macronutrients,
         micronutrients
       );
       console.log('Custom item added successfully:', response);
+      if (onItemAdded) {
+        onItemAdded();
+      }
     } catch (error) {
       console.error('Error adding custom item:', error);
     }
@@ -152,6 +154,7 @@ const CustomGroceryItemScreen = () => {
     setDescription('');
     setCategory('');
     setAmount('');
+    setImageLink('');
     setTotalFat('');
     setSatFat('');
     setTransFat('');
@@ -180,7 +183,7 @@ const CustomGroceryItemScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <ScrollView contentContainerStyle={styles.contentContainer} showsHorizontalScrollIndicator={false}>
         <View style={styles.form}>
           <Text style={styles.title}>Create Custom Grocery Item</Text>
 
@@ -208,6 +211,13 @@ const CustomGroceryItemScreen = () => {
             placeholder="Amount Per Serving"
             value={amount}
             onChangeText={setAmount}
+          />
+          {/* New Input Field for Image URL */}
+          <TextInput
+            style={styles.input}
+            placeholder="Image URL"
+            value={imageLink}
+            onChangeText={setImageLink}
           />
 
           {/* Animated Dropdown for Macronutrients */}
@@ -337,13 +347,9 @@ const CustomGroceryItemScreen = () => {
 
 export default CustomGroceryItemScreen;
 
-/**
- * Style definitions for the CustomGroceryItemScreen component.
- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FEF9F2',
   },
   contentContainer: {
     padding: 20,
