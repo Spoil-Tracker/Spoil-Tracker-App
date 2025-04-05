@@ -20,6 +20,7 @@ import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../../services/authContext';
 import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
 
+// Global variables for any function that requires to call an icon
 const userIcon = require('../../../assets/images/icon.png');
 const appleIcon = require('../../../assets/images/apple.png');
 const fridgeIcon = require('../../../assets/images/fridge.png');
@@ -31,11 +32,11 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const userID = user?.uid;
   const router = useRouter();
-  const [isModalVisible, setModalVisible] = useState(false);
+  const [isModalVisible, setModalVisible] = useState(false); // Establishes modals
   const [isShareModalVisible, setShareModalVisible] = useState(false);
   const [isIconModalVisible, setIconModalVisible] = useState(false);
   const [isAppIconModalVisible, setAppIconModalVisible] = useState(false);
-  const [selectedAppIcon, setSelectedAppIcon] = useState<string | null>(null);
+  const [selectedAppIcon, setSelectedAppIcon] = useState<string | null>(null); // Allows icon to be changed
   const [generatedLink, setGeneratedLink] = useState('');
   const [userData, setUserData] = useState({
     email: '',
@@ -43,9 +44,9 @@ export default function HomeScreen() {
     biography: '',
     notificationSetting: 'Notify Everyday',
     favoriteFoods: ['', '', ''],
-  });
+  }); // User data for Fire Store
 
-  const [leftColumnHeight, setLeftColumnHeight] = useState(0);
+  const [leftColumnHeight, setLeftColumnHeight] = useState(0); // Split page into two sections
   const [rightColumnHeight, setRightColumnHeight] = useState(0);
 
   const [profileIcon, setProfileIcon] = useState<ImageSourcePropType>(userIcon);

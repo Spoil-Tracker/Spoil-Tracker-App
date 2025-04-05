@@ -6,6 +6,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 import { useTheme } from 'react-native-paper';
 
+// To live update whenever user edits their account
 interface EditAccountRouteParams {
   userID: string;
   currentName: string;
@@ -54,7 +55,7 @@ export default function EditAccount() {
             style={[
               styles.input, 
               { 
-                color: dark ? '#FFF' : '#000',
+                color: dark ? '#FFF' : '#000', // Adapts to dark or light mode toggle
                 backgroundColor: dark ? '#222' : '#FFF',
                 borderColor: dark ? '#444' : '#ccc', 
               },
@@ -62,9 +63,10 @@ export default function EditAccount() {
             value={name}
             onChangeText={setName}
             placeholder="Enter your name"
-            placeholderTextColor={dark ? '#FFF' : '#000'}
+            placeholderTextColor={dark ? '#FFF' : '#000'} // Text color adapts to DL toggle for best visibility
             maxLength={250}
           />
+          {/* Character limit of 250 that live updates */}
           <Text style={styles.characterCountSingle}>{250 - name.length} / 250</Text>
         </View>
       </View>
