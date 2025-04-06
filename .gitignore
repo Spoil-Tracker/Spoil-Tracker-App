@@ -1,3 +1,5 @@
 
 spoil-tracker-alpha/serviceAccountKey.json
 .vscode
+spoil-tracker-alpha/.env
+spoil-tracker-alpha/src/openaikey.ts

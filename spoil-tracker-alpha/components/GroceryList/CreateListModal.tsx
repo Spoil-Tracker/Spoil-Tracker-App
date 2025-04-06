@@ -27,7 +27,7 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
   const id = user?.uid;
 
   if (id) {
-    console.log("User UID:", id);
+    console.log("[in List Modal] User UID:", id);
   } else {
     console.log("No user is logged in.");
     return;

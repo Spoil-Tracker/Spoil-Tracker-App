@@ -222,6 +222,39 @@ const UPDATE_GROCERY_LIST_ITEM_IS_BOUGHT = gql`
   }
 `;
 
+const GET_SHARED_GROCERY_LISTS = gql`
+  query GetAllGroceryLists {
+    getAllGroceryLists {
+      id
+      account_id
+      createdAt
+      last_opened
+      grocerylist_name
+      description
+      grocery_list_items {
+        id
+        food_name
+        food_global_id
+        measurement
+        quantity
+        isBought
+        description
+        imageUrl
+      }
+      isFamily
+      isShared
+      isComplete
+    }
+  }
+`;
+
+const SEARCH_GROCERY_LISTS = gql`
+  query SearchGroceryLists($account_id: String!, $query: String!) {
+    searchGroceryLists(account_id: $account_id, query: $query)
+  }
+`;
+
+
 /**
  * Represents a Grocery List.
  */
@@ -260,19 +293,35 @@ export interface GroceryListItem {
  * @throws Error if the query fails.
  */
 export async function fetchAllGroceryLists(account_id: string) {
-  try {
-    const result = await client.query({ 
-        query: GET_ALL_GROCERY_LISTS,
-        variables: { account_id }, 
-        fetchPolicy: 'network-only' });
+    try {
+        const result = await client.query({ 
+            query: GET_ALL_GROCERY_LISTS,
+            variables: { account_id }, 
+            fetchPolicy: 'network-only' });
 
-    return result.data.getGroceryListsForAccount;
-  } catch (error) {
-    console.error('Error fetching grocery lists:', error);
-    
-    throw error;
-  }
+        return result.data.getGroceryListsForAccount;
+        } catch (error) {
+        console.error('Error fetching grocery lists:', error);
+
+        throw error;
+    }
 }
+
+export async function fetchSharedGroceryLists(): Promise<GroceryList[]> {
+    try {
+        const result = await client.query({
+            query: GET_SHARED_GROCERY_LISTS,
+            fetchPolicy: 'network-only',
+        });
+        // The query should return all lists; filter to get only shared lists.
+        const allLists: GroceryList[] = result.data.getAllGroceryLists;
+        const sharedLists = allLists.filter(list => list.isShared);
+        return sharedLists;
+        } catch (error) {
+        console.error('Error fetching shared grocery lists:', error);
+        throw error;
+    }
+  }
 
 /**
  * Fetches a single grocery list by its ID.
@@ -599,4 +648,30 @@ export async function updateGroceryListItemIsBought(grocerylist_id: string, item
         throw error;
     }
 }
+
+/**
+ * Searches for grocery lists associated with a specific account based on a query string.
+ *
+ * This function sends a GraphQL query (SEARCH_GROCERY_LISTS) to the server to retrieve
+ * all grocery lists for the provided account ID that match the given search query.
+ * The fetch policy is set to 'network-only' to ensure that fresh data is retrieved.
+ *
+ * @param {string} account_id - The ID of the account for which to search grocery lists.
+ * @param {string} query - The search query string to filter grocery lists.
+ * @returns {Promise<string[]>} A promise that resolves to an array of grocery list IDs that match the query.
+ * @throws Will throw an error if the query fails.
+ */
+export async function searchGroceryLists(account_id: string, query: string): Promise<string[]> {
+    try {
+      const result = await client.query({
+        query: SEARCH_GROCERY_LISTS,
+        variables: { account_id, query },
+        fetchPolicy: 'network-only'
+      });
+      return result.data.searchGroceryLists;
+    } catch (error) {
+      console.error('Error searching grocery lists:', error);
+      throw error;
+    }
+  }
 // Export additional functions for updating, deleting, etc., in a similar fashion.
