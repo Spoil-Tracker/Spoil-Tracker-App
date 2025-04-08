@@ -10,6 +10,7 @@ import { FoodConcreteResolver } from "./entities/FoodConcrete";
 import { FoodGlobalResolver } from "./entities/FoodGlobal";
 import { FoodLeaderboardResolver } from "./entities/FoodLeaderboards";
 import { GroceryListResolver } from "./entities/GroceryList";
+import { CommunityResolver } from "./entities/Community";
 
 const bootstrap = async () => {
   // Build GraphQL schema
@@ -23,7 +24,8 @@ const bootstrap = async () => {
       FoodConcreteResolver,
       FoodGlobalResolver,
       FoodLeaderboardResolver,
-      GroceryListResolver
+      GroceryListResolver,
+      CommunityResolver
     ],
     validate: false,
   });

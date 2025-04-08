@@ -153,6 +153,37 @@ const UPDATE_FOOD_GLOBAL = gql`
   }
 `;
 
+const SEARCH_FOOD_GLOBAL_BY_FOOD_NAME = gql`
+  query SearchFoodGlobalByFoodName($query: String!) {
+    searchFoodGlobalByFoodName(query: $query) {
+      id
+      food_name
+      food_category
+      food_picture_url
+      amount_per_serving
+      description
+      macronutrients {
+        total_fat
+        sat_fat
+        trans_fat
+        carbohydrate
+        fiber
+        total_sugars
+        added_sugars
+        protein
+      }
+      micronutrients {
+        cholesterol
+        sodium
+        vitamin_d
+        calcium
+        iron
+        potassium
+      }
+    }
+  }
+`;
+
 // Mutation to delete a FoodGlobal item
 const DELETE_FOOD_GLOBAL = gql`
   mutation DeleteFoodGlobal($food_global_id: String!) {
@@ -342,6 +373,31 @@ export async function deleteFoodGlobal(food_global_id: string) {
     return result.data.deleteFoodGlobal;
   } catch (error) {
     console.error('Error deleting FoodGlobal item:', error);
+    throw error;
+  }
+}
+
+/**
+ * Searches for FoodGlobal items based on a search query.
+ *
+ * This function sends a GraphQL query (SEARCH_FOOD_GLOBAL_BY_FOOD_NAME) to fetch FoodGlobal items
+ * whose food names match or contain the provided query string. The fetch policy is set to 'network-only'
+ * to ensure that fresh data is retrieved from the server.
+ *
+ * @param {string} query - The search query string to match against FoodGlobal item names.
+ * @returns {Promise<FoodGlobal[]>} A promise that resolves to an array of FoodGlobal items matching the query.
+ * @throws Will throw an error if the query fails.
+ */
+export async function searchFoodGlobalByFoodName(query: string): Promise<FoodGlobal[]> {
+  try {
+    const result = await client.query({
+      query: SEARCH_FOOD_GLOBAL_BY_FOOD_NAME,
+      variables: { query },
+      fetchPolicy: 'network-only'
+    });
+    return result.data.searchFoodGlobalByFoodName;
+  } catch (error) {
+    console.error('Error searching FoodGlobal by food_name:', error);
     throw error;
   }
 }

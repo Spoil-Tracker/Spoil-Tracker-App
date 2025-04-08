@@ -16,13 +16,16 @@ import {
   GroceryListItem,
   updateGroceryListIsComplete,
   updateGroceryListDescription,
-  updateGroceryListItemIsBought
+  updateGroceryListItemIsBought,
+  updateGroceryListIsShared
 } from '@/components/GroceryList/GroceryListService';
 import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPDF, exportGroceryListToPDFWeb } from '@/components/ExportService';
 import ProductPage from '@/components/Food/FoodUI';
 import { useAuth } from '@/services/authContext';
 import { getAccountByOwnerID } from '@/components/Account/AccountService';
 import { useTheme } from 'react-native-paper';
+import { addCopiedGroceryList } from '@/components/Community/CommunityService';
+import { OpenAI } from '@/openAIAPI';
 
 // list used for the dropdown located with each grocery list item in the flatlist
 const FOOD_UNITS = [
@@ -66,6 +69,15 @@ const GroceryList = () => {
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(null);
   const { user } = useAuth();
+  const [groceryListValueOpen, setGroceryListValueOpen] = useState(false);
+  const groceryListValueAnim = useRef(new Animated.Value(0)).current;
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const summaryAnim = useRef(new Animated.Value(0)).current;
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsAnim = useRef(new Animated.Value(0)).current;
+  const [groceryListShared, setGroceryListShared] = useState(false);
+  const [groceryListValue, setGroceryListValue] = useState<string | null>(null);
+  const [loadingValue, setLoadingValue] = useState(false);
   
 
 
@@ -93,6 +105,7 @@ const GroceryList = () => {
           setGroceryListTitle(snapshot.grocerylist_name || 'Untitled List');
           setGroceryListDate(snapshot.createdAt ? formatDate(snapshot.createdAt) : 'Unknown Date');
           setGroceryListDescription(snapshot.description || '');
+          setGroceryListShared(snapshot.isShared || false);
           setGroceryListCompletion(snapshot.isComplete || false);
           console.log('Fetched grocery list:', snapshot);
         }
@@ -116,6 +129,62 @@ const GroceryList = () => {
 
   if (!accountId) {
     return <ActivityIndicator size="large" color="blue" />;
+  }
+
+  const toggleShared = async () => {
+    try {
+    const updated = await updateGroceryListIsShared(groceryListId, !groceryListShared);
+    setGroceryListShared(updated.isShared);
+    alert(updated.isShared ? "List is now shared" : "List is now private");
+    } catch (error) {
+    console.error("Error toggling shared status:", error);
+    alert("Failed to toggle shared status.");
+    }
+  };
+
+  /**
+   * Groups the grocery items by name and returns an array of lines
+   * to display in the summary dropdown.
+   *
+   * For example, if "Eggs" appear twice (24 units, 1 lb) and "Tomatoes" appear once (10 kg),
+   * it might return lines like:
+   * [
+   *   "Eggs - - - - - - - - - 24 units",
+   *   "                     1 lb",
+   *   "Tomatoes - - - - - - - 10 kg"
+   * ]
+   */
+  function buildSummaryElements(items: GroceryListItem[]): React.ReactNode[] {
+    const grouped: Record<string, GroceryListItem[]> = {};
+  
+    // Group items by food_name
+    items.forEach((item) => {
+      if (!grouped[item.food_name]) {
+        grouped[item.food_name] = [];
+      }
+      grouped[item.food_name].push(item);
+    });
+  
+    const elements: React.ReactNode[] = [];
+    for (const name in grouped) {
+      const itemGroup = grouped[name];
+      itemGroup.forEach((item, index) => {
+        elements.push(
+          <View key={`${name}-${index}`} style={styles.summaryLine}>
+            {/* Only show the name on the first line */}
+            {index === 0 ? (
+              <Text style={styles.summaryName}>{name}</Text>
+            ) : (
+              <Text style={styles.summaryName} />
+            )}
+            <Text style={styles.summaryUnits}>
+              {item.quantity} {item.measurement}
+            </Text>
+          </View>
+        );
+      });
+    }
+    return elements;
   }
 
   // handler for when a user chooses to delete the list, called after user presses the delete button
@@ -405,13 +474,41 @@ const GroceryList = () => {
   const smallScreen = screenWidth < 690;
   const numColumns = width > 1420 ? 2 : 1;
 
-  const toggleDropdown = () => {
-    setDropdownVisible(!dropdownVisible);
-    Animated.timing(dropdownHeight, {
-      toValue: dropdownVisible ? 0 : 150, // Increased height for content and delete button
+  const toggleDropdownAnimated = (
+    open: boolean, 
+    animRef: Animated.Value, 
+    setOpen: (open: boolean) => void, 
+    targetHeight: number
+  ) => {
+    Animated.timing(animRef, {
+      toValue: open ? 0 : targetHeight,
       duration: 300,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
+    setOpen(!open);
+  };
+
+  const toggleGroceryListValue = () => {
+    // Toggle the open state
+    toggleDropdownAnimated(groceryListValueOpen, groceryListValueAnim, setGroceryListValueOpen, 200);
+    
+    // Optionally trigger calculation when opening the dropdown
+    if (!groceryListValue && !loadingValue) {
+      calculateGroceryListValue();
+    }
+  };
+  
+  const toggleSummary = () => {
+    Animated.timing(summaryAnim, {
+      toValue: summaryOpen ? 0 : 400,
+      duration: 300,
+      useNativeDriver: false, // must be false for height animations
+    }).start();
+    setSummaryOpen(!summaryOpen);
+  };
+  
+  const toggleSettings = () => {
+    toggleDropdownAnimated(settingsOpen, settingsAnim, setSettingsOpen, 100);
   };
 
   const buttonTranslateY = dropdownAnimMobile.interpolate({
@@ -468,6 +565,45 @@ const GroceryList = () => {
   }
 
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+  const parsePricingResult = (result: string) => {
+    // Split the result by newline
+    const lines = result.split('\n').filter(line => line.trim().length > 0);
+    return lines.map((line, index) => {
+      // Split by colon to separate store name and price
+      const [store, price] = line.split(':');
+      return (
+        <View key={index} style={styles.pricingLine}>
+          <Text style={styles.pricingStore}>{store.trim()}:</Text>
+          <Text style={styles.pricingPrice}>{price?.trim()}</Text>
+        </View>
+      );
+    });
+  };
+
+  const calculateGroceryListValue = async () => {
+    // Create an instance of the OpenAI client with your API key.
+    const openAIClient = new OpenAI({ apiKey: process.env.EXPO_PUBLIC_OPENAI_KEY });
+    
+    // Create a summary of grocery items
+    const itemsSummary = items
+      .map(item => `${item.food_name} (x${item.quantity} ${item.measurement})`)
+      .join(', ');
+    
+    // Build your prompt for pricing analysis
+    const prompt = `Calculate the estimated value for the following grocery list items: ${itemsSummary}. Provide the prices for Walmart, Target, Albertsons, and Vons with a total estimation.`;
+  
+    setLoadingValue(true);
+    try {
+      // Call the new pricingAnalysis method
+      const pricingResult = await openAIClient.pricingAnalysis(prompt);
+      setGroceryListValue(pricingResult);
+    } catch (error) {
+      console.error('Error calculating grocery list value:', error);
+      setGroceryListValue('Error calculating value.');
+    }
+    setLoadingValue(false);
+  };  
 
   if(width > 1100){
 
@@ -580,24 +716,49 @@ const GroceryList = () => {
       </ScrollView>
 
       <ScrollView style={[styles.rightSideBar, {height: height - 100, width: width * 0.15, minWidth: 300}]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
-        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
-          Grocery List Value
-        </Text>
-        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
-        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
-          Summary
-        </Text>
-        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 15 }}>
-        <Text style={{ fontFamily: 'inter-bold', fontSize: 30, color: '#007bff' }}>
-          Settings
-        </Text>
-        <AntDesign name="right" size={30} color="#007bff" style={{ marginLeft: 8 }} />
-      </View>
+        {/* Grocery List Value Dropdown */}
+        <Pressable onPress={toggleGroceryListValue} style={styles.dropdownHeaderRight}>
+          <Text style={styles.dropdownHeaderTextRight}>Grocery List Value</Text>
+          <AntDesign name={groceryListValueOpen ? 'up' : 'down'} size={30} color="#007bff" style={{ marginLeft: 8 }} />
+        </Pressable>
+        <Animated.View style={[styles.dropdownContentRight, { height: groceryListValueAnim }]}>
+        <ScrollView showsHorizontalScrollIndicator={false}>
+          {loadingValue ? (
+            <ActivityIndicator size="small" color="#007bff" />
+          ) : (
+            groceryListValue
+              ? parsePricingResult(groceryListValue)
+              : <Text style={styles.dropdownContentText}>
+                  Press the button below to calculate value
+                </Text>
+          )}
+          <Pressable onPress={calculateGroceryListValue} style={[styles.sidebarButton, { marginTop: 10 }]}>
+            <Text style={styles.buttonText}>Calculate Value</Text>
+          </Pressable>
+        </ScrollView>
+        </Animated.View>
+
+        {/* Summary Dropdown */}
+        <Pressable onPress={toggleSummary} style={styles.dropdownHeaderRight}>
+          <Text style={styles.dropdownHeaderTextRight}>Summary</Text>
+          <AntDesign name={summaryOpen ? 'up' : 'down'} size={30} color="#007bff" style={{ marginLeft: 8 }} />
+        </Pressable>
+        <Animated.View style={[styles.dropdownContentRight, { height: summaryAnim,  }]}>
+          <ScrollView>
+            {buildSummaryElements(items)}
+          </ScrollView>
+        </Animated.View>
+
+        {/* Settings Dropdown */}
+        <Pressable onPress={toggleSettings} style={styles.dropdownHeaderRight}>
+          <Text style={styles.dropdownHeaderTextRight}>Settings</Text>
+          <AntDesign name={settingsOpen ? 'up' : 'down'} size={30} color="#007bff" style={{ marginLeft: 8 }} />
+        </Pressable>
+        <Animated.View style={[styles.dropdownContentRight, { height: settingsAnim }]}>
+          <Pressable onPress={toggleShared} style={styles.sharedToggleButton}>
+            <Text style={styles.sharedToggleText}>Shared: {groceryListShared ? "Yes" : "No"}</Text>
+          </Pressable>
+        </Animated.View>
       </ScrollView> 
 
 
@@ -713,6 +874,21 @@ const GroceryList = () => {
               </Pressable>
               <Pressable style={styles.modalButton} onPress={() => handleExportCSV(items)}>
                 <Text style={styles.buttonText}>Export as CSV</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalButton}
+                onPress={async () => {
+                  try {
+                    await addCopiedGroceryList(groceryListId);
+                    alert("Copied grocery list added to community feed");
+                    setExportModalVisible(false);
+                  } catch (error) {
+                    console.error("Error copying grocery list", error);
+                    alert("Error copying grocery list");
+                  }
+                }}
+              >
+                <Text style={styles.buttonText}>Copy to Community</Text>
               </Pressable>
               <Pressable style={styles.closeButton} onPress={() => setExportModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Cancel</Text>
@@ -940,6 +1116,21 @@ const GroceryList = () => {
               </Pressable>
               <Pressable style={styles.modalButton} onPress={() => handleExportCSV(items)}>
                 <Text style={styles.buttonText}>Export as CSV</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalButton}
+                onPress={async () => {
+                  try {
+                    await addCopiedGroceryList(groceryListId);
+                    alert("Copied grocery list added to community feed");
+                    setExportModalVisible(false);
+                  } catch (error) {
+                    console.error("Error copying grocery list", error);
+                    alert("Error copying grocery list");
+                  }
+                }}
+              >
+                <Text style={styles.buttonText}>Copy to Community</Text>
               </Pressable>
               <Pressable style={styles.closeButton} onPress={() => setExportModalVisible(false)}>
                 <Text style={styles.closeButtonText}>Cancel</Text>
@@ -1318,6 +1509,32 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     width: 400,
   },
+  dropdownHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#f3e5f5',
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  dropdownHeaderTextRight: {
+    fontFamily: 'inter-bold',
+    fontSize: 30,
+    color: '#007bff',
+  },
+  dropdownContentRight: {
+    overflow: 'hidden',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  dropdownContentText: {
+    fontFamily: 'inter-regular',
+    fontSize: 18,
+    color: '#333',
+  },
   transferButton: {
     marginTop: 10,
     borderColor: '#39913b',
@@ -1366,7 +1583,59 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
-  }
+  },
+  summaryLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  summaryName: {
+    flex: 1,
+    textAlign: 'left',
+    fontFamily: 'inter-bold',
+    fontSize: 18,
+    color: '#007bff',
+  },
+  summaryUnits: {
+    textAlign: 'right',
+    fontFamily: 'inter-regular',
+    fontSize: 18,
+    color: '#333',
+  },
+  sharedToggleButton: {
+    backgroundColor: '#f3e5f5',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+    sharedToggleText: {
+    fontFamily: 'inter-bold',
+    fontSize: 24,
+    color: '#007bff',
+  },
+  pricingLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  pricingStore: {
+    flex: 1,
+    textAlign: 'left',
+    fontFamily: 'inter-bold',
+    fontSize: 18,
+    color: '#007bff',
+  },
+  pricingPrice: {
+    flex: 1,
+    textAlign: 'right',
+    fontFamily: 'inter-regular',
+    fontSize: 18,
+    color: '#333',
+  },
 
 });
 

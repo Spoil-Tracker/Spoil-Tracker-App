@@ -335,4 +335,30 @@ export class FoodGlobalResolver {
 
         return true;
     }
+
+    /**
+     * Searches FoodGlobal items by food_name.
+     * Returns all FoodGlobal items where the food_name contains the search query.
+     *
+     * @param query - The search keyword.
+     * @returns An array of matching FoodGlobal items.
+     */
+    @Query(() => [FoodGlobal])
+    async searchFoodGlobalByFoodName(
+        @Arg("query") query: string
+    ): Promise<FoodGlobal[]> {
+        const snapshot = await db.collection(COLLECTIONS.FOOD_GLOBAL).get();
+        const searchQuery = query.toLowerCase();
+        const matchingFoods: FoodGlobal[] = [];
+
+        snapshot.forEach(doc => {
+            const food = doc.data() as FoodGlobal;
+            if (food.food_name.toLowerCase().includes(searchQuery)) {
+                matchingFoods.push(food);
+            }
+        });
+
+        return matchingFoods;
+    }
+
 }

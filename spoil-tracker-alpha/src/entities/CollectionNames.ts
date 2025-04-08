@@ -8,4 +8,5 @@ export const COLLECTIONS = {
     FOOD_ABSTRACT: "food_abstract",
     FOOD_CONCRETE: "food_concrete",
     GROCERYLIST: "grocery_lists",
+    COMMUNITY: "community"
 }
