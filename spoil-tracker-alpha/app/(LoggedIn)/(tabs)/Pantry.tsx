@@ -15,7 +15,8 @@ import { AntDesign } from '@expo/vector-icons';
 import ListSection from '../../../components/PListSection';
 import CreateListModal from '../../../components/CreateListModal';
 import { db, auth } from '../../../services/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useTheme } from 'react-native-paper'; // allows for dark mode contributed by Kevin
@@ -27,7 +28,10 @@ import {
 } from '../../../src/utils/pantryUtils';
 
 // Sorting options for lists
-const SORT_OPTIONS = [{ label: 'Alphabetical', value: 'alphabetical' }];
+const SORT_OPTIONS = [
+  { label: 'Alphabetical', value: 'alphabetical' },
+  { label: 'Recently Viewed', value: 'recent' }, // New option by Kevin
+];
 
 const ButtonListScreen = () => {
   const [pantries, setPantries] = useState<any[]>([]);
@@ -40,7 +44,7 @@ const ButtonListScreen = () => {
   const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
   const { colors } = useTheme();
   const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState('');
+  const [loading, setLoading] = useState(Boolean); // fixed loading by Kevin
 
   // Fetch pantries
   const fetchPantryList = async () => {
@@ -113,13 +117,13 @@ const ButtonListScreen = () => {
         contentContainerStyle={styles.scrollViewContent}
         style={styles.scrollView}
       >
-        <Text style={[styles.title, { color: colors.text }]}>
+        <Text style={[styles.title, { color: colors.onSurface }]}>
           {username ? username : 'Loading...'}'s Pantries
         </Text>
 
         {/* Dropdown for sorting */}
         <View style={styles.sortContainer}>
-          <Text style={[styles.sortText, { color: colors.text }]}>
+          <Text style={[styles.sortText, { color: colors.onSurface }]}>
             Sort By:
           </Text>
           <Dropdown
@@ -156,6 +160,12 @@ const ButtonListScreen = () => {
           >
             <ListSection
               title="Personal Pantries"
+              lists={sortedPantry}
+              fetchLists={fetchPantryList}
+            />
+            {/* New Section for Shared Pantries */}
+            <ListSection
+              title="Shared Pantries"
               lists={sortedPantry}
               fetchLists={fetchPantryList}
             />
@@ -248,7 +258,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingLeft: 10,
     marginTop: 10, // Space between the sort dropdown and the search bar
-    marginBottom: 60,
+    marginBottom: 20,
   },
   title: {
     fontSize: 25,

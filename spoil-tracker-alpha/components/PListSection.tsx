@@ -51,7 +51,7 @@ const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
 
   // Calculate width dynamically based on the screen size
   const listSectionWidth = screenWidth * 0.75; // 80% of the screen width
-  const listSectionHeight = screenHeight * 0.4; // 20% of the screen height
+  const listSectionHeight = screenHeight * 0.29; // 20% of the screen height
 
   // Update the height when the screen size changes (e.g., on orientation change)
   useEffect(() => {
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     maxWidth: 1000,
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
-    padding: 20,
+    padding: 15,
     paddingLeft: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center', // Ensures that the ListSection is centered
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#2196F3',
     marginBottom: 10,
@@ -260,9 +260,8 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#FFF1DB',
-
     paddingVertical: 15,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: 'inter-bold',
     color: 'white',
     textAlign: 'center',
