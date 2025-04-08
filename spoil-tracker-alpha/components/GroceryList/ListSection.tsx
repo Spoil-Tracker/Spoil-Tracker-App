@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   listSection: {
     margin: 10,
     minWidth: 350,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#e2e6ea',
     borderRadius: 8,
     padding: 15,
     shadowColor: '#000',

@@ -23,9 +23,10 @@ import {
   fetchAllGroceryLists
 } from '@/components/GroceryList/GroceryListService';
 import {
-  getAccountByOwnerID
+  getAccountByOwnerID,
+  getCustomItemsFromAccount
 } from '@/components/Account/AccountService';
-
+import CustomItemsMenu from '@/components/Food/CustomItems';
 import { useTheme } from 'react-native-paper'; // allows for dark mode
 import { useAuth } from '@/services/authContext';
 
@@ -49,6 +50,7 @@ const formatDate = (isoString: string) => {
 const ButtonListScreen = () => {
   const [completeLists, setcompleteLists] = useState<GroceryList[]>([]);
   const [incompleteLists, setIncompleteLists] = useState<GroceryList[]>([]);
+  const [customItems, setCustomItems] = useState<any[]>([]);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,6 +73,11 @@ const ButtonListScreen = () => {
         return;
       }
       const account = await getAccountByOwnerID(user?.uid);
+
+      const customItemsResult = await getCustomItemsFromAccount(account.id);
+      setCustomItems(customItemsResult);
+      console.log("Custom Items fetched:", customItemsResult);
+
       const complete = [];
       const incomplete = [];
       const groceryLists = await fetchAllGroceryLists(account.id);
@@ -122,15 +129,6 @@ const ButtonListScreen = () => {
     };
   }, []);
 
-  /**
-   fetch lists when the screen comes into focus
-   */
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchLists();
-    }, [])
-  );
-
   // Determine if the screen width is considered small
   const isSmallScreen = screenWidth < 800;
 
@@ -169,59 +167,66 @@ const ButtonListScreen = () => {
         contentContainerStyle={styles.scrollViewContent}
         style={styles.scrollView}
       >
-        <Text style={styles.title}>Grocery Lists</Text>
+        <Text style={[styles.title, {color: "#4CAE4F", fontSize: 40}]}>Inventory</Text>
 
-        {/* Dropdown for sorting */}
-        <View style={styles.sortContainer}>
-          <Text style={[styles.sortText, { color: colors.text }]}>
-            Sort By:
-          </Text>
-          <Dropdown
-            style={styles.dropdown}
-            data={SORT_OPTIONS}
-            labelField="label"
-            valueField="value"
-            value={sortCriteria}
-            maxHeight={300}
-            onChange={(item) => setSortCriteria(item.value)}
-          />
+        <View style={styles.customItemsContainer}>
+          <CustomItemsMenu customItems={customItems} onItemsChange={fetchLists} />
         </View>
 
-        {/* Search Bar right below the Sort Dropdown */}
-        <TextInput
-          style={styles.searchBar}
-          placeholder="Search lists..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-
-        {loading ? (
-          <ActivityIndicator
-            size="large"
-            color="#2196F3"
-            style={{ marginTop: 20 }}
-          />
-        ) : (
-          <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
-            {/* complete Lists Section */}
-            <ListSection title="Complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
-
-            {/* Incomplete Lists Section */}
-            <ListSection
-              title="Incomplete Lists"
-              lists={sortedIncompleteLists}
-              fetchLists={fetchLists}
+        <View style={styles.groceryListsContainer}>
+          <Text style={[styles.title]}>Grocery Lists</Text>
+          {/* Dropdown for sorting */}
+          <View style={styles.sortContainer}>
+            <Text style={[styles.sortText, { color: colors.text }]}>
+              Sort By:
+            </Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={SORT_OPTIONS}
+              labelField="label"
+              valueField="value"
+              value={sortCriteria}
+              maxHeight={300}
+              onChange={(item) => setSortCriteria(item.value)}
             />
           </View>
-        )}
 
-        {/* Create List Modal */}
-        <CreateListModal
-          visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          fetchLists={fetchLists}
-        />
+          {/* Search Bar right below the Sort Dropdown */}
+          <TextInput
+            style={styles.searchBar}
+            placeholder="Search lists..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color="#2196F3"
+              style={{ marginTop: 20 }}
+            />
+          ) : (
+            <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
+              {/* complete Lists Section */}
+              <ListSection title="Complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
+
+              {/* Incomplete Lists Section */}
+              <ListSection
+                title="Incomplete Lists"
+                lists={sortedIncompleteLists}
+                fetchLists={fetchLists}
+              />
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      {/* Create List Modal */}
+      <CreateListModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        fetchLists={fetchLists}
+      />
 
       {/* Floating Button */}
       <Pressable
@@ -250,10 +255,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   title: {
-    fontSize: 22,
+    fontSize: 30,
     fontFamily: 'inter-bold',
     color: '#2196F3',
-    marginBottom: 10,
+    marginVertical: 15,
   },
   sortContainer: {
     flexDirection: 'row',
@@ -359,6 +364,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
   },
+  customItemsContainer: {
+    alignItems: "center",
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    width: "88%",
+    margin: 20
+  },
+  groceryListsContainer: {
+    alignItems: "center",
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    width: "88%",
+    shadowRadius: 5,
+    margin: 20
+  }
 });
 
 export default ButtonListScreen;

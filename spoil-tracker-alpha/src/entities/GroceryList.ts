@@ -525,4 +525,60 @@ export class GroceryListResolver {
             return false;
         }
     }
+
+    /**
+     * Searches grocery lists by a query/keyword.
+     * The keyword is checked in the grocery list title, description, date fields (createdAt, last_opened),
+     * and within the grocery list items (food_name and description).
+     *
+     * @param account_id - The ID of the account.
+     * @param query - The search keyword.
+     * @returns A list of grocery list IDs that match the search criteria.
+     */
+    @Query(() => [String])
+    async searchGroceryLists(
+        @Arg("account_id") account_id: string,
+        @Arg("query") query: string
+    ): Promise<string[]> {
+        // Retrieve all grocery lists for the given account
+        const snapshot = await db.collection(COLLECTIONS.GROCERYLIST)
+            .where("account_id", "==", account_id)
+            .get();
+
+        const searchQuery = query.toLowerCase();
+        const matchingListIds: string[] = [];
+
+        snapshot.forEach(doc => {
+            const list = doc.data() as GroceryList;
+            // Check the title, description and date fields (createdAt and last_opened)
+            const title = list.grocerylist_name.toLowerCase();
+            const description = list.description.toLowerCase();
+            const createdAt = list.createdAt.toLowerCase();
+            const lastOpened = list.last_opened.toLowerCase();
+
+            let matchFound = title.includes(searchQuery) ||
+                            description.includes(searchQuery) ||
+                            createdAt.includes(searchQuery) ||
+                            lastOpened.includes(searchQuery);
+
+            // If no match found, check within each grocery list item
+            if (!matchFound && Array.isArray(list.grocery_list_items)) {
+                for (const item of list.grocery_list_items) {
+                    const foodName = item.food_name.toLowerCase();
+                    const itemDescription = (item.description || "").toLowerCase();
+                    if (foodName.includes(searchQuery) || itemDescription.includes(searchQuery)) {
+                        matchFound = true;
+                        break;
+                    }
+                }
+            }
+
+            // If a match was found in any field, add the grocery list ID to the result list.
+            if (matchFound) {
+                matchingListIds.push(list.id);
+            }
+        });
+
+        return matchingListIds;
+}
 }
