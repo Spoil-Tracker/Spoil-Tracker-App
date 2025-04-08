@@ -32,7 +32,7 @@ const bootstrap = async () => {
   });
 
   // Start server
-  const { url } = await server.listen(4000);
+  const { url } = await server.listen({ port: 4000, host: '0.0.0.0' });
   console.log(`Server is running at ${url}`);
 };
 

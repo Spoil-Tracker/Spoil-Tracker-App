@@ -31,6 +31,7 @@ import {
   TextInput,
   Dimensions,
   Image,
+  Platform,
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import ViewGroceryList from '@/components/GroceryList/ListUI_Community';
@@ -572,6 +573,7 @@ const CommunityBoard: React.FC = () => {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <SectionList
         sections={sectionsData}
+        stickySectionHeadersEnabled={false}
         keyExtractor={(item, index) => index.toString()}
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeaderContainer}>
@@ -778,7 +780,7 @@ const CommunityBoard: React.FC = () => {
       {/* Modal for viewing a grocery list */}
       <Modal visible={groceryModalVisible} animationType="fade" onRequestClose={closeGroceryModal} transparent>
         <View style={[styles.modalOverlay, styles.modalContainer]}>
-          <View style={[styles.modalContent, { backgroundColor: 'transparent' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background}]}>
             {selectedGroceryList ? (
               <ViewGroceryList groceryList={selectedGroceryList} />
             ) : (
@@ -947,6 +949,7 @@ const styles = StyleSheet.create({
     width: '90%',
     alignItems: 'center',
     maxWidth: 450,
+    minHeight: Platform.OS === 'web' ? 0 : 525,
   },
   modalHeader: { fontSize: 24, fontFamily: 'inter-bold', color: '#007bff', marginBottom: 20 },
   input: {
