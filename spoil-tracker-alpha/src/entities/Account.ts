@@ -42,6 +42,13 @@ export class Account {
 
     @Field(type => [FoodGlobal])
     custom_items!: FoodGlobal[];
+
+    // New fields to track what posts and lists the account has liked:
+    @Field(type => [String])
+    likedPosts!: string[];
+
+    @Field(type => [String])
+    likedCommunityGroceryLists!: string[];
 }
 
 @Resolver(Account)
@@ -101,7 +108,9 @@ export class AccountResolver {
             pantries: [], 
             grocery_lists: [], 
             family_circles: [],
-            custom_items: []
+            custom_items: [],
+            likedPosts: [],                // Initialize likedPosts as an empty array.
+            likedCommunityGroceryLists: []
         };
         await docRef.set(newAccount);
         return newAccount as Account;
@@ -381,7 +390,133 @@ export class AccountResolver {
         return updatedAccountDoc.data() as Account;
     }
 
+    /**
+     * Adds a post ID to the account's likedPosts array.
+     */
+    @Mutation(() => Account)
+    async addLikedPost(
+        @Arg("account_id") account_id: string,
+        @Arg("post_id") post_id: string
+    ): Promise<Account> {
+        const accountRef = db.collection(COLLECTIONS.ACCOUNT).doc(account_id);
+        const accountDoc = await accountRef.get();
+        if (!accountDoc.exists) {
+            throw new Error(`Account with id "${account_id}" does not exist.`);
+        }
+        const accountData = accountDoc.data() as Account;
+        if (!accountData.likedPosts) {
+            accountData.likedPosts = [];
+        }
+        if (!accountData.likedPosts.includes(post_id)) {
+            accountData.likedPosts.push(post_id);
+            await accountRef.update({ likedPosts: accountData.likedPosts });
+        }
+        const updatedAccountDoc = await accountRef.get();
+        return updatedAccountDoc.data() as Account;
+    }
 
+    /**
+     * Removes a post ID from the account's likedPosts array.
+     */
+    @Mutation(() => Account)
+    async removeLikedPost(
+        @Arg("account_id") account_id: string,
+        @Arg("post_id") post_id: string
+    ): Promise<Account> {
+        const accountRef = db.collection(COLLECTIONS.ACCOUNT).doc(account_id);
+        const accountDoc = await accountRef.get();
+        if (!accountDoc.exists) {
+            throw new Error(`Account with id "${account_id}" does not exist.`);
+        }
+        const accountData = accountDoc.data() as Account;
+        if (!accountData.likedPosts) {
+            accountData.likedPosts = [];
+        }
+        accountData.likedPosts = accountData.likedPosts.filter(id => id !== post_id);
+        await accountRef.update({ likedPosts: accountData.likedPosts });
+        const updatedAccountDoc = await accountRef.get();
+        return updatedAccountDoc.data() as Account;
+    }
+
+    /**
+     * Adds a community grocery list ID to the account's likedCommunityGroceryLists array.
+     */
+    @Mutation(() => Account)
+    async addLikedCommunityGroceryList(
+        @Arg("account_id") account_id: string,
+        @Arg("grocery_list_id") grocery_list_id: string
+    ): Promise<Account> {
+        const accountRef = db.collection(COLLECTIONS.ACCOUNT).doc(account_id);
+        const accountDoc = await accountRef.get();
+        if (!accountDoc.exists) {
+            throw new Error(`Account with id "${account_id}" does not exist.`);
+        }
+        const accountData = accountDoc.data() as Account;
+        if (!accountData.likedCommunityGroceryLists) {
+            accountData.likedCommunityGroceryLists = [];
+        }
+        if (!accountData.likedCommunityGroceryLists.includes(grocery_list_id)) {
+            accountData.likedCommunityGroceryLists.push(grocery_list_id);
+            await accountRef.update({ likedCommunityGroceryLists: accountData.likedCommunityGroceryLists });
+        }
+        const updatedAccountDoc = await accountRef.get();
+        return updatedAccountDoc.data() as Account;
+    }
+
+    /**
+     * Removes a community grocery list ID from the account's likedCommunityGroceryLists array.
+     */
+    @Mutation(() => Account)
+    async removeLikedCommunityGroceryList(
+        @Arg("account_id") account_id: string,
+        @Arg("grocery_list_id") grocery_list_id: string
+    ): Promise<Account> {
+        const accountRef = db.collection(COLLECTIONS.ACCOUNT).doc(account_id);
+        const accountDoc = await accountRef.get();
+        if (!accountDoc.exists) {
+            throw new Error(`Account with id "${account_id}" does not exist.`);
+        }
+        const accountData = accountDoc.data() as Account;
+        if (!accountData.likedCommunityGroceryLists) {
+            accountData.likedCommunityGroceryLists = [];
+        }
+        accountData.likedCommunityGroceryLists = accountData.likedCommunityGroceryLists.filter(id => id !== grocery_list_id);
+        await accountRef.update({ likedCommunityGroceryLists: accountData.likedCommunityGroceryLists });
+        const updatedAccountDoc = await accountRef.get();
+        return updatedAccountDoc.data() as Account;
+    }
+
+    /**
+     * Searches custom items in an account by food_name.
+     *
+     * @param account_id - The unique ID of the account.
+     * @param query - The search query to filter custom items by their food_name.
+     * @returns An array of FoodGlobal objects representing the custom items that match the query.
+     * @throws Error if the account does not exist.
+     */
+    @Query(() => [FoodGlobal])
+    async searchCustomItemsFromAccount(
+        @Arg("account_id") account_id: string,
+        @Arg("query") query: string
+    ): Promise<FoodGlobal[]> {
+        // Retrieve the account document
+        const accountRef = db.collection(COLLECTIONS.ACCOUNT).doc(account_id);
+        const accountDoc = await accountRef.get();
+        if (!accountDoc.exists) {
+            throw new Error(`Account with id "${account_id}" does not exist.`);
+        }
+        const accountData = accountDoc.data() as Account;
+        const searchQuery = query.toLowerCase();
+
+        // Filter the custom_items array by matching food_name
+        const matchingCustomItems = accountData.custom_items.filter(item =>
+            item.food_name.toLowerCase().includes(searchQuery)
+        );
+
+        return matchingCustomItems;
+    }
+
+    
 
     //async changeAccountName
 

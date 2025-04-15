@@ -1,3 +1,6 @@
 
 spoil-tracker-alpha/serviceAccountKey.json
+spoil-tracker-alpha/services/barcodeApiKey.ts
 .vscode
+spoil-tracker-alpha/.env
+spoil-tracker-alpha/src/openaikey.ts

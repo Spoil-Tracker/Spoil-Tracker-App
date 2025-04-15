@@ -20,7 +20,7 @@ import {
   RecaptchaVerifier,
   unlink,
 } from 'firebase/auth';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 import Banner from '../../../components/Banner';
 import styles from '../SettingsPageStyleSheet';
@@ -36,12 +36,14 @@ const SettingsPage = (): JSX.Element => {
   const [bannerMessage, setBannerMessage] = useState('');
   const [bannerType, setBannerType] = useState<'success' | 'error'>('success');
 
-  const [notificationSetting, setNotificationSetting] =
-    useState('Notify Everyday');
+  const [notificationSetting, setNotificationSetting] = useState('Notify Everyday');
   const [phoneNumber, setPhoneNumber] = useState('');
 
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedback, setFeedback] = useState('');
+
+  const [leftSectionHeight, setLeftSectionHeight] = useState(0);
+  const [rightSectionHeight, setRightSectionHeight] = useState(0);
 
   // Dark mode
   const { theme, toggleTheme } = useTheme();
@@ -62,6 +64,16 @@ const SettingsPage = (): JSX.Element => {
       setUser(currentUser);
       setEmailVerified(currentUser.emailVerified);
       setPhoneVerified(!!currentUser.phoneNumber);
+
+      const fetchUserSettings = async () => {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setNotificationSetting(data.notificationSetting || 'Notify Everyday');
+        }
+      };
+      fetchUserSettings();
     }
   }, []);
 
@@ -165,10 +177,18 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
-  const handleNotificationChange = (setting: string) => {
+  const handleNotificationChange = async (setting: string) => {
     setNotificationSetting(setting);
     setBannerMessage(`Notification setting changed to: ${setting}`);
     setBannerType('success');
+    if (user) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, { notificationSetting: setting });
+      } catch (error) {
+        console.error('Error updating notification setting:', error);
+      }
+    }
   };
 
   const sendVerificationCode = async () => {
@@ -325,6 +345,8 @@ const SettingsPage = (): JSX.Element => {
     }
   };
 
+  const dividerHeight = Math.max(leftSectionHeight, rightSectionHeight);
+
   // Displays everything to the user, all the isDarkMode messages contributed by Kevin
   return (
     <ScrollView
@@ -342,7 +364,7 @@ const SettingsPage = (): JSX.Element => {
         }}
       >
         <Image
-          source={require('../../../assets/images/favicon.png')}
+          source={require('../../../assets/images/icon.png')}
           style={styles.icon}
         />
         <Text style={styles.title}>Settings</Text>
@@ -350,7 +372,8 @@ const SettingsPage = (): JSX.Element => {
 
       {/* Change Email feature. */}
       <View style={styles.contentContainer}>
-        <View style={styles.leftSection}>
+        <View style={styles.leftSection} onLayout={(e) => {setLeftSectionHeight(e.nativeEvent.layout.height);
+          }}>
           <View style={styles.formGroup}>
             <Text
               style={[
@@ -451,10 +474,11 @@ const SettingsPage = (): JSX.Element => {
         </View>
 
         {/* Divider in the middle of page. */}
-        <View style={styles.divider} />
+        <View style={[styles.divider, {height: dividerHeight}]} />
 
         {/* Notification Preferences feature. */}
-        <View style={styles.rightSection}>
+        <View style={styles.rightSection} onLayout={(e) => {setRightSectionHeight(e.nativeEvent.layout.height);
+          }}>
           <Text
             style={[
               styles.label,
