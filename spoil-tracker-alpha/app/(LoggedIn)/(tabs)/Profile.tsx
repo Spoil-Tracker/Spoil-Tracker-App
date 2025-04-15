@@ -3,6 +3,7 @@ import {
   Text,
   View,
   Modal,
+  Button,
   StyleSheet,
   Image,
   TouchableOpacity,
@@ -16,9 +17,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { db, auth } from '../../../services/firebaseConfig';
 import { deleteUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { arrayUnion, doc, getDoc, updateDoc, setDoc, deleteDoc, addDoc, getDocs, collection, onSnapshot } from 'firebase/firestore';
 import { useAuth } from '../../../services/authContext';
 import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
+import { createKitchenInvite } from '../../../services/inviteService';
 
 // Global variables for any function that requires to call an icon
 const userIcon = require('../../../assets/images/icon.png');
@@ -26,6 +28,7 @@ const appleIcon = require('../../../assets/images/apple.png');
 const fridgeIcon = require('../../../assets/images/fridge.png');
 const milkIcon = require('../../../assets/images/milk.png');
 const coinIcon = require('../../../assets/images/coin.png');
+
 
 export default function HomeScreen() {
   const { colors, dark } = useTheme(); // allows for dark mode, contributed by Kevin
@@ -178,16 +181,84 @@ export default function HomeScreen() {
     return () => unsubscribe();
   }, [userID]);
 
-  const generateShareLink = () => {
-    const fakeLink = `https://fakelink.com`;
-    setGeneratedLink(fakeLink);
-    setShareModalVisible(true);
+  const generateShareLink = async () => {
+    try {
+      const link = await createKitchenInvite(userID || '');
+      setGeneratedLink(link);
+      setShareModalVisible(true);
+    } catch (error) {
+      alert('Failed to generate link');
+    }
   };
 
   const copyToClipboard = () => {
     Clipboard.setStringAsync(generatedLink);
     alert('Link copied to clipboard!');
   };
+
+  const extractInviteCode = (input: string) => {
+    const match = input.trim().match(/([a-zA-Z0-9_-]{10,})$/);
+    return match ? match[1] : null;
+  };
+
+//Join Kitchen feature  
+const [enteredCode, setEnteredCode] = useState('');
+
+const handleJoinKitchen = async () => {
+  const code = extractInviteCode(enteredCode);
+  const currentUser = auth.currentUser;
+  if (!code || !currentUser) {
+    alert('Invalid share code or user');
+    return;
+  }
+
+  try {
+    const inviteRef = doc(db, 'invites', code);
+    const inviteSnap = await getDoc(inviteRef);
+
+    if (!inviteSnap.exists()) {
+      alert('Invite code not found or expired');
+      return;
+    }
+
+    const inviteData = inviteSnap.data();
+    const ownerID = inviteData.owner_id;
+
+    // Reference to the family doc
+    const familySnapshot = await getDocs(collection(db, 'family'));
+    let foundFamilyDoc = null;
+    let familyID = '';
+
+    familySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.owner_id === ownerID) {
+        foundFamilyDoc = docSnap;
+        familyID = docSnap.id;
+      }
+    });
+
+    if (!foundFamilyDoc) {
+      // Create the family document
+      const newFamilyRef = await addDoc(collection(db, 'family'), {
+        owner_id: ownerID,
+        members: [ownerID, currentUser.uid],
+        shared_pantries: [],
+        shared_lists: [],
+        createdAt: new Date().toISOString(),
+      });
+    } else {
+      // Add user to existing members array
+      await updateDoc(doc(db, 'family', familyID), {
+        members: arrayUnion(currentUser.uid),
+      });
+    }
+
+    alert('Successfully joined the kitchen!');
+  } catch (err) {
+    console.error('Error joining kitchen:', err);
+    alert('Failed to join the kitchen.');
+  }
+};
 
   const toggleModal = () => {
     setModalVisible(!isModalVisible); // Toggle the modal visibility
@@ -209,7 +280,6 @@ export default function HomeScreen() {
 
       // Reference to the user document by userID
       const userRef = doc(db, 'users', userID);
-
       // Delete the user document from Firestore
       await deleteDoc(userRef);
 
@@ -391,51 +461,63 @@ export default function HomeScreen() {
           {/* Share Kitchen Section */}
           <View style={styles.group}>
             <Text style={styles.info}>
-              Share your kitchen with friends and family to manage together.
+              Share your kitchen with friends and family to manage the kitchen
+              together.
             </Text>
-            <TouchableOpacity style={styles.customButton} onPress={generateShareLink}>
-              <Text style={styles.customButtonText}>Share Kitchen</Text>
-            </TouchableOpacity>
+            <Button title="Share Kitchen" onPress={generateShareLink} />
+            <View style={{ marginTop: 20 }}>
+              <Text style={styles.label}>Have a Share Code?</Text>
+              <TextInput
+                placeholder="Enter share code..."
+                value={enteredCode}
+                onChangeText={setEnteredCode}
+                style={styles.shareInput}
+              />
+              <TouchableOpacity style={styles.customButton} onPress={handleJoinKitchen}>
+                <Text style={styles.joinButtonText}>Join Kitchen</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </View>
+        
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isShareModalVisible}
-        onRequestClose={() => setShareModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Share Kitchen</Text>
-            <Text style={styles.modalMessage}>
-              Share this link with your family members.
-            </Text>
-            <TextInput
-              style={[
-                styles.linkBox, 
-                {
-                  color: dark ? '#FFF' : '#000',
-                  backgroundColor: dark ? '#222' : '#f5f5f5',
-                  borderColor: dark ? '#444' : '#ccc',
-                },
-              ]}
-              value={generatedLink}
-              editable={false}
-            />
-            <TouchableOpacity
-              style={styles.copyButton}
-              onPress={copyToClipboard}
-            >
-              <Text style={styles.copyButtonText}>Copy Link</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.customButton} onPress={() => setShareModalVisible(false)}>
-              <Text style={styles.customButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={isShareModalVisible}
+            onRequestClose={() => setShareModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Share Kitchen</Text>
+                <Text style={styles.modalMessage}>
+                  Share this link with your family members.
+                </Text>
+                <TextInput
+                  style={[
+                    styles.linkBox, 
+                    {
+                      color: dark ? '#FFF' : '#000',
+                      backgroundColor: dark ? '#222' : '#f5f5f5',
+                      borderColor: dark ? '#444' : '#ccc',
+                    },
+                  ]}
+                  value={generatedLink}
+                  editable={false}
+                />
+                <TouchableOpacity
+                  style={styles.copyButton}
+                  onPress={copyToClipboard}
+                >
+                  <Text style={styles.copyButtonText}>Copy Link</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.customButton} onPress={() => setShareModalVisible(false)}>
+                  <Text style={styles.customButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </View>
-      </Modal>
+      </View>    
 
       {/* Modal for Delete Confirmation */}
       <Modal
@@ -697,6 +779,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   copyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  shareInput: {
+    marginTop: 10,
+    marginBottom: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    backgroundColor: '#fff',
+  },
 
   topRightNotification: {
     position: 'absolute',
@@ -755,7 +846,11 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
-    marginVertical: 5,
+  },
+  joinButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 
   customButtonText: {
