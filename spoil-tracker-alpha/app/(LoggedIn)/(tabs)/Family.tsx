@@ -210,7 +210,7 @@ export default function FamilyManagementScreen() {
                     ))}
 
                   <TouchableOpacity
-                    style={[styles.button, { marginTop: 10 }]}
+                    style={[styles.transferButton, { marginTop: 10 }]}
                     onPress={handleTransferOwnership}
                   >
                     <Text style={styles.buttonText}>Confirm Transfer</Text>
@@ -397,6 +397,10 @@ const styles = StyleSheet.create({
   },
   disconnectButton: {
     backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    alignItems: 'center',
   },
   buttonText: {
     color: 'white',
