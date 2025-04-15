@@ -26,7 +26,7 @@ export default function NutritionScreen() {
     { name: 'Fats', unit: 'g', total: 0, consumed: 0, color: '#66CC99' },
   ]);
 
-  const todayStr = selectedDate.toISOString().split('T')[0];
+  //const todayStr = selectedDate.toISOString().split('T')[0];
 
   const updateNutrients = (log: any) => {
     setNutrients(prev => prev.map(n => {
@@ -36,6 +36,7 @@ export default function NutritionScreen() {
   };
 
   const fetchNutritionData = useCallback(async () => {
+    const todayStr = selectedDate.toISOString().split('T')[0];
     if (!userID) return;
     const ref = doc(db, 'nutrition', userID);
     const snap = await getDoc(ref);
@@ -51,7 +52,7 @@ export default function NutritionScreen() {
       { name: 'Fats', unit: 'g', total: Math.round((goal.fatsGoal || 0) * 10) / 10, consumed: log.consumedFats || 0, color: '#66CC99' },
     ]);
     setLoggedFoods(log.foodItems || []);
-  }, [userID, todayStr]);
+  }, [userID, selectedDate]);
 
   useEffect(() => { fetchNutritionData(); }, [fetchNutritionData]);
   useFocusEffect(
@@ -83,6 +84,7 @@ export default function NutritionScreen() {
   };
 
   const handleLogFood = async (food: any) => {
+    const todayStr = selectedDate.toISOString().split('T')[0];
     if (!userID) return;
     const ref = doc(db, 'nutrition', userID);
     const snap = await getDoc(ref);
@@ -113,6 +115,7 @@ export default function NutritionScreen() {
   };
 
   const handleRemoveFood = async (index: any) => {
+    const todayStr = selectedDate.toISOString().split('T')[0];
     if (!userID) return;
     const ref = doc(db, 'nutrition', userID);
     const snap = await getDoc(ref);
@@ -143,6 +146,7 @@ export default function NutritionScreen() {
   };
 
   const UpdateServingSize = async (index: any, newSize: any) => {
+    const todayStr = selectedDate.toISOString().split('T')[0];
     if (!userID) return;
     const ref = doc(db, 'nutrition', userID);
     const snap = await getDoc(ref);

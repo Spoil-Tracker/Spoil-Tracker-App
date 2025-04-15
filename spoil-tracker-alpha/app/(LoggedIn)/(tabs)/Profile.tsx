@@ -13,9 +13,10 @@ import * as Clipboard from 'expo-clipboard';
 import { useRouter, router } from 'expo-router';
 import { db, auth } from '../../../services/firebaseConfig';
 import { deleteUser } from 'firebase/auth';
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { arrayUnion, doc, getDoc, updateDoc, setDoc, deleteDoc, addDoc, getDocs, collection } from 'firebase/firestore';
 import { useAuth } from '../../../services/authContext';
 import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
+import { createKitchenInvite } from '../../../services/inviteService';
 
 const userIcon = require('../../../assets/images/icon.png');
 
@@ -73,16 +74,84 @@ export default function HomeScreen() {
     fetchOrCreateUserData();
   }, [userID, user]);
 
-  const generateShareLink = () => {
-    const fakeLink = `https://fakelink.com`;
-    setGeneratedLink(fakeLink);
-    setShareModalVisible(true);
+  const generateShareLink = async () => {
+    try {
+      const link = await createKitchenInvite(userID || '');
+      setGeneratedLink(link);
+      setShareModalVisible(true);
+    } catch (error) {
+      alert('Failed to generate link');
+    }
   };
 
   const copyToClipboard = () => {
     Clipboard.setStringAsync(generatedLink);
     alert('Link copied to clipboard!');
   };
+
+  const extractInviteCode = (input: string) => {
+    const match = input.trim().match(/([a-zA-Z0-9_-]{10,})$/);
+    return match ? match[1] : null;
+  };
+
+//Join Kitchen feature  
+const [enteredCode, setEnteredCode] = useState('');
+
+const handleJoinKitchen = async () => {
+  const code = extractInviteCode(enteredCode);
+  const currentUser = auth.currentUser;
+  if (!code || !currentUser) {
+    alert('Invalid share code or user');
+    return;
+  }
+
+  try {
+    const inviteRef = doc(db, 'invites', code);
+    const inviteSnap = await getDoc(inviteRef);
+
+    if (!inviteSnap.exists()) {
+      alert('Invite code not found or expired');
+      return;
+    }
+
+    const inviteData = inviteSnap.data();
+    const ownerID = inviteData.owner_id;
+
+    // Reference to the family doc (keyed by owner_id)
+    const familySnapshot = await getDocs(collection(db, 'family'));
+    let foundFamilyDoc = null;
+    let familyID = '';
+
+    familySnapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (data.owner_id === ownerID) {
+        foundFamilyDoc = docSnap;
+        familyID = docSnap.id;
+      }
+    });
+
+    if (!foundFamilyDoc) {
+      // Create the family document
+      const newFamilyRef = await addDoc(collection(db, 'family'), {
+        owner_id: ownerID,
+        members: [ownerID, currentUser.uid],
+        shared_pantries: [],
+        shared_lists: [],
+        createdAt: new Date().toISOString(),
+      });
+    } else {
+      // Add user to existing members array
+      await updateDoc(doc(db, 'family', familyID), {
+        members: arrayUnion(currentUser.uid),
+      });
+    }
+
+    alert('Successfully joined the kitchen!');
+  } catch (err) {
+    console.error('Error joining kitchen:', err);
+    alert('Failed to join the kitchen.');
+  }
+};
 
   const toggleModal = () => {
     setModalVisible(!isModalVisible); // Toggle the modal visibility
@@ -166,6 +235,18 @@ export default function HomeScreen() {
           together.
         </Text>
         <Button title="Share Kitchen" onPress={generateShareLink} />
+        <View style={{ marginTop: 20 }}>
+          <Text style={styles.label}>Have a Share Code?</Text>
+          <TextInput
+            placeholder="Enter share code..."
+            value={enteredCode}
+            onChangeText={setEnteredCode}
+            style={styles.shareInput}
+          />
+          <TouchableOpacity style={styles.joinButton} onPress={handleJoinKitchen}>
+            <Text style={styles.joinButtonText}>Join Kitchen</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Modal
@@ -329,4 +410,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   copyButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  shareInput: {
+    marginTop: 10,
+    marginBottom: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    backgroundColor: '#fff',
+  },
+  joinButton: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  joinButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });

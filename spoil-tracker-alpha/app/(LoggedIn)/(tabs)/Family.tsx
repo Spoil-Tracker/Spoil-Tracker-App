@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView } from 'react-native';
 import { MaterialIcons, AntDesign, Feather } from '@expo/vector-icons';
+import { doc, getDoc, getDocs, collection, arrayRemove, updateDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { auth, db } from '../../../services/firebaseConfig';
+import { useFocusEffect } from 'expo-router';
 
 export default function FamilyManagementScreen() {
     const [kitchenItems, setKitchenItems] = useState([
@@ -22,8 +25,11 @@ export default function FamilyManagementScreen() {
         }
     };
       
-
     const [groceryLists, setGroceryLists] = useState(['Grocery List 1', 'Grocery List 2']);
+
+    const [familyMembers, setFamilyMembers] = useState<string[]>([]);
+    const [ownerID, setOwnerID] = useState('');
+    const [usernamesMap, setUsernamesMap] = useState<{ [key: string]: string }>({});
 
     const [isGroceryModalVisible, setGroceryModalVisible] = useState(false);
     const [newGroceryName, setNewGroceryName] = useState('');
@@ -35,13 +41,132 @@ export default function FamilyManagementScreen() {
             setGroceryModalVisible(false);
         }
     };
+
+    const currentUser = auth.currentUser;
+    const [selectedNewOwner, setSelectedNewOwner] = useState('');
+    const [showTransferOptions, setShowTransferOptions] = useState(false); 
+  
+    // **Fetch Family Data */
+    useFocusEffect(
+      useCallback(() => {
+        const fetchFamilyData = async () => {
+          const currentUser = auth.currentUser;
+          if (!currentUser) return;
+      
+          try {
+            // Search for a family doc where this user is a member
+            const familyQuerySnapshot = await getDocs(collection(db, 'family'));
+            let foundFamily: QueryDocumentSnapshot<DocumentData> | undefined = familyQuerySnapshot.docs.find(docSnap => {
+              const data = docSnap.data() as { members: string[]; owner_id: string };
+              return data.members?.includes(currentUser.uid);
+            });
+      
+            if (!foundFamily) {
+              console.log('No family document found for current user');
+              return;
+            }
+      
+            const data = foundFamily.data() as { members: string[]; owner_id: string };
+            const members: string[] = data.members;
+            const owner: string = data.owner_id;
+      
+            setFamilyMembers(members);
+            setOwnerID(owner);
+      
+            // Fetch usernames from Firestore
+            const usernames: { [key: string]: string } = {};
+            await Promise.all(
+              members.map(async (uid) => {
+                const userSnap = await getDoc(doc(db, 'users', uid));
+                usernames[uid] = userSnap.exists() ? userSnap.data().username : 'Unknown';
+              })
+            );
+      
+            setUsernamesMap(usernames);
+          } catch (error) {
+            console.error('Error fetching family data:', error);
+          }
+        };
     
+        fetchFamilyData();
+      }, [])
+    );
+
+    // **Disconnect from family */
+    const handleDisconnect = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+    
+      try {
+        const familySnapshot = await getDocs(collection(db, 'family'));
+        let targetDoc = null;
+    
+        familySnapshot.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.members?.includes(currentUser.uid)) {
+            targetDoc = docSnap.ref;
+          }
+        });
+    
+        if (!targetDoc) {
+          alert('No family document found.');
+          return;
+        }
+    
+        // Remove user from members array
+        await updateDoc(targetDoc, {
+          members: arrayRemove(currentUser.uid),
+        });
+    
+        // Clear state after removal
+        setFamilyMembers([]);
+        setOwnerID('');
+        setUsernamesMap({});
+        
+    
+        alert('You have disconnected from the family.');
+      } catch (error) {
+        console.error('Error disconnecting from family:', error);
+        alert('Failed to disconnect.');
+      }
+    };
+    
+    //** Transfer Ownership */
+    const handleTransferOwnership = async () => {
+      if (!selectedNewOwner || selectedNewOwner === ownerID) {
+        alert("Please select a valid member to transfer ownership.");
+        return;
+      }
+    
+      try {
+        const familySnapshot = await getDocs(collection(db, 'family'));
+        const foundFamily = familySnapshot.docs.find(docSnap => {
+          const data = docSnap.data() as { members: string[]; owner_id: string };
+          return data.members?.includes(currentUser?.uid || '');
+        });
+    
+        if (!foundFamily) {
+          alert("No family found.");
+          return;
+        }
+    
+        const familyRef = doc(db, 'family', foundFamily.id);
+        await updateDoc(familyRef, { owner_id: selectedNewOwner });
+        setOwnerID(selectedNewOwner);
+        setSelectedNewOwner('');
+        alert("Ownership transferred!");
+      } catch (error) {
+        console.error("Error transferring ownership:", error);
+        alert("Failed to transfer ownership.");
+      }
+    };
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header Section */}
       <Text style={styles.header}>Family Management</Text>
-      <Text style={styles.greeting}>Hello, [User]!</Text>
+      <Text style={styles.greeting}>Hello, {usernamesMap[currentUser?.uid || ''] || 'User'}!</Text>
 
       <View style={styles.mainContent}>
         {/* Family Section */}
@@ -55,20 +180,70 @@ export default function FamilyManagementScreen() {
             <Text style={styles.label}>Shared Lists:</Text>
             <Text style={styles.detail}>{groceryLists.length}</Text>
           </View>
-          <TouchableOpacity style={styles.disconnectButton}>
+          <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
             <Text style={styles.buttonText}>DISCONNECT</Text>
           </TouchableOpacity>
+          {currentUser?.uid === ownerID && (
+            <>
+              <TouchableOpacity
+                style={styles.transferButton}
+                onPress={() => setShowTransferOptions(!showTransferOptions)}
+              >
+                <Text style={styles.transferButtonText}>TRANSFER OWNERSHIP</Text>
+              </TouchableOpacity>
+
+              {showTransferOptions && (
+                <View style={styles.transferList}>
+                  {familyMembers
+                    .filter(uid => uid !== ownerID)
+                    .map(uid => (
+                      <TouchableOpacity
+                        key={uid}
+                        style={[
+                          styles.transferOption,
+                          selectedNewOwner === uid && styles.selectedTransferOption
+                        ]}
+                        onPress={() => setSelectedNewOwner(uid)}
+                      >
+                        <Text>{usernamesMap[uid]}</Text>
+                      </TouchableOpacity>
+                    ))}
+
+                  <TouchableOpacity
+                    style={[styles.button, { marginTop: 10 }]}
+                    onPress={handleTransferOwnership}
+                  >
+                    <Text style={styles.buttonText}>Confirm Transfer</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         {/* Family Members Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Family Members</Text>
-          <View style={styles.memberGrid}>
-            <Text style={[styles.memberBox, styles.headMember]}>Name 1 [HEAD]</Text>
-            <Text style={styles.memberBox}>Name 2</Text>
-            <Text style={styles.memberBox}>Name 3</Text>
-            <Text style={styles.memberBox}>Name 4</Text>
-          </View>
+          {familyMembers.length > 0 ? (
+            <View style={styles.memberGrid}>
+              {familyMembers.map((uid, index) => (
+                <Text
+                  key={index}
+                  style={[
+                    styles.memberBox,
+                    uid === ownerID ? styles.headMember : null
+                  ]}
+                >
+                  {usernamesMap[uid] || 'Unknown'} {uid === ownerID ? '[HEAD]' : ''}
+                </Text>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ fontStyle: 'italic', marginTop: 10 }}>
+              You are not part of any family yet.
+            </Text>
+          )}
+
         </View>
 
         {/* Kitchen Section */}
@@ -213,11 +388,15 @@ const styles = StyleSheet.create({
   detail: {
     fontSize: 18,
   },
-  disconnectButton: {
-    backgroundColor: 'red',
+  button: {
     padding: 10,
     borderRadius: 10,
-    marginTop: 10,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  disconnectButton: {
+    backgroundColor: 'red',
   },
   buttonText: {
     color: 'white',
@@ -329,6 +508,31 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  transferOption: {
+    padding: 10,
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    marginBottom: 5,
+  },
+  selectedTransferOption: {
+    backgroundColor: '#D0F0C0',
+  },
+  transferButton: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  transferButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  transferList: {
+    marginTop: 10,
+    width: '100%',
+    alignItems: 'center',
   },
 });
 
