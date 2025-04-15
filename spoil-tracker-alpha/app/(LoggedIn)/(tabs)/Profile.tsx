@@ -476,9 +476,9 @@ const handleJoinKitchen = async () => {
               <TouchableOpacity style={styles.customButton} onPress={handleJoinKitchen}>
                 <Text style={styles.joinButtonText}>Join Kitchen</Text>
               </TouchableOpacity>
-              </View>
             </View>
           </View>
+        
 
           <Modal
             animationType="slide"
@@ -516,6 +516,8 @@ const handleJoinKitchen = async () => {
               </View>
             </View>
           </Modal>
+        </View>
+      </View>    
 
       {/* Modal for Delete Confirmation */}
       <Modal
