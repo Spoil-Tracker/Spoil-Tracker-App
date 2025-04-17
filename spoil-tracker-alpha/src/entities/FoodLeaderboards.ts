@@ -1,4 +1,4 @@
-import {Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType } from "type-graphql"
+import {Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType, Int } from "type-graphql"
 import { COLLECTIONS } from "./CollectionNames"
 import { db } from "../firestore"
 
@@ -217,6 +217,21 @@ export class FoodLeaderboardResolver {
     }
 
     /**
+     * Decrements total_times_bought and times_bought by one
+     *
+     * @param food_global_id
+     * @param account_id
+     * @returns FoodLeaderboard that was changed
+     */
+    @Mutation(() => FoodLeaderboard)
+    async decrementBought(
+        @Arg("food_global_id") food_global_id: string,
+        @Arg("account_id") account_id: string
+    ): Promise<FoodLeaderboard> {
+        return await this.editFoodLeaderboard(food_global_id, account_id, -1, 0, 0);
+    }
+
+    /**
      * Increments total_times_eaten and times_eaten by one
      * 
      * @param food_global_id 
@@ -244,5 +259,41 @@ export class FoodLeaderboardResolver {
         @Arg("account_id") account_id: string
     ): Promise<FoodLeaderboard> {
         return await this.editFoodLeaderboard(food_global_id, account_id, 0, 0, 1);
+    }
+
+    /**
+     * Returns the sum of total_times_bought across all leaderboard entries.
+     */
+    @Query(() => Int)
+    async getTotalTimesBought(): Promise<number> {
+        const snapshot = await db.collection(COLLECTIONS.FOOD_LEADERBOARD).get();
+        return snapshot.docs.reduce(
+        (sum, doc) => sum + (doc.data().total_times_bought || 0),
+        0
+        );
+    }
+
+    /**
+     * Returns the sum of total_times_eaten across all leaderboard entries.
+     */
+    @Query(() => Int)
+    async getTotalTimesEaten(): Promise<number> {
+        const snapshot = await db.collection(COLLECTIONS.FOOD_LEADERBOARD).get();
+        return snapshot.docs.reduce(
+        (sum, doc) => sum + (doc.data().total_times_eaten || 0),
+        0
+        );
+    }
+
+    /**
+     * Returns the sum of total_times_tossed across all leaderboard entries.
+     */
+    @Query(() => Int)
+    async getTotalTimesTossed(): Promise<number> {
+        const snapshot = await db.collection(COLLECTIONS.FOOD_LEADERBOARD).get();
+        return snapshot.docs.reduce(
+        (sum, doc) => sum + (doc.data().total_times_tossed || 0),
+        0
+        );
     }
 }

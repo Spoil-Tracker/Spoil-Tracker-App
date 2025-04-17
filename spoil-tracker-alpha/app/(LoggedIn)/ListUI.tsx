@@ -27,6 +27,7 @@ import { useTheme } from 'react-native-paper';
 import { addCopiedGroceryList } from '@/components/Community/CommunityService';
 import { OpenAI } from '@/openAIAPI';
 import { white } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import { decrementBought, incrementBought } from '@/components/Food/FoodLeaderboardService';
 
 // list used for the dropdown located with each grocery list item in the flatlist
 const FOOD_UNITS = [
@@ -335,18 +336,33 @@ const GroceryList = () => {
      updates the Firestore document and local state accordingly
      */
 
-    const toggleCompleteStatus = async () => {
-      // This example toggles locally; you might later add a service call to update the item.
+     const toggleCompleteStatus = async () => {
+      // Compute what the new "bought" state will be:
+      const willBeBought = !item.isBought;
+    
+      // 1) First flip it on the grocery‐list side:
       await updateGroceryListItemIsBought(groceryListId, item.id);
+    
+      // 2) Then update your global leaderboard count:
+      try {
+        if (willBeBought) {
+          await incrementBought(item.food_global_id, accountId);
+        } else {
+          await decrementBought(item.food_global_id, accountId);
+        }
+      } catch (error) {
+        console.error('Failed to update FoodLeaderboard:', error);
+      }
+    
+      // 3) Finally mirror the change in local state:
       const updatedItems = items.map(i =>
-        i.id === item.id ? { ...i, isBought: !i.isBought } : i
+        i.id === item.id ? { ...i, isBought: willBeBought } : i
       );
       const updatedFilterItems = filteredItems.map(i =>
-        i.id === item.id ? { ...i, isBought: !i.isBought } : i
+        i.id === item.id ? { ...i, isBought: willBeBought } : i
       );
       setItems(updatedItems);
       setFilteredItems(updatedFilterItems);
-      // Optionally refetch the grocery list from the backend.
     };
 
     /**
