@@ -133,7 +133,7 @@ export default function HomeScreen() {
       <View style={styles.container}>
         {/* Welcome Header and Logout */}
         <View style={styles.header}>
-          <Text style={[styles.spoilTrackerText, { color: colors.text }]}>
+          <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
             Welcome, {username ? username : 'Loading...'}!
           </Text>
           <TouchableOpacity onPress={handleLogout}>
@@ -228,7 +228,7 @@ export default function HomeScreen() {
             isSmallScreen ? {} : styles.halfWidth,
           ]}
         >
-          <Text style={[styles.spoilTrackerText, { color: colors.text }]}>
+          <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
             Nutrition
           </Text>
           <CalorieProgress
