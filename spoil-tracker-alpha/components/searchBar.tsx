@@ -21,7 +21,8 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Modal 
+  Modal, 
+  ScrollView
 } from 'react-native';
 import debounce from 'lodash.debounce';
 import { searchGroceryLists } from './GroceryList/GroceryListService';
@@ -157,30 +158,34 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ accountId, onSelectSugges
       />
       {/* Render search suggestions if query is not empty */}
       {query.length > 0 && (
-        <View style={styles.resultsContainer}>
-          {sections.map((section) => (
-            <View key={section.title} style={styles.section}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              {section.data.length > 0 ? (
-                section.data.map((item: any, index: number) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.item}
-                    onPress={() => handleSuggestionPress(item, section.title)}
-                  >
-                    <Text>
-                      {typeof item === 'string'
-                        ? item
-                        : item.food_name || item.title || item.username}
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={styles.noResult}>No results</Text>
-              )}
-            </View>
-          ))}
+      <ScrollView
+        style={styles.resultsContainer}
+        contentContainerStyle={styles.resultsContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {sections.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          {section.data.length > 0 ? (
+          section.data.map((item: any, index: number) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.item}
+            onPress={() => handleSuggestionPress(item, section.title)}
+          >
+            <Text>
+              {typeof item === 'string'
+              ? item
+                : item.food_name || item.title || item.username}
+          </Text>
+          </TouchableOpacity>
+          ))
+          ) : (
+          <Text style={styles.noResult}>No results</Text>
+        )}
         </View>
+        ))}
+      </ScrollView>
       )}
       {loading && <Text style={styles.loading}>Loading...</Text>}
 
@@ -221,6 +226,7 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ accountId, onSelectSugges
 const styles = StyleSheet.create({
   container: {
     padding: 10,
+    position: 'relative'
   },
   input: {
     height: 40,
@@ -232,9 +238,17 @@ const styles = StyleSheet.create({
     fontFamily: 'inter-regular',
   },
   resultsContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 10,
+    right: 10,
     backgroundColor: 'white',
     borderColor: 'gray',
     borderWidth: 1,
+    borderRadius: 8,
+    maxHeight: 250,
+    zIndex: 1000,
+    elevation: 5,
     marginTop: 5,
   },
   section: {
@@ -283,6 +297,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
+  resultsContent: {
+    paddingVertical: 5
+  }
 });
 
 export default SearchSuggestionsComponent;

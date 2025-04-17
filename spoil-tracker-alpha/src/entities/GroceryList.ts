@@ -15,6 +15,7 @@ import {
 import { Account } from "./Account";
 import { GroceryListItem } from "./GroceryListItem";
 import { FoodGlobal } from "./FoodGlobal";
+import { FoodConcreteResolver } from "./FoodConcrete";
 
 @ObjectType()
 export class GroceryList {
@@ -580,5 +581,49 @@ export class GroceryListResolver {
         });
 
         return matchingListIds;
-}
+    }
+
+    @Mutation(() => Boolean)
+    async convertToPantry(
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("pantry_id") pantry_id: string
+    ): Promise<boolean> {
+        // Retrieve the grocery list document
+        const listRef = db.collection(COLLECTIONS.GROCERYLIST).doc(grocerylist_id);
+        const listDoc = await listRef.get();
+        if (!listDoc.exists) {
+            throw new Error(`Grocery list with id ${grocerylist_id} does not exist.`);
+        }
+        
+        const groceryList = listDoc.data() as GroceryList;
+        
+        // Filter out the items marked as completed (isBought set to true)
+        const completedItems = groceryList.grocery_list_items.filter(item => item.isBought);
+        
+        // If there are no completed items, exit early
+        if (completedItems.length === 0) {
+            return true;
+        }
+        
+        // Use the FoodConcreteResolver to create FoodConcrete objects in the specified pantry.
+        const foodConcreteResolver = new FoodConcreteResolver();
+        
+        for (const item of completedItems) {
+            // Here we assume that 'food_global_id' from the grocery list item represents the food abstraction.
+            // A default expiration date is set as the current ISO date string.
+            await foodConcreteResolver.createFoodConcrete(
+            pantry_id,
+            item.food_global_id,
+            new Date(0).toISOString(), // Default expiration date (customize as needed)
+            item.quantity,
+            item.measurement
+            );
+        }
+        
+        // Remove the completed items from the grocery list after conversion
+        const remainingItems = groceryList.grocery_list_items.filter(item => !item.isBought);
+        await listRef.update({ grocery_list_items: remainingItems });
+        
+        return true;
+    }
 }
