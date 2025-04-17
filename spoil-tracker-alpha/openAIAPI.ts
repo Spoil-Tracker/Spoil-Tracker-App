@@ -82,7 +82,7 @@ export class OpenAI {
       model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: 'Provide a cost summary for the given grocery list with prices for Walmart, Target, Albertsons, and Vons.' },
-        { role: 'system', content: 'Just give me a rough estimate of the entire grocery list for each respective store, with your latest data on each item from each store. Figure out how much each item costs and format it like so: Walmart: $20.34, and then the next store is separated by a newline.' },
+        { role: 'system', content: 'Just give me a rough estimate of the total grocery list value for each respective store, with your latest data on each item from each store. Figure out how much each item costs and format it like so: Walmart: $20.34 (Total list price, do not show individual prices at any point), and then the next store is separated by a newline.' },
         { role: 'system', content: 'Only give me what I said to give, do not write any extra sentences. If you can\'t provide what I asked for, then respond with nothing.' },
         { role: 'user', content: prompt },
       ],
