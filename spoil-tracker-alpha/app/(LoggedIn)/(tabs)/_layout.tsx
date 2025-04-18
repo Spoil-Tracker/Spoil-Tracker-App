@@ -1,13 +1,14 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+//import FontAwesome from '@expo/vector-icons/FontAwesome';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5'; // use FontAwesome5 to add the 'nutrition' icon
 import { Tabs } from 'expo-router';
 import { useColorScheme } from '../../../components/useColorScheme';
 
 function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
+  name: React.ComponentProps<typeof FontAwesome5>['name'];
   color: string;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <FontAwesome5 size={28} style={{ marginBottom: -3 }} {...props} />;
 }
 
 export default function TabLayout() {
@@ -80,6 +81,16 @@ export default function TabLayout() {
           tabBarLabel: 'Settings',
           tabBarActiveBackgroundColor: '#39913b',
           tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="Nutrition"
+        options={{
+          tabBarLabel: 'Nutrition',
+          tabBarActiveBackgroundColor: '#39913b',
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon name="nutritionix" color={color} />
+          ),
         }}
       />
     </Tabs>

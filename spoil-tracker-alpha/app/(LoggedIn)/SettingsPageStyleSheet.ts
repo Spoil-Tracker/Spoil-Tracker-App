@@ -1,4 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { Appearance, StyleSheet } from 'react-native';
+
+const scheme = Appearance.getColorScheme();
 
 const styles = StyleSheet.create({
   container: {
@@ -23,15 +25,15 @@ const styles = StyleSheet.create({
 
   title: {
     fontSize: 60,
-    fontFamily: 'inter-bold',
+    fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 16,
     color: '#4CAE4F',
   },
 
   icon: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
     marginRight: 10,
   },
 
@@ -45,7 +47,7 @@ const styles = StyleSheet.create({
 
   contentContainer: {
     flexDirection: 'row',
-    flex: 1,
+    alignItems: 'flex-start',
   },
 
   leftSection: {
@@ -64,7 +66,6 @@ const styles = StyleSheet.create({
     width: 2,
     backgroundColor: '#4CAE4F',
     marginHorizontal: 15,
-    height: '100%',
   },
 
   formGroup: {
@@ -131,8 +132,9 @@ const styles = StyleSheet.create({
   },
 
   notificationText: {
+    color: '#fff',
     fontSize: 16,
-    color: '#000',
+    fontWeight: 'bold',
   },
 
   phoneInput: {
@@ -174,6 +176,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 10,
     textAlign: 'center',
+  },
+
+  removeButton: {
+    backgroundColor: '#d9534f',
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+
+  feedbackButton: {
+    backgroundColor: '#4CAE4F',
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+
+  feedbackInput: {
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+    width: '100%',
+    height: 100,
+    textAlignVertical: 'top',
+    marginTop: 10,
+    color: scheme === 'dark' ? '#FFF' : '#000',
   },
 });
 

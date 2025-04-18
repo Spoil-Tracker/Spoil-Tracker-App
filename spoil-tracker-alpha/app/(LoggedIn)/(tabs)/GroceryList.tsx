@@ -1,64 +1,120 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  Dimensions,
-  Pressable,
-  ActivityIndicator,
-  TextInput,
-  ScrollView,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  SafeAreaView, 
+  Dimensions, 
+  Pressable, 
+  ActivityIndicator, 
+  TextInput, 
+  ScrollView 
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import ListSection from '../../../components/ListSection';
-import CreateListModal from '../../../components/CreateListModal';
+import { getAuth } from 'firebase/auth';
+import { query, collection, where, getDocs } from 'firebase/firestore';
+import { db } from '../../../services/firebaseConfig';
+import ListSection from '../../../components/GroceryList/ListSection';
+import CreateListModal from '@/components/GroceryList/CreateListModal';
 import { useFocusEffect } from '@react-navigation/native';
 import { Dropdown } from 'react-native-element-dropdown';
-import { useTheme } from 'react-native-paper'; // allows for dark mode
 import {
-  fetchGroceryLists,
-  sortLists,
-  filterLists,
-} from '../../../src/utils/groceryUtils'; // calls grocery lists from utils
+  GroceryList,
+  fetchAllGroceryLists
+} from '@/components/GroceryList/GroceryListService';
+import {
+  getAccountByOwnerID,
+  getCustomItemsFromAccount
+} from '@/components/Account/AccountService';
+import CustomItemsMenu from '@/components/Food/CustomItems';
+import { useTheme } from 'react-native-paper'; // allows for dark mode
+import { useAuth } from '@/services/authContext';
 
 // Get screen width for responsive design
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // Sorting options for lists
-const SORT_OPTIONS = [{ label: 'Alphabetical', value: 'alphabetical' }];
+const SORT_OPTIONS = [
+  { label: 'Alphabetical', value: 'alphabetical' }
+]
+
+const formatDate = (isoString: string) => {
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+};
 
 /**
  screen component for displaying a user's grocery lists
  allows filtering, sorting, and list creation
  */
 const ButtonListScreen = () => {
-  const [completedLists, setCompletedLists] = useState<string[]>([]);
-  const [incompleteLists, setIncompleteLists] = useState<string[]>([]);
-  const [screenWidth, setScreenWidth] = useState(
-    Dimensions.get('window').width
-  );
+  const [completeLists, setcompleteLists] = useState<GroceryList[]>([]);
+  const [incompleteLists, setIncompleteLists] = useState<GroceryList[]>([]);
+  const [customItems, setCustomItems] = useState<any[]>([]);
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
   const [searchQuery, setSearchQuery] = useState(''); // User input for filtering lists
+  const { user } = useAuth();
   const { colors } = useTheme();
 
-  // Fetch grocery lists
+  /**
+   fetches the user's grocery lists from Firestore
+   lists are categorized into complete and incomplete
+   */
   const fetchLists = async () => {
     setLoading(true);
     try {
-      const { completed, incomplete } = await fetchGroceryLists();
-      setCompletedLists(completed);
+      // Get the currently logged-in user
+      if (!user) {
+        alert('User is not logged in');
+        setLoading(false);
+        return;
+      }
+      const account = await getAccountByOwnerID(user?.uid);
+
+      const customItemsResult = await getCustomItemsFromAccount(account.id);
+      setCustomItems(customItemsResult);
+      console.log("Custom Items fetched:", customItemsResult);
+
+      const complete = [];
+      const incomplete = [];
+      const groceryLists = await fetchAllGroceryLists(account.id);
+
+      for (const list of groceryLists) {
+        console.log(list);
+        const currList = {
+          id: list.id,
+          account_id: list.account_id,
+          createdAt: list.createdAt,
+          last_opened: list.last_opened,
+          grocerylist_name: list.grocerylist_name,
+          description: list.description,
+          grocery_list_items: list.grocery_list_items,
+          isFamily: list.isFamily,
+          isShared: list.isShared,
+          isComplete: list.isComplete,
+        };
+
+        if (currList.isComplete) {
+          complete.push(currList); 
+        } else {
+          incomplete.push(currList);
+        }
+      }
+
+      setcompleteLists(complete);
       setIncompleteLists(incomplete);
+
     } catch (error) {
       console.error('Error fetching grocery lists: ', error);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
+    
     fetchLists();
     const subscription = Dimensions.addEventListener('change', () => {
       setScreenWidth(Dimensions.get('window').width);
@@ -66,23 +122,35 @@ const ButtonListScreen = () => {
     return () => subscription.remove();
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchLists();
-    }, [])
-  );
-
+  // Determine if the screen width is considered small
   const isSmallScreen = screenWidth < 800;
 
-  // Sort and filter lists
-  const sortedCompletedLists = sortLists(
-    filterLists(completedLists, searchQuery),
-    sortCriteria
-  );
-  const sortedIncompleteLists = sortLists(
-    filterLists(incompleteLists, searchQuery),
-    sortCriteria
-  );
+  /**
+   sorts lists based on the selected sorting criteria
+   @param {Array} lists - The list of grocery lists to be sorted
+   @returns {Array} - Sorted list.
+   */
+   const sortLists = (lists: GroceryList[]) => {
+    if (sortCriteria === 'alphabetical') {
+      return lists.sort((a, b) => a.grocerylist_name.localeCompare(b.grocerylist_name));
+    }
+    return lists; // Default no sort (you could add more sorting criteria here)
+  };
+  
+  /**
+   * Filters lists based on the user's search query.
+   * @param {GroceryList[]} lists - The list of grocery lists to filter
+   * @returns {GroceryList[]} - Filtered list
+   */
+  const filterLists = (lists: GroceryList[]) => {
+    return lists.filter(list =>
+      list.grocerylist_name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+
+  // Sorted and filtered lists
+  const sortedcompleteLists = sortLists(filterLists(completeLists));
+  const sortedIncompleteLists = sortLists(filterLists(incompleteLists));
 
   return (
     <SafeAreaView
@@ -92,68 +160,66 @@ const ButtonListScreen = () => {
         contentContainerStyle={styles.scrollViewContent}
         style={styles.scrollView}
       >
-        <Text style={styles.title}>Grocery Lists</Text>
+        <Text style={[styles.title, {color: "#4CAE4F", fontSize: 40}]}>Inventory</Text>
 
-        {/* Dropdown for sorting */}
-        <View style={styles.sortContainer}>
-          <Text style={[styles.sortText, { color: colors.text }]}>
-            Sort By:
-          </Text>
-          <Dropdown
-            style={styles.dropdown}
-            data={SORT_OPTIONS}
-            labelField="label"
-            valueField="value"
-            value={sortCriteria}
-            maxHeight={300}
-            onChange={(item) => setSortCriteria(item.value)}
-          />
+        <View style={styles.customItemsContainer}>
+          <CustomItemsMenu customItems={customItems} onItemsChange={fetchLists} />
         </View>
 
-        {/* Search Bar right below the Sort Dropdown */}
-        <TextInput
-          style={styles.searchBar}
-          placeholder="Search lists..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-
-        {loading ? (
-          <ActivityIndicator
-            size="large"
-            color="#2196F3"
-            style={{ marginTop: 20 }}
-          />
-        ) : (
-          <View
-            style={[
-              styles.contentContainer,
-              isSmallScreen ? styles.columnLayout : styles.rowLayout,
-            ]}
-          >
-            {/* Completed Lists Section */}
-            <ListSection
-              title="Completed Lists"
-              lists={sortedCompletedLists}
-              fetchLists={fetchLists}
-            />
-
-            {/* Incomplete Lists Section */}
-            <ListSection
-              title="Incomplete Lists"
-              lists={sortedIncompleteLists}
-              fetchLists={fetchLists}
+        <View style={styles.groceryListsContainer}>
+          <Text style={[styles.title]}>Grocery Lists</Text>
+          {/* Dropdown for sorting */}
+          <View style={styles.sortContainer}>
+            <Text style={[styles.sortText, { color: colors.text }]}>
+              Sort By:
+            </Text>
+            <Dropdown
+              style={styles.dropdown}
+              data={SORT_OPTIONS}
+              labelField="label"
+              valueField="value"
+              value={sortCriteria}
+              maxHeight={300}
+              onChange={(item) => setSortCriteria(item.value)}
             />
           </View>
-        )}
 
-        {/* Create List Modal */}
-        <CreateListModal
-          visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          fetchLists={fetchLists}
-        />
+          {/* Search Bar right below the Sort Dropdown */}
+          <TextInput
+            style={styles.searchBar}
+            placeholder="Search lists..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+
+          {loading ? (
+            <ActivityIndicator
+              size="large"
+              color="#2196F3"
+              style={{ marginTop: 20 }}
+            />
+          ) : (
+            <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
+              {/* complete Lists Section */}
+              <ListSection title="Complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
+
+              {/* Incomplete Lists Section */}
+              <ListSection
+                title="Incomplete Lists"
+                lists={sortedIncompleteLists}
+                fetchLists={fetchLists}
+              />
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      {/* Create List Modal */}
+      <CreateListModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        fetchLists={fetchLists}
+      />
 
       {/* Floating Button */}
       <Pressable
@@ -182,10 +248,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   title: {
-    fontSize: 22,
+    fontSize: 30,
     fontFamily: 'inter-bold',
     color: '#2196F3',
-    marginBottom: 10,
+    marginVertical: 15,
   },
   sortContainer: {
     flexDirection: 'row',
@@ -291,6 +357,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
   },
+  customItemsContainer: {
+    alignItems: "center",
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    width: "88%",
+    margin: 20
+  },
+  groceryListsContainer: {
+    alignItems: "center",
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    width: "88%",
+    shadowRadius: 5,
+    margin: 20
+  }
 });
 
 export default ButtonListScreen;

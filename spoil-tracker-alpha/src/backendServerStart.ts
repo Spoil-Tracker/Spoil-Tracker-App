@@ -4,9 +4,13 @@ import { buildSchema } from "type-graphql";
 import { UserResolver } from "./entities/Users";
 import { PantryResolver } from "./entities/Pantry";
 import { AccountResolver } from "./entities/Account";
+import { AccountSettingsResolver } from "./entities/AccountSettings";
 import { FoodAbstractResolver } from "./entities/FoodAbstract";
 import { FoodConcreteResolver } from "./entities/FoodConcrete";
 import { FoodGlobalResolver } from "./entities/FoodGlobal";
+import { FoodLeaderboardResolver } from "./entities/FoodLeaderboards";
+import { GroceryListResolver } from "./entities/GroceryList";
+import { CommunityResolver } from "./entities/Community";
 
 const bootstrap = async () => {
   // Build GraphQL schema
@@ -15,9 +19,13 @@ const bootstrap = async () => {
       UserResolver, 
       PantryResolver, 
       AccountResolver, 
+      AccountSettingsResolver,
       FoodAbstractResolver, 
       FoodConcreteResolver,
-      FoodGlobalResolver
+      FoodGlobalResolver,
+      FoodLeaderboardResolver,
+      GroceryListResolver,
+      CommunityResolver
     ],
     validate: false,
   });

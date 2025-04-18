@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames"
-import db from "../firestore"; //Import Firestore instance
+import { db } from "../firestore"; //Import Firestore instance
 import { Account, AccountResolver } from "./Account";
 
 @ObjectType()
