@@ -1,4 +1,3 @@
-//Expo will use this stack to figure out how, when, and if a certain page needs a header and also requires an additional back button.
 import { Stack } from 'expo-router/stack';
 import { Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -7,34 +6,30 @@ export default function Layout() {
   const router = useRouter();
 
   return (
-    // Standard stack component; all params listed here are mainly to edit/stylize the visual components attached to the header
     <Stack
       screenOptions={{
-        headerStyle: {
-          backgroundColor: '#4CAE4F',
-        },
+        headerStyle: { backgroundColor: '#4CAE4F' },
         headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontFamily: 'inter-bold',
-        },
-        headerTitleAlign: 'center', // Center the title
+        headerTitleStyle: { fontFamily: 'inter-bold' },
+        headerTitleAlign: 'center',
         headerTitle: () => (
           <TouchableOpacity
             onPress={() => {
               while (router.canGoBack()) {
                 router.back();
               }
-              router.replace('./Home');
+              router.replace('/(LoggedIn)/(tabs)/Home'); // Correct home navigation
             }}
           >
             <Image
-              source={require('../../assets/images/logo_white.png')} // Path to your logo
-              style={{ width: 180, height: 40, marginLeft: 10 }} // Adjust the size and margin as needed
+              source={require('../../assets/images/logo_white.png')}
+              style={{ width: 180, height: 40, marginLeft: 10 }}
             />
           </TouchableOpacity>
         ),
       }}
     >
+      <Stack.Screen name="(tabs)" options={{ headerShown: true }} />
       <Stack.Screen name="ListUI" />
       <Stack.Screen name="PantryUI" />
     </Stack>

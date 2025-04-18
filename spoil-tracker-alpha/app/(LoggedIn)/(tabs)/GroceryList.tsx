@@ -113,20 +113,13 @@ const ButtonListScreen = () => {
     setLoading(false);
   };
 
-  /**
-   fetch lists on component mount and screen size change.
-   */
   useEffect(() => {
     
     fetchLists();
     const subscription = Dimensions.addEventListener('change', () => {
       setScreenWidth(Dimensions.get('window').width);
     });
-
-    // Listen for screen dimension changes
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, []);
 
   // Determine if the screen width is considered small
