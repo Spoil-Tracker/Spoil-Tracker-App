@@ -66,16 +66,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="Nutrition"
-        options={{
-          tabBarLabel: 'Nutrition',
-          tabBarActiveBackgroundColor: '#39913b',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="cutlery" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="Settings"
         options={{
           tabBarLabel: 'Settings',
