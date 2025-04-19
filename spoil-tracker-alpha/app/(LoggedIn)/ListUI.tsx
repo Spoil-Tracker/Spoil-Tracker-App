@@ -17,7 +17,8 @@ import {
   updateGroceryListIsComplete,
   updateGroceryListDescription,
   updateGroceryListItemIsBought,
-  updateGroceryListIsShared
+  updateGroceryListIsShared,
+  convertToPantry
 } from '@/components/GroceryList/GroceryListService';
 import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPDF, exportGroceryListToPDFWeb } from '@/components/ExportService';
 import ProductPage from '@/components/Food/FoodUI';
@@ -28,6 +29,7 @@ import { addCopiedGroceryList } from '@/components/Community/CommunityService';
 import { OpenAI } from '@/openAIAPI';
 import { white } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
 import { decrementBought, incrementBought } from '@/components/Food/FoodLeaderboardService';
+import PantryDropdownComponent from '@/components/Pantry/PantryDropdown';
 
 // list used for the dropdown located with each grocery list item in the flatlist
 const FOOD_UNITS = [
@@ -68,6 +70,7 @@ const GroceryList = () => {
   const [selectedFood, setSelectedFood] = useState<{ label: string; value: string } | null>(null);
   const [productModalVisible, setProductModalVisible] = useState(false);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+  const [selectedPantryId, setSelectedPantryId] = useState<string | null>(null);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(null);
   const { user } = useAuth();
@@ -717,23 +720,16 @@ const GroceryList = () => {
 
           <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
             
-          <FoodDropdownComponent 
+          <PantryDropdownComponent
               accountId={accountId} 
-              onValueChange={setSelectedFood}  />
+              onValueChange={setSelectedPantryId}  />
           <Pressable
             style={[styles.sidebarButton, styles.transferButton]}
             onPress={async () => {
-              if (selectedFood) {
-                await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
-                const newFood = await fetchGroceryListByID(groceryListId);
-                if(newFood){
-                  setItems(newFood.grocery_list_items);
-                  setFilteredItems(newFood.grocery_list_items);
-                  setSearchText('');
-                  setSelectedFood(null);
-                }
+              if (selectedPantryId) {
+                await convertToPantry(groceryListId, selectedPantryId);
               } else {
-                alert('Please select a food item first.');
+                alert('Please select a pantry first.');
               }
             }}
           >
