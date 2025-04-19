@@ -3,7 +3,6 @@ import React from 'react';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'; // use FontAwesome5 to add the 'nutrition' icon
 import { Tabs } from 'expo-router';
 import { useColorScheme } from '../../../components/useColorScheme';
-import { useClientOnlyValue } from '../../../components/useClientOnlyValue';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome5>['name'];
@@ -23,11 +22,11 @@ export default function TabLayout() {
           backgroundColor: colorScheme === 'dark' ? '#fff' : '#4CAE4F',
         },
         tabBarLabelStyle: {
-          fontFamily: 'inter-bold'
+          fontFamily: 'inter-bold',
         },
         // headerShown: useClientOnlyValue(false, true), // Prevent web hydration errors COMMENTING THIS OUT FOR DEMO
         headerShown: false,
-        tabBarInactiveTintColor: '#fff'
+        tabBarInactiveTintColor: '#fff',
       }}
     >
       <Tabs.Screen
