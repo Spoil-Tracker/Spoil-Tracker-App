@@ -57,6 +57,7 @@ import {
 } from '../Account/AccountService';
 import { useAuth } from '@/services/authContext';
 import { getAllFoodGlobal, FoodGlobal } from '@/components/Food/FoodGlobalService';
+import { getTotalTimesBought, getTotalTimesEaten, getTotalTimesTossed } from '../Food/FoodLeaderboardService';
 
 // ===== Type Definitions =====
 
@@ -173,6 +174,13 @@ const CommunityBoard: React.FC = () => {
   const [seasonalProduce, setSeasonalProduce] = useState<FoodGlobal[]>([]);
   const [loadingFood, setLoadingFood] = useState<boolean>(true);
 
+  const [totals, setTotals] = useState<{
+    bought: number;
+    eaten: number;
+    tossed: number;
+  } | null>(null);
+  const [loadingTotals, setLoadingTotals] = useState(true);
+
   /**
    * fetchCommunityData
    *
@@ -227,12 +235,32 @@ const CommunityBoard: React.FC = () => {
         const seasonalIds: string[] = await fetchSeasonalFoods();
         setPopularFoods(allFoodItems.filter(item => popularIds.includes(item.id)));
         setSeasonalProduce(allFoodItems.filter(item => seasonalIds.includes(item.id)));
+
       } catch (error) {
         console.error('Error fetching food details: ', error);
       }
       setLoadingFood(false); // Finished loading food details.
     };
     fetchFoodDetails();
+  }, []);
+
+  useEffect(() => {
+    const fetchTotals = async () => {
+      try {
+        setLoadingTotals(true);
+        const [bought, eaten, tossed] = await Promise.all([
+          getTotalTimesBought(),
+          getTotalTimesEaten(),
+          getTotalTimesTossed(),
+        ]);
+        setTotals({ bought, eaten, tossed });
+      } catch (err) {
+        console.error('Error loading totals:', err);
+      } finally {
+        setLoadingTotals(false);
+      }
+    };
+    fetchTotals();
   }, []);
 
   // Modal open/close functions for post creation.
@@ -445,6 +473,10 @@ const CommunityBoard: React.FC = () => {
 
   // ---- Combine Sections for SectionList ----
   const sectionsData: SectionData[] = [
+    {
+      title: 'Spoil Tracker Activity',
+      data: totals ? [totals] : [],      // once loaded, a single object
+    },
     { title: 'Popular Foods', data: [popularFoods] },
     { title: 'Seasonal Produce', data: [seasonalProduce] },
     { title: 'Featured Meal Plans', data: [sortedGroceries] },
@@ -684,6 +716,29 @@ const CommunityBoard: React.FC = () => {
         }
         renderItem={({ item, section }) => {
           // Render different section items based on section title.
+          if (section.title === 'Spoil Tracker Activity') {
+            // `item` is { bought, eaten, tossed }
+            return loadingTotals || !item ? (
+              <ActivityIndicator size="small" color="#2196F3" />
+            ) : (
+              <View style={styles.totalsContainer}>
+                <Text style={[styles.totalsText, {color: '#007bff'}]}>Products have been bought...</Text>
+                <Text style={[styles.totalsText, {color: '#007bff', fontSize: 30}]}>{item.bought} times </Text>
+                <Text style={[styles.totalsText, {color: '#007bff'}]}>...from Spoil Tracker grocery lists.</Text>
+                <View style={{marginVertical: 10}}></View>
+
+                <Text style={[styles.totalsText, {color: '#39913b'}]}>Products have been eaten...</Text>
+                <Text style={[styles.totalsText, {color: '#39913b', fontSize: 30}]}>{item.eaten} times </Text>
+                <Text style={[styles.totalsText, {color: '#39913b'}]}>...from Spoil Tracker pantries.</Text>
+                <View style={{marginVertical: 10}}></View>
+
+                <Text style={[styles.totalsText, {color: '#39913b'}]}>Products have been tossed...</Text>
+                <Text style={[styles.totalsText, {color: '#39913b', fontSize: 30}]}>{item.tossed} times </Text>
+                <Text style={[styles.totalsText, {color: '#39913b'}]}>...from Spoil Tracker pantries.</Text>
+                <View style={{marginVertical: 10}}></View>
+              </View>
+            );
+          }
           if (section.title === 'Popular Foods') {
             // Horizontal FlatList for Popular Foods.
             return loadingFood ? (
@@ -797,7 +852,7 @@ const CommunityBoard: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, maxWidth: 400 },
+  container: { flex: 1, maxWidth: 400, maxHeight: '90%' },
   listContainer: { paddingHorizontal: 20, paddingBottom: 20 },
   header: {
     fontSize: 32,
@@ -1018,6 +1073,18 @@ const styles = StyleSheet.create({
   foodTextContainer: {
     flex: 1,
     alignItems: 'flex-start',   // Ensures text is left-aligned.
+  },
+  totalsContainer: {
+    backgroundColor: '#eef2f5',
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 10
+  },
+  totalsText: {
+    fontSize: 16,
+    fontFamily: 'inter-bold',
+    color: '#333',
+    marginBottom: 5
   },
 });
 

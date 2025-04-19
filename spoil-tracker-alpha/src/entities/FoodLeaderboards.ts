@@ -91,7 +91,7 @@ export class FoodLeaderboardResolver {
      * @returns (string) Document ID of the newly created FoodLeaderboard item
      * @throws Error if a FoodLeaderboard item already exists for this food_global_ID
      */
-    @Mutation(() => FoodLeaderboard)
+    @Mutation(() => String)
     async createFoodLeaderboard(
         @Arg("food_global_id") food_global_id: string 
     ): Promise<string> {
@@ -213,7 +213,7 @@ export class FoodLeaderboardResolver {
         @Arg("food_global_id") food_global_id: string,
         @Arg("account_id") account_id: string
     ): Promise<FoodLeaderboard> {
-        return await this.editFoodLeaderboard(food_global_id, account_id, 0, 1, 0);
+        return await this.editFoodLeaderboard(food_global_id, account_id, 1, 0, 0);
     }
 
     /**
@@ -243,7 +243,7 @@ export class FoodLeaderboardResolver {
         @Arg("food_global_id") food_global_id: string,
         @Arg("account_id") account_id: string
     ): Promise<FoodLeaderboard> {
-        return await this.editFoodLeaderboard(food_global_id, account_id, 1, 0, 0);
+        return await this.editFoodLeaderboard(food_global_id, account_id, 0, 1, 0);
     }
 
     /**

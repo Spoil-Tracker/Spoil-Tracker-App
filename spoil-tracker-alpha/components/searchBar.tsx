@@ -11,86 +11,115 @@
  * - For Grocery Lists, the ViewGroceryList component is rendered.
  * - For Products and Custom Items, the ProductPage component is rendered.
  *
- * @param {string} accountId - The ID of the account for which the search is performed.
  * @param {Function} [onSelectSuggestion] - Optional callback invoked when a suggestion is selected.
  */
-import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Modal, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
   ScrollView
 } from 'react-native';
 import debounce from 'lodash.debounce';
-import { searchGroceryLists } from './GroceryList/GroceryListService';
+
+import { useAuth } from '@/services/authContext';
+import { getAccountByOwnerID } from '@/components/Account/AccountService';
+import {
+  searchGroceryLists,
+  fetchGroceryListByID
+} from './GroceryList/GroceryListService';
 import { searchFoodGlobalByFoodName } from './Food/FoodGlobalService';
 import { searchCustomItemsFromAccount } from './Account/AccountService';
+
 import ProductPage from './Food/FoodUI';
 import ViewGroceryList from '@/components/GroceryList/ListUI_ViewOnly';
 
+// Interface for grocery list items with id and name
+interface GroceryListItem {
+  id: string;
+  name: string;
+}
+
 interface Props {
-  accountId: string;
   onSelectSuggestion?: (suggestion: any, section: string) => void;
 }
 
-const SearchSuggestionsComponent: React.FC<Props> = ({ accountId, onSelectSuggestion }) => {
-  // State for the search query input.
+const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => {
+  const { user } = useAuth();
+  const [accountId, setAccountId] = useState<string>('');
+
+  // --- local state for search/UI ---
   const [query, setQuery] = useState('');
-  
-  // State for search results in each section.
-  const [groceryListResults, setGroceryListResults] = useState<string[]>([]);
+  const [groceryListResults, setGroceryListResults] = useState<GroceryListItem[]>([]);
   const [foodGlobalResults, setFoodGlobalResults] = useState<any[]>([]);
   const [customItemsResults, setCustomItemsResults] = useState<any[]>([]);
-  
-  // State to track whether the search is currently loading.
   const [loading, setLoading] = useState(false);
-  
-  // State to control the visibility of the modal.
-  const [modalVisible, setModalVisible] = useState(false);
-  
-  // State to store the currently selected item.
-  const [selectedItem, setSelectedItem] = useState<any>(null);
-  
-  // State to store which section the selected item belongs to.
+
+  // selectedItem can be GroceryListItem or product/custom item
+  const [selectedItem, setSelectedItem] = useState<GroceryListItem | any>(null);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Fetch accountId on mount
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const account = await getAccountByOwnerID(user.uid);
+        setAccountId(account.id);
+      } catch (err) {
+        console.error('Failed to fetch account:', err);
+      }
+    })();
+  }, [user]);
 
   /**
    * performSearch
    * 
-   * Performs the search by calling the client-side search functions in parallel.
-   * If the query is empty, it resets the results.
+   * Performs the search by calling the client-side search functions in parallel,
+   * fetching grocery list names and search results for products and custom items.
+   * Resets results if query is empty.
    *
    * @param {string} q - The search query string.
    */
   const performSearch = async (q: string) => {
+    if (!accountId) return;
     if (q.trim().length === 0) {
-      // Clear results if the query is empty.
       setGroceryListResults([]);
       setFoodGlobalResults([]);
       setCustomItemsResults([]);
       return;
     }
+
     setLoading(true);
     try {
-      // Perform all three searches in parallel.
-      const [groceryLists, foodGlobals, customItems] = await Promise.all([
-        searchGroceryLists(accountId, q),
+      const groceryIds = await searchGroceryLists(accountId, q);
+      const groceryLists = await Promise.all(
+        groceryIds.map(async (id: string) => {
+          const list = await fetchGroceryListByID(id);
+          if (!list) return { id, name: 'Unknown' };
+          return { id: list.id, name: list.grocerylist_name };
+        })
+      );
+      const [_, foodGlobals, customItems] = await Promise.all([
+        Promise.resolve(groceryLists),
         searchFoodGlobalByFoodName(q),
-        searchCustomItemsFromAccount(accountId, q)
+        searchCustomItemsFromAccount(accountId, q),
       ]);
+
       setGroceryListResults(groceryLists);
       setFoodGlobalResults(foodGlobals);
       setCustomItemsResults(customItems);
     } catch (error) {
       console.error('Error performing search:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  // Debounce the search function to avoid firing requests on every keystroke.
   const debouncedSearch = useCallback(debounce(performSearch, 300), [accountId]);
 
   /**
@@ -105,41 +134,31 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ accountId, onSelectSugges
     debouncedSearch(text);
   };
 
-  // Organize search results into sections for rendering.
   const sections = [
-    {
-      title: 'Grocery Lists',
-      data: groceryListResults,
-    },
-    {
-      title: 'Products',
-      data: foodGlobalResults,
-    },
-    {
-      title: 'Custom Items',
-      data: customItemsResults,
-    },
+    { title: 'Grocery Lists', data: groceryListResults },
+    { title: 'Products', data: foodGlobalResults },
+    { title: 'Custom Items', data: customItemsResults },
   ];
 
   /**
    * handleSuggestionPress
    * 
-   * Handles the event when a suggestion is pressed. Opens a modal and sets the selected item and section.
+   * Handles the event when a suggestion is pressed. Opens modal and sets selected item/section.
    *
    * @param {any} item - The selected search result item.
-   * @param {string} section - The section title to which the item belongs.
+   * @param {string} section - The section title.
    */
   const handleSuggestionPress = (item: any, section: string) => {
-    // Open the modal for all sections.
     setSelectedItem(item);
     setSelectedSection(section);
     setModalVisible(true);
+    onSelectSuggestion?.(item, section);
   };
 
   /**
    * closeModal
    * 
-   * Closes the modal and resets the selected item and section.
+   * Closes the modal and resets selected item and section.
    */
   const closeModal = () => {
     setModalVisible(false);
@@ -149,69 +168,65 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ accountId, onSelectSugges
 
   return (
     <View style={styles.container}>
-      {/* Search input field */}
       <TextInput
         style={styles.input}
         placeholder="Search..."
         value={query}
         onChangeText={handleInputChange}
+        editable={!!accountId}
       />
-      {/* Render search suggestions if query is not empty */}
-      {query.length > 0 && (
-      <ScrollView
-        style={styles.resultsContainer}
-        contentContainerStyle={styles.resultsContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {sections.map((section) => (
-        <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          {section.data.length > 0 ? (
-          section.data.map((item: any, index: number) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.item}
-            onPress={() => handleSuggestionPress(item, section.title)}
-          >
-            <Text>
-              {typeof item === 'string'
-              ? item
-                : item.food_name || item.title || item.username}
-          </Text>
-          </TouchableOpacity>
-          ))
-          ) : (
-          <Text style={styles.noResult}>No results</Text>
-        )}
-        </View>
-        ))}
-      </ScrollView>
-      )}
-      {loading && <Text style={styles.loading}>Loading...</Text>}
 
-      {/* Modal for displaying detailed view */}
+      {query.length > 0 && (
+        <ScrollView
+          style={styles.resultsContainer}
+          contentContainerStyle={styles.resultsContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {sections.map(({ title, data }) => (
+            <View key={title} style={styles.section}>
+              <Text style={styles.sectionTitle}>{title}</Text>
+              {data.length > 0 ? (
+                data.map((item: any, idx: number) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.item}
+                    onPress={() => handleSuggestionPress(item, title)}
+                  >
+                    <Text>
+                      {title === 'Grocery Lists'
+                        ? item.name
+                        : typeof item === 'string'
+                        ? item
+                        : item.food_name ?? item.title ?? item.username}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.noResult}>No results</Text>
+              )}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
       <Modal
         visible={modalVisible}
         animationType="fade"
-        transparent={true}
+        transparent
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {selectedSection === 'Grocery Lists' ? (
-              // For Grocery Lists, the suggestion is an ID, so render the ViewGroceryList component.
               selectedItem ? (
-                <ViewGroceryList id={selectedItem} />
+                <ViewGroceryList id={selectedItem.id} />
               ) : (
                 <Text>No grocery list selected.</Text>
               )
+            ) : selectedItem ? (
+              <ProductPage foodId={selectedItem.id} accountId={accountId} />
             ) : (
-              // For Products and Custom Items, render the ProductPage component.
-              selectedItem ? (
-                <ProductPage foodId={selectedItem.id} accountId={accountId} />
-              ) : (
-                <Text>No item selected.</Text>
-              )
+              <Text>No item selected.</Text>
             )}
             <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
@@ -226,7 +241,9 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ accountId, onSelectSugges
 const styles = StyleSheet.create({
   container: {
     padding: 10,
-    position: 'relative'
+    position: 'relative',
+    overflow: 'visible',
+    zIndex: 1,
   },
   input: {
     height: 40,
@@ -247,9 +264,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     maxHeight: 250,
-    zIndex: 1000,
-    elevation: 5,
+    zIndex: 9999,
+    elevation: 20,
     marginTop: 5,
+    overflow: 'visible',
+  },
+  resultsContent: {
+    paddingVertical: 5,
   },
   section: {
     marginBottom: 15,
@@ -297,9 +318,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  resultsContent: {
-    paddingVertical: 5
-  }
 });
 
 export default SearchSuggestionsComponent;

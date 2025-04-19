@@ -19,6 +19,8 @@ import { fetchPantries } from '../../../src/utils/pantryUtils'; // calls fetchpa
 import { fetchGroceryLists } from '../../../src/utils/groceryUtils'; // calls fetchgrocerylists to display on home
 import { MaterialCommunityIcons } from '@expo/vector-icons'; // for fridge icon
 import CalorieProgress from '../../../components/calorieProgress'; // // calls calorieprogress to display on home
+import SearchSuggestionsComponent from '@/components/searchBar';
+import CommunityBoard from '@/components/Community/CommunityBoard';
 
 export default function HomeScreen() {
   // State for Home screen
@@ -130,8 +132,9 @@ export default function HomeScreen() {
         { backgroundColor: colors.background },
       ]}
     >
-      <View style={styles.container}>
+      <View style={styles.mainContent}>
         {/* Welcome Header and Logout */}
+        <SearchSuggestionsComponent></SearchSuggestionsComponent>
         <View style={styles.header}>
           <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
             Welcome, {username ? username : 'Loading...'}!
@@ -237,6 +240,7 @@ export default function HomeScreen() {
           />
         </View>
       </View>
+      <CommunityBoard></CommunityBoard>
     </ScrollView>
   );
 }
@@ -244,8 +248,17 @@ export default function HomeScreen() {
 // style sheet for fonts and colors
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     flexGrow: 1,
     padding: 8,
+    paddingHorizontal: 200,
+    minWidth: 1000
+  },
+  mainContent: {
+    flex: 1,                       
+    marginRight: 40,              
   },
   header: {
     flexDirection: 'row',

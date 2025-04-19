@@ -161,7 +161,7 @@ export class CommunityResolver {
       const initialCommunity: Community = {
         posts: [],
         copiedGroceryLists: [],
-        updated: new Date(),
+        updated: new Date(0),
         popular_foods: [],
         seasonal_foods: []
       };
