@@ -340,13 +340,18 @@ const GroceryList = () => {
      */
 
      const toggleCompleteStatus = async () => {
-      // Compute what the new "bought" state will be:
       const willBeBought = !item.isBought;
+      const updatedItems = items.map(i =>
+        i.id === item.id ? { ...i, isBought: willBeBought } : i
+      );
+      const updatedFilterItems = filteredItems.map(i =>
+        i.id === item.id ? { ...i, isBought: willBeBought } : i
+      );
+      setItems(updatedItems);
+      setFilteredItems(updatedFilterItems);
     
-      // 1) First flip it on the grocery‐list side:
       await updateGroceryListItemIsBought(groceryListId, item.id);
-    
-      // 2) Then update your global leaderboard count:
+
       try {
         if (willBeBought) {
           await incrementBought(item.food_global_id, accountId);
@@ -357,15 +362,7 @@ const GroceryList = () => {
         console.error('Failed to update FoodLeaderboard:', error);
       }
     
-      // 3) Finally mirror the change in local state:
-      const updatedItems = items.map(i =>
-        i.id === item.id ? { ...i, isBought: willBeBought } : i
-      );
-      const updatedFilterItems = filteredItems.map(i =>
-        i.id === item.id ? { ...i, isBought: willBeBought } : i
-      );
-      setItems(updatedItems);
-      setFilteredItems(updatedFilterItems);
+
     };
 
     /**
