@@ -20,6 +20,7 @@ import { addGroceryListItem } from '@/components/GroceryList/GroceryListService'
 import { useAuth } from '@/services/authContext';
 import { getAccountByOwnerID } from '@/components/Account/AccountService';
 import PantryDropdownComponent from '@/components/Pantry/PantryDropdown';
+import { router } from 'expo-router';
 
 export default function BarcodeScanner() {
   const { user } = useAuth();
@@ -127,7 +128,7 @@ export default function BarcodeScanner() {
     return (
       <CustomGroceryItemScreen
         {...formParams}
-        onItemAdded={() => { setFormParams(null); setMode('menu'); }}
+        onItemAdded={() => { setFormParams(null); router.back(); }}
       />
     );
   }
@@ -192,6 +193,7 @@ export default function BarcodeScanner() {
                       selectedFood.food_name
                     );
                     Alert.alert('Added to list');
+                    router.back();
                   }
                   setMatches([]);
                   setMode('menu');
