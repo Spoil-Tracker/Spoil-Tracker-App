@@ -126,8 +126,8 @@ export default function HomeScreen() {
 
   // Returns everything to the display for the user to see
   return (
-    <ScrollView
-      contentContainerStyle={[
+    <View
+      style={[
         styles.container,
         { backgroundColor: colors.background },
       ]}
@@ -241,7 +241,7 @@ export default function HomeScreen() {
         </View>
       </View>
       <CommunityBoard></CommunityBoard>
-    </ScrollView>
+    </View>
   );
 }
 

@@ -252,7 +252,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     borderRadius: 8,
-    fontFamily: 'inter-regular',
   },
   resultsContainer: {
     position: 'absolute',

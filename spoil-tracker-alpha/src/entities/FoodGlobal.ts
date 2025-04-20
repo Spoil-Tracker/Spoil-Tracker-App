@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType } from "type-graphql";
+import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType, Int } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
 import { db } from "../firestore";
 import { FoodAbstractResolver } from "./FoodAbstract";
@@ -359,6 +359,60 @@ export class FoodGlobalResolver {
         });
 
         return matchingFoods;
+    }
+
+    private levenshteinDistance(a: string, b: string): number {
+        const matrix: number[][] = [];
+    
+        for (let i = 0; i <= b.length; i++) {
+          matrix[i] = [i];
+        }
+        for (let j = 0; j <= a.length; j++) {
+          matrix[0][j] = j;
+        }
+    
+        for (let i = 1; i <= b.length; i++) {
+          for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+              matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+              matrix[i][j] = Math.min(
+                matrix[i - 1][j - 1] + 1, // substitution
+                matrix[i][j - 1] + 1,     // insertion
+                matrix[i - 1][j] + 1      // deletion
+              );
+            }
+          }
+        }
+    
+        return matrix[b.length][a.length];
+      }
+
+    /**
+     * Finds the top‐N FoodGlobal items whose names are closest
+     * to the provided search string, using Levenshtein distance.
+     */
+    @Query(() => [FoodGlobal])
+    async getClosestFoodGlobal(
+        @Arg("searchName") searchName: string,
+        @Arg("topN", () => Int, { defaultValue: 3 }) topN: number
+    ): Promise<FoodGlobal[]> {
+        const snapshot = await db.collection(COLLECTIONS.FOOD_GLOBAL).get();
+        const lowerSearch = searchName.toLowerCase();
+
+        // Compute distance for each item
+        const foodsWithDistance = snapshot.docs.map(doc => {
+        const data = doc.data() as FoodGlobal;
+        const distance = this.levenshteinDistance(
+            data.food_name.toLowerCase(),
+            lowerSearch
+        );
+        return { data, distance };
+        });
+
+        // Sort by ascending distance and take top N
+        foodsWithDistance.sort((a, b) => a.distance - b.distance);
+        return foodsWithDistance.slice(0, topN).map(item => item.data);
     }
 
 }
