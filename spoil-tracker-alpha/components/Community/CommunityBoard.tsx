@@ -32,6 +32,7 @@ import {
   Dimensions,
   Image,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import ViewGroceryList from '@/components/GroceryList/ListUI_Community';
@@ -221,7 +222,11 @@ const PostItem = React.memo(({
           </TouchableOpacity>
         </View>
         {localComments.length > 0 && (
-          <View style={styles.commentContainer}>
+          <ScrollView
+            style={styles.commentScroll}
+            contentContainerStyle={styles.commentContainer}
+            nestedScrollEnabled={true}       // for Android inner‑scroll
+          >
             {localComments.map((comment, idx) => {
               const commenter = accountNames[comment.account_id] || comment.account_id;
               return (
@@ -232,7 +237,7 @@ const PostItem = React.memo(({
                 </Text>
               );
             })}
-          </View>
+          </ScrollView>
         )}
     </View>
   );
@@ -1111,7 +1116,7 @@ const styles = StyleSheet.create({
   },
   commentSubmitButtonText: { color: '#fff', fontSize: 16, fontFamily: 'inter-bold' },
   commentContainer: { marginTop: 10, padding: 5, borderRadius: 5 },
-  commentText: { fontSize: 12, color: '#333' },
+  commentText: { fontSize: 12, color: '#333',marginBottom: 2 },
   groceryCard: {
     marginHorizontal: 5,
     backgroundColor: '#f3f3f3',
@@ -1245,6 +1250,9 @@ const styles = StyleSheet.create({
     fontFamily: 'inter-bold',
     color: '#333',
     marginBottom: 5
+  },
+  commentScroll: {
+    maxHeight: 80,      // adjust to whatever makes sense in your card
   },
 });
 
