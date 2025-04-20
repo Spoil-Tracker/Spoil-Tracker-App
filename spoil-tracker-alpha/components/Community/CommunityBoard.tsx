@@ -960,6 +960,11 @@ const CommunityBoard: React.FC = () => {
           ) : null
         }
         renderItem={renderItem}
+        ListHeaderComponent={
+          <>
+            <Text style={styles.header}>Community Board</Text>
+          </>
+        }
       />
         
 
