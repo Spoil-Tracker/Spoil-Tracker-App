@@ -764,45 +764,6 @@ const CommunityBoard: React.FC = () => {
     },
   ], [totals, popularFoods, seasonalProduce, sortedGroceries, paginatedPosts]);
 
-  /**
-   * renderPostItem
-   *
-   * Renders a single community post.
-   *
-   * @param item - The post to render.
-   * @returns A JSX.Element representing the post card.
-   */
-  const renderPostItem = ({ item }: { item: Post }): JSX.Element => {
-    const currentComment = commentInputs[item.id] || '';
-    const formattedDate = new Date(item.createdAt).toLocaleString();
-    const isOwner = account?.id === item.account_id;
-    const hasLiked = account?.likedPosts.includes(item.id);
-    return (
-      <View style={styles.postCard}>
-        
-      </View>
-    );
-  };
-
-  /**
-   * renderGroceryItem
-   *
-   * Renders a single grocery list item for the Featured Meal Plans section.
-   *
-   * @param item - The grocery list to render.
-   * @returns A JSX.Element representing the grocery list card.
-   */
-  const renderGroceryItem = ({ item }: { item: GroceryList }): JSX.Element => {
-    const hasLiked = account?.likedCommunityGroceryLists.includes(item.id);
-    const isOwner = account?.id === item.account_id;
-    const likes = (item as any).likes || 0;
-    return (
-      <View style={styles.groceryCard}>
-        
-      </View>
-    );
-  };
-
   // Display a loading indicator if data is being fetched.
   if (initialLoading || !communityData) {
     return (
