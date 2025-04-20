@@ -54,6 +54,7 @@ import {
   removeLikedPost,
   addLikedCommunityGroceryList,
   removeLikedCommunityGroceryList,
+  getAccountNameByID,
 } from '../Account/AccountService';
 import { useAuth } from '@/services/authContext';
 import { getAllFoodGlobal, FoodGlobal } from '@/components/Food/FoodGlobalService';
@@ -139,7 +140,8 @@ interface CustomSection {
 
 const PostItem = React.memo(({ 
   item, 
-  account, 
+  account,
+  accountNames, 
   commentInput, 
   onToggleLike, 
   onDelete, 
@@ -148,6 +150,7 @@ const PostItem = React.memo(({
 }: {
   item: Post;
   account: Account | null;
+  accountNames: Record<string,string>;
   commentInput: string;
   onToggleLike: (postId: string) => void;
   onDelete: (postId: string) => void;
@@ -155,6 +158,8 @@ const PostItem = React.memo(({
   onCommentChange: (postId: string, text: string) => void;
 }) => {
   const formattedDate = new Date(item.createdAt).toLocaleString();
+  console.log(accountNames);
+  const displayName = accountNames[item.account_id] || item.account_id;
   const isOwner = account?.id === item.account_id;
   const hasLiked = account?.likedPosts.includes(item.id);
 
@@ -187,7 +192,7 @@ const PostItem = React.memo(({
       <Text style={styles.postTitle}>{item.title}</Text>
         <Text style={styles.postContent}>{item.content}</Text>
         <Text style={styles.postMeta}>
-          By: {item.account_id} | Posted on: {formattedDate}
+          By: {displayName} | Posted on: {formattedDate}
         </Text>
         <View style={styles.postActions}>
           {!isOwner && (
@@ -217,11 +222,16 @@ const PostItem = React.memo(({
         </View>
         {localComments.length > 0 && (
           <View style={styles.commentContainer}>
-            {localComments.map((comment, index) => (
-              <Text key={index} style={styles.commentText}>
-                {comment.account_id}: {comment.message} ({new Date(comment.createdAt).toLocaleDateString()})
-              </Text>
-            ))}
+            {localComments.map((comment, idx) => {
+              const commenter = accountNames[comment.account_id] || comment.account_id;
+              return (
+                <Text key={idx} style={styles.commentText}>
+                  {commenter}: {comment.message} (
+                    {new Date(comment.createdAt).toLocaleDateString()}
+                  )
+                </Text>
+              );
+            })}
           </View>
         )}
     </View>
@@ -320,6 +330,8 @@ const CommunityBoard: React.FC = () => {
   const [seasonalProduce, setSeasonalProduce] = useState<FoodGlobal[]>([]);
   const [loadingFood, setLoadingFood] = useState<boolean>(true);
 
+  const [accountNames, setAccountNames] = useState<Record<string,string>>({});
+
   const [totals, setTotals] = useState<{
     bought: number;
     eaten: number;
@@ -417,6 +429,33 @@ const CommunityBoard: React.FC = () => {
     };
     fetchTotals();
   }, []);
+
+  useEffect(() => {
+    if (!communityData) return;
+    const ids = new Set<string>();
+    communityData.posts.forEach(post => {
+      ids.add(post.account_id);
+      post.comments.forEach(c => ids.add(c.account_id));
+    });
+
+    // only fetch the ones we don’t already have
+    const toFetch = [...ids].filter(id => !accountNames[id]);
+    if (toFetch.length === 0) return;
+
+    Promise.all(
+      toFetch.map(id =>
+        getAccountNameByID(id)
+          .then(name => ({ id, name }))
+          .catch(() => null)
+      )
+    ).then(results => {
+      const updates: Record<string,string> = {};
+      results.forEach(r => {
+        if (r) updates[r.id] = r.name;
+      });
+      setAccountNames(prev => ({ ...prev, ...updates }));
+    });
+  }, [communityData]);
 
   // Modal open/close functions for post creation.
   const openPostModal = (): void => setPostModalVisible(true);
@@ -649,6 +688,7 @@ const CommunityBoard: React.FC = () => {
             <PostItem
               item={item as Post}
               account={account}
+              accountNames={accountNames}
               commentInput={commentInputs[(item as Post).id] || ""}
               onToggleLike={handleTogglePostLike}
               onDelete={handleDeletePost}
