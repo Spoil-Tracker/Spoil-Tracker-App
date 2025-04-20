@@ -16,7 +16,7 @@
  *
  */
 
-import React, { useState, useEffect, } from 'react';
+import React, { useState, useEffect, useCallback, } from 'react';
 import {
   SafeAreaView,
   SectionList,
@@ -60,6 +60,7 @@ import {
 import { useAuth } from '@/services/authContext';
 import { getAllFoodGlobal, FoodGlobal } from '@/components/Food/FoodGlobalService';
 import { getTotalTimesBought, getTotalTimesEaten, getTotalTimesTossed } from '../Food/FoodLeaderboardService';
+import { useFocusEffect } from 'expo-router';
 
 // ===== Type Definitions =====
 
@@ -159,7 +160,6 @@ const PostItem = React.memo(({
   onCommentChange: (postId: string, text: string) => void;
 }) => {
   const formattedDate = new Date(item.createdAt).toLocaleString();
-  console.log(accountNames);
   const displayName = accountNames[item.account_id] || item.account_id;
   const isOwner = account?.id === item.account_id;
   const hasLiked = account?.likedPosts.includes(item.id);
@@ -378,89 +378,111 @@ const CommunityBoard: React.FC = () => {
 
   // Fetch account data when the user changes.
   useEffect(() => {
-    const onChange = () => {
-          setScreenWidth(Dimensions.get('window').width);
-          setScreenHeight(Dimensions.get('window').height);
-        };
     fetchAccountData();
-    Dimensions.addEventListener('change', onChange);
   }, [user]);
 
-  // Fetch community data when the component mounts.
-  useEffect(() => {
-    ;(async () => {
-      const data = await getCommunity();
-      setCommunityData(data);
-      setInitialLoading(false);
-    })();
-  }, []);
 
   /**
    * Fetch food details for the Popular Foods and Seasonal Produce sections.
    */
   useEffect(() => {
-    const fetchFoodDetails = async () => {
-      setLoadingFood(true); // Start loading food details.
-      try {
-        const allFoodItems: FoodGlobal[] = await getAllFoodGlobal();
-        const popularIds: string[] = await fetchPopularFoods();
-        const seasonalIds: string[] = await fetchSeasonalFoods();
-        setPopularFoods(allFoodItems.filter(item => popularIds.includes(item.id)));
-        setSeasonalProduce(allFoodItems.filter(item => seasonalIds.includes(item.id)));
-
-      } catch (error) {
-        console.error('Error fetching food details: ', error);
-      }
-      setLoadingFood(false); // Finished loading food details.
+    const onChange = () => {
+      setScreenWidth(Dimensions.get('window').width);
+      setScreenHeight(Dimensions.get('window').height);
     };
-    fetchFoodDetails();
+    const dimensionsHandler = Dimensions.addEventListener('change', onChange);
+    return () => dimensionsHandler.remove();
   }, []);
 
+  // Fetch community data on focus
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      setInitialLoading(true);
+      getCommunity()
+        .then(data => { if (isActive) setCommunityData(data); })
+        .catch(console.error)
+        .finally(() => { if (isActive) setInitialLoading(false); });
+      return () => { isActive = false; };
+    }, [])
+  );
+
+  // Fetch food for sections
   useEffect(() => {
-    const fetchTotals = async () => {
+    (async () => {
+      setLoadingFood(true);
       try {
-        setLoadingTotals(true);
-        const [bought, eaten, tossed] = await Promise.all([
+        const allItems = await getAllFoodGlobal();
+        const popIds = await fetchPopularFoods();
+        const secIds = await fetchSeasonalFoods();
+        setPopularFoods(allItems.filter((i: { id: any; }) => popIds.includes(i.id)));
+        setSeasonalProduce(allItems.filter((i: { id: any; }) => secIds.includes(i.id)));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingFood(false);
+      }
+    })();
+  }, []);
+
+  // Fetch totals
+  useEffect(() => {
+    (async () => {
+      setLoadingTotals(true);
+      try {
+        const [b, e, t] = await Promise.all([
           getTotalTimesBought(),
           getTotalTimesEaten(),
           getTotalTimesTossed(),
         ]);
-        setTotals({ bought, eaten, tossed });
+        setTotals({ bought: b, eaten: e, tossed: t });
       } catch (err) {
-        console.error('Error loading totals:', err);
+        console.error(err);
       } finally {
         setLoadingTotals(false);
       }
-    };
-    fetchTotals();
+    })();
   }, []);
 
+  // Fetch missing account names
   useEffect(() => {
     if (!communityData) return;
     const ids = new Set<string>();
-    communityData.posts.forEach(post => {
-      ids.add(post.account_id);
-      post.comments.forEach(c => ids.add(c.account_id));
-    });
-
-    // only fetch the ones we don’t already have
-    const toFetch = [...ids].filter(id => !accountNames[id]);
-    if (toFetch.length === 0) return;
-
+    communityData.posts.forEach(p => { ids.add(p.account_id); p.comments.forEach(c => ids.add(c.account_id)); });
+    const toFetch = Array.from(ids).filter(id => !accountNames[id]);
+    if (!toFetch.length) return;
     Promise.all(
-      toFetch.map(id =>
-        getAccountNameByID(id)
-          .then(name => ({ id, name }))
-          .catch(() => null)
-      )
+      toFetch.map(id => getAccountNameByID(id).then(name => ({ id, name })).catch(() => null))
     ).then(results => {
-      const updates: Record<string,string> = {};
-      results.forEach(r => {
-        if (r) updates[r.id] = r.name;
-      });
-      setAccountNames(prev => ({ ...prev, ...updates }));
+      const upd: Record<string,string> = {};
+      results.forEach(r => { if (r) upd[r.id] = r.name; });
+      setAccountNames(prev => ({ ...prev, ...upd }));
     });
   }, [communityData]);
+
+  const handleTogglePostLike = useCallback(async (postId: string) => {
+    if (!account) return;
+    const hasLiked = account.likedPosts.includes(postId);
+    try {
+      if (hasLiked) {
+        await removeLikedPost(account.id, postId);
+        await decrementPostLikes(postId);
+      } else {
+        await addLikedPost(account.id, postId);
+        await incrementPostLikes(postId);
+      }
+      setAccount(acc => ({
+        ...acc!,
+        likedPosts: hasLiked ? acc!.likedPosts.filter(i => i !== postId) : [...acc!.likedPosts, postId]
+      }));
+      setCommunityData(cd => ({
+        ...cd!,
+        posts: cd!.posts.map(p => p.id === postId ? { ...p, likes: p.likes + (hasLiked ? -1 : 1) } : p)
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [account]);
 
   // Modal open/close functions for post creation.
   const openPostModal = (): void => setPostModalVisible(true);
@@ -497,88 +519,24 @@ const CommunityBoard: React.FC = () => {
    *
    * @param postId - The ID of the post to comment on.
    */
-  const handleSubmitComment = async (postId: string) => {
+  const handleSubmitComment = useCallback(async (postId: string) => {
     const text = commentInputs[postId]?.trim();
     if (!text || !account) return;
-  
     try {
-      // 1) call API
       await addCommentToPost(postId, account.id, text);
-  
-      // 2) optimistic update: append comment to the correct Post in the array
       setCommunityData(cd => {
         if (!cd) return cd;
-        const newComment: Comment = {
-          account_id: account.id,
-          message: text,
-          createdAt: new Date().toISOString(),
-        };
-  
+        const newC = { account_id: account.id, message: text, createdAt: new Date().toISOString() };
         return {
           ...cd,
-          posts: cd.posts.map(post =>
-            post.id === postId
-              ? { 
-                  ...post,
-                  comments: [...post.comments, newComment],
-                }
-              : post
-          ),
+          posts: cd.posts.map(p => p.id === postId ? { ...p, comments: [...p.comments, newC] } : p)
         };
       });
-  
-      // 3) clear the input
-      setCommentInputs(ci => ({ ...ci, [postId]: "" }));
+      setCommentInputs(ci => ({ ...ci, [postId]: '' }));
     } catch (err) {
-      console.error("Comment failed:", err);
+      console.error(err);
     }
-  };
-
-  /**
-   * handleTogglePostLike
-   *
-   * Toggles the like status for a post.
-   *
-   * @param postId - The ID of the post.
-   */
-  const handleTogglePostLike = async (postId: string) => {
-    if (!account) return;
-    const hasLiked = account.likedPosts.includes(postId);
-  
-    try {
-      // 1) call your API
-      if (hasLiked) {
-        await removeLikedPost(account.id, postId);
-        await decrementPostLikes(postId);
-      } else {
-        await addLikedPost(account.id, postId);
-        await incrementPostLikes(postId);
-      }
-  
-      // 2) optimistic update: tweak account.likedPosts
-      setAccount(acc => ({
-        ...acc!,
-        likedPosts: hasLiked
-          ? acc!.likedPosts.filter(id => id !== postId)
-          : [...acc!.likedPosts, postId],
-      }));
-  
-      // 3) optimistic update: tweak that one post’s like count
-      setCommunityData(cd => {
-        if (!cd) return cd;
-        return {
-          ...cd,
-          posts: cd.posts.map(p =>
-            p.id === postId
-              ? { ...p, likes: p.likes + (hasLiked ? -1 : 1) }
-              : p
-          ),
-        };
-      });
-    } catch (err) {
-      console.error("Like toggle failed:", err);
-    }
-  };
+  }, [account, commentInputs]);
 
   /**
    * handleToggleGroceryLike
@@ -587,7 +545,7 @@ const CommunityBoard: React.FC = () => {
    *
    * @param groceryListId - The ID of the grocery list.
    */
-  const handleToggleGroceryLike = async (groceryListId: string): Promise<void> => {
+  const handleToggleGroceryLike = useCallback(async (groceryListId: string) => {
     if (!account) return;
     try {
       if (account.likedCommunityGroceryLists.includes(groceryListId)) {
@@ -597,12 +555,15 @@ const CommunityBoard: React.FC = () => {
         await addLikedCommunityGroceryList(account.id, groceryListId);
         await incrementCopiedGroceryListLikes(groceryListId);
       }
-      await fetchAccountData();
-      await fetchCommunityData();
-    } catch (error) {
-      console.error('Error toggling grocery list like: ', error);
+      // refetch account & data
+      const acc = await getAccountByOwnerID(account.id);
+      setAccount(acc);
+      const data = await getCommunity();
+      setCommunityData(data);
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }, [account]);
 
   /**
    * handleDeletePost
@@ -611,15 +572,16 @@ const CommunityBoard: React.FC = () => {
    *
    * @param postId - The ID of the post to delete.
    */
-  const handleDeletePost = async (postId: string): Promise<void> => {
+  const handleDeletePost = useCallback(async (postId: string) => {
     try {
       await deletePost(postId);
-      await fetchCommunityData();
+      const data = await getCommunity();
+      setCommunityData(data);
       setCurrentPostPage(1);
-    } catch (error) {
-      console.error('Error deleting post: ', error);
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }, []);
 
   /**
    * handleDeleteGroceryList
@@ -628,14 +590,15 @@ const CommunityBoard: React.FC = () => {
    *
    * @param groceryListId - The ID of the grocery list to delete.
    */
-  const handleDeleteGroceryList = async (groceryListId: string): Promise<void> => {
+  const handleDeleteGroceryList = useCallback(async (groceryListId: string) => {
     try {
       await removeCopiedGroceryList(groceryListId);
-      await fetchCommunityData();
-    } catch (error) {
-      console.error('Error deleting grocery list: ', error);
+      const data = await getCommunity();
+      setCommunityData(data);
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }, []);
 
   // Functions to open/close the grocery list modal.
   const openGroceryModal = (listId: string): void => {
