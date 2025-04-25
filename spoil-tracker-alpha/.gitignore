@@ -17,6 +17,7 @@ expo-env.d.ts
 services/firebaseConfig.ts
 spoil-tracker-alpha/services/barcodeApiKey.ts
 spoil-tracker-alpha/services/edamamAPI.ts
+spoil-tracker-alpha/services/FDA-api-key.ts
 
 # Native
 *.orig.*
