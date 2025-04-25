@@ -21,6 +21,9 @@ import { arrayUnion, doc, getDoc, updateDoc, setDoc, deleteDoc, addDoc, getDocs,
 import { useAuth } from '../../../services/authContext';
 import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
 import { createKitchenInvite } from '../../../services/inviteService';
+import { AntDesign, FontAwesome } from '@expo/vector-icons';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // Global variables for any function that requires to call an icon
 const userIcon = require('../../../assets/images/icon.png');
@@ -60,6 +63,22 @@ export default function HomeScreen() {
   // Reward notification state.
   const [rewardAvailable, setRewardAvailable] = useState(false);
   const [unclaimedRewards, setUnclaimedRewards] = useState(0);
+
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const changeDay = (days: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
+
+  const formatDate = (date: Date | null) => {
+    const today = new Date();
+    return date && date.toDateString() === today.toDateString()
+      ? 'Today'
+      : date?.toLocaleDateString();
+  };
 
   useEffect(() => {
     const loadProfileIcon = async () => {
@@ -406,6 +425,35 @@ const handleJoinKitchen = async () => {
             <TouchableOpacity style={styles.customButton} onPress={toggleModal}>
               <Text style={styles.customButtonText}>Delete Account</Text>
             </TouchableOpacity>
+          </View>
+          <View style={styles.group}>
+            <View style={styles.calendarBar}>
+              <TouchableOpacity onPress={() => changeDay(-1)}>
+                <AntDesign name="left" size={24} color={dark ? '#FFF' : '#000'} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.todayContainer}
+                onPress={() => setShowDatePicker(!showDatePicker)}
+              >
+                <FontAwesome name="calendar" size={20} color={dark ? '#FFF' : '#000'} style={styles.calendarIcon} />
+                <Text style={[styles.todayText, {color: dark ? '#FFF' : '#000'}]}>
+                  {formatDate(selectedDate)}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => changeDay(1)}>
+                <AntDesign name="right" size={24} color={dark ? '#FFF' : '#000'} />
+              </TouchableOpacity>
+            </View>
+            {showDatePicker && (
+              <DatePicker
+                selected={selectedDate}
+                onChange={(date) => {
+                  setShowDatePicker(false);
+                  if (date) setSelectedDate(date);
+                }}
+                inline
+              />
+            )}
           </View>
         </View>
 
@@ -949,5 +997,31 @@ const styles = StyleSheet.create({
   rewardBarFilled: {
     backgroundColor: '#4CAE4F',
     borderColor: '#4CAE4F',
-  }
+  },
+
+  calendarBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginVertical: 10,
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 8,
+  },
+
+  todayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  calendarIcon: {
+    marginRight: 8,
+  },
+
+  todayText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+  },
 });
