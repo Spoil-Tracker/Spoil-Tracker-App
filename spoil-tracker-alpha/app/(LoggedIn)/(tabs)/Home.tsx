@@ -16,11 +16,13 @@ import { db, auth } from '../../../services/firebaseConfig'; // imports authenti
 import { doc, getDoc } from 'firebase/firestore'; // imports user information from firestore
 import { onAuthStateChanged, getAuth } from 'firebase/auth'; // gets authentication from firebase
 import { fetchPantries } from '../../../src/utils/pantryUtils'; // calls fetchpantries to display on home
-import { fetchGroceryLists } from '../../../src/utils/groceryUtils'; // calls fetchgrocerylists to display on home
 import { MaterialCommunityIcons } from '@expo/vector-icons'; // for fridge icon
 import CalorieProgress from '../../../components/calorieProgress'; // // calls calorieprogress to display on home
 import SearchSuggestionsComponent from '@/components/searchBar';
 import CommunityBoard from '@/components/Community/CommunityBoard';
+import { getAccountByOwnerID } from '@/components/Account/AccountService';
+import { fetchAllGroceryLists } from '@/components/GroceryList/GroceryListService';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   // State for Home screen
@@ -33,6 +35,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [grocery, setGrocery] = useState<any[]>([]); // groceries to display on home
   const user = getAuth().currentUser; // gets user auth to display username on home
+  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Store screen width
   const [screenWidth, setScreenWidth] = useState(
     Dimensions.get('window').width
   );
@@ -40,15 +43,34 @@ export default function HomeScreen() {
   // function to fetch incomplete lists in order to display those on home
   const fetchIncompleteLists = async () => {
     setLoading(true);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+  
     try {
-      const { incomplete } = await fetchGroceryLists();
+      // get the _array_ of lists
+      const account = await getAccountByOwnerID(user.uid);
+      const allLists = await fetchAllGroceryLists(account.id);
+      // pull out only the ones that aren’t complete
+      const incomplete = allLists.filter((list: { isComplete: any; }) => !list.isComplete);
+      console.log('incomplete lists:', incomplete);
       setGrocery(incomplete);
     } catch (error) {
-      console.error('Error fetching incomplete lists: ', error);
+      console.error('Error fetching incomplete lists:', error);
     } finally {
       setLoading(false);
     }
   };
+  
+  useEffect(() => {
+    const onChange = ({ window }: { window: { width: number; height: number } }) => {
+      setScreenWidth(window.width);
+      setScreenHeight(window.height);
+    };
+    const sub = Dimensions.addEventListener('change', onChange);
+    return () => sub?.remove();
+  }, []);
 
   useEffect(() => {
     fetchIncompleteLists();
@@ -132,7 +154,7 @@ export default function HomeScreen() {
         { backgroundColor: colors.background },
       ]}
     >
-      <View style={styles.mainContent}>
+      <ScrollView style={[styles.mainContent, {minHeight: screenHeight - 125}]}>
         {/* Welcome Header and Logout */}
         <SearchSuggestionsComponent></SearchSuggestionsComponent>
         <View style={styles.header}>
@@ -158,33 +180,58 @@ export default function HomeScreen() {
             <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
               Pantries
             </Text>
-            <FlatList
-              horizontal={!isSmallScreen} // Horizontal on larger screens
-              data={limitedPantries} // Use the limited list of pantries
-              renderItem={({ item }) => (
-                <View style={styles.pantryCard}>
-                  <Link href={`../PantryUI?id=${item.id}`} asChild>
-                    <Pressable style={styles.pantryPressable}>
-                      <Text style={[styles.pantryName]}>
-                        {String(item.name)}
-                      </Text>
-                      <MaterialCommunityIcons
-                        name="fridge" // Use "fridge" for a filled icon
-                        size={80} // Icon size
-                        color="black" // Use theme color for the icon
-                      />
-                    </Pressable>
-                  </Link>
-                </View>
-              )}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.flatListContent}
-              showsHorizontalScrollIndicator={false} // Hide the horizontal scrollbar
-              numColumns={isSmallScreen ? 2 : undefined}
-              columnWrapperStyle={
-                isSmallScreen ? styles.columnWrapper : undefined
-              }
-            />
+            {isSmallScreen ? (
+              <FlatList
+                key="pantries-grid"
+                data={limitedPantries}
+                renderItem={({ item }) => (
+                  <View style={styles.pantryCard}>
+                    <Link href={`../PantryUI?id=${item.id}`} asChild>
+                      <Pressable style={styles.pantryPressable}>
+                        <Text style={[styles.pantryName]}>
+                          {String(item.name)}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="fridge" // Use "fridge" for a filled icon
+                          size={80} // Icon size
+                          color="black" // Use theme color for the icon
+                        />
+                      </Pressable>
+                    </Link>
+                  </View>
+                )}
+                keyExtractor={item => item.id}
+                numColumns={2}                    // always 2 columns
+                columnWrapperStyle={styles.columnWrapper}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.flatListContent}
+              />
+            ) : (
+              <FlatList
+                key="pantries-list"
+                data={limitedPantries}
+                renderItem={({ item }) => (
+                  <View style={styles.pantryCard}>
+                    <Link href={`../PantryUI?id=${item.id}`} asChild>
+                      <Pressable style={styles.pantryPressable}>
+                        <Text style={[styles.pantryName]}>
+                          {String(item.name)}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="fridge" // Use "fridge" for a filled icon
+                          size={80} // Icon size
+                          color="black" // Use theme color for the icon
+                        />
+                      </Pressable>
+                    </Link>
+                  </View>
+                )}
+                keyExtractor={item => item.id}
+                horizontal                         // always horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.flatListContent}
+              />
+            )}
           </View>
 
           {/* Grocery Section */}
@@ -194,33 +241,59 @@ export default function HomeScreen() {
             <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
               Grocery Lists
             </Text>
-            <FlatList
-              horizontal={!isSmallScreen} // Horizontal on larger screens
-              data={limitedGroceryLists} // Use the limited list of grocery lists
-              renderItem={({ item }) => (
-                <View style={styles.pantryCard}>
-                  <Link href={`../ListUI?id=${item.id}`} asChild>
-                    <Pressable style={styles.pantryPressable}>
-                      <Text style={[styles.pantryName]}>
-                        {String(item.name)}
-                      </Text>
-                      <MaterialCommunityIcons
-                        name="cart-outline" // Use a grocery-related icon
-                        size={80} // Icon size
-                        color="black" // Use theme color for the icon
-                      />
-                    </Pressable>
-                  </Link>
-                </View>
-              )}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.flatListContent}
-              showsHorizontalScrollIndicator={false} // Hide the horizontal scrollbar
-              numColumns={isSmallScreen ? 2 : undefined}
-              columnWrapperStyle={
-                isSmallScreen ? styles.columnWrapper : undefined
-              }
-            />
+            {isSmallScreen ? (
+              <FlatList
+                key="grocery-grid"
+                data={limitedGroceryLists}
+                renderItem={({ item }) => (
+                  <View style={styles.pantryCard}>
+                    <Link href={`../ListUI?id=${item.id}`} asChild>
+                      <Pressable style={styles.pantryPressable}>
+                        <Text style={[styles.pantryName]}>
+                          {String(item.grocerylist_name)}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="cart-outline" // Use a grocery-related icon
+                          size={80} // Icon size
+                          color="black" // Use theme color for the icon
+                        />
+                      </Pressable>
+                    </Link>
+                  </View>
+                )}
+                keyExtractor={item => item.id}
+                numColumns={2}
+                columnWrapperStyle={styles.columnWrapper}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.flatListContent}
+              />
+            ) : (
+              <FlatList
+                key="grocery-list"
+                data={limitedGroceryLists}
+                renderItem={({ item }) => (
+                  <View style={styles.pantryCard}>
+                    <Link href={`../ListUI?id=${item.id}`} asChild>
+                      <Pressable style={styles.pantryPressable}>
+                        <Text style={[styles.pantryName]}>
+                          {String(item.grocerylist_name)}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="cart-outline" // Use a grocery-related icon
+                          size={80} // Icon size
+                          color="black" // Use theme color for the icon
+                        />
+                      </Pressable>
+                    </Link>
+                  </View>
+                )}
+                keyExtractor={item => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.flatListContent}
+              />
+            )}
+
           </View>
         </View>
 
@@ -239,8 +312,11 @@ export default function HomeScreen() {
             consumedCalories={1698} // test data
           />
         </View>
-      </View>
+      </ScrollView>
+      <View style={styles.verticalDivider} />
+      <SafeAreaView style={[styles.communityContainer, {height: screenHeight - 125 }]}>
       <CommunityBoard></CommunityBoard>
+      </SafeAreaView>
     </View>
   );
 }
@@ -248,6 +324,7 @@ export default function HomeScreen() {
 // style sheet for fonts and colors
 const styles = StyleSheet.create({
   container: {
+    
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
@@ -257,8 +334,17 @@ const styles = StyleSheet.create({
     minWidth: 1000
   },
   mainContent: {
-    flex: 1,                       
-    marginRight: 40,              
+    backgroundColor: '#F4F9FA',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,              // ensures shadow is visible
+    shadowColor: '#000',
+    shadowOffset: { width: -3, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    // Android shadow
+    elevation: 3,
+    flex: 1,
+    padding: 15              
   },
   header: {
     flexDirection: 'row',
@@ -347,5 +433,24 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     width: '48%', // Each section takes up 48% of the width on larger screens
+  },
+  communityContainer: {
+    backgroundColor: '#F4F9FA',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,              // ensures shadow is visible
+    shadowColor: '#000',
+    shadowOffset: { width: 3, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    // Android shadow
+    elevation: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 2
+  },
+  verticalDivider: {
+    width: 2.5,
+    backgroundColor: '#ccc',    // or colors.onSurface
+    // make it stretch to the container’s full height
+    alignSelf: 'stretch',
   },
 });

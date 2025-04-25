@@ -789,7 +789,7 @@ const CommunityBoard: React.FC = () => {
   
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, height: screenHeight - 125 }]}>
+    <SafeAreaView style={[styles.container, { height: screenHeight - 125 }]}>
       <SectionList
         sections={sectionsData}
         stickySectionHeadersEnabled={false}
@@ -980,7 +980,7 @@ const CommunityBoard: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, maxWidth: 350 },
+  container: { flex: 1, maxWidth: 320 },
   listContainer: { paddingHorizontal: 20, paddingBottom: 20 },
   header: {
     fontSize: 32,
