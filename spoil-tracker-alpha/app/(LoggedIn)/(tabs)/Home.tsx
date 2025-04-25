@@ -9,6 +9,7 @@ import {
   Dimensions,
   Pressable,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { useAuth } from '../../../services/authContext'; // Import the authentication context
 import { useTheme, Text, Icon } from 'react-native-paper'; // Import useTheme and Text from react-native-paper
@@ -35,10 +36,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [grocery, setGrocery] = useState<any[]>([]); // groceries to display on home
   const user = getAuth().currentUser; // gets user auth to display username on home
-  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Store screen width
-  const [screenWidth, setScreenWidth] = useState(
-    Dimensions.get('window').width
-  );
+  const { width, height } = useWindowDimensions();
+  const [activeTab, setActiveTab] = useState<'home' | 'community'>('home');
 
   // function to fetch incomplete lists in order to display those on home
   const fetchIncompleteLists = async () => {
@@ -62,15 +61,6 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
-  
-  useEffect(() => {
-    const onChange = ({ window }: { window: { width: number; height: number } }) => {
-      setScreenWidth(window.width);
-      setScreenHeight(window.height);
-    };
-    const sub = Dimensions.addEventListener('change', onChange);
-    return () => sub?.remove();
-  }, []);
 
   useEffect(() => {
     fetchIncompleteLists();
@@ -144,9 +134,219 @@ export default function HomeScreen() {
   const limitedPantries = pantries.slice(0, 4);
   const limitedGroceryLists = grocery.slice(0, 4);
 
-  const isSmallScreen = screenWidth < 800; // checks display size
+  const isSmallScreen = width < 800; // checks display size
 
   // Returns everything to the display for the user to see
+  // MOBILE LAYOUT
+  if (isSmallScreen) {
+    return (
+      <SafeAreaView style={[styles.mobileContainer, { backgroundColor: colors.background }]}>        
+        <View
+          style={[
+            styles.toggleBar,
+            { borderBottomColor: colors.onSurface, backgroundColor: colors.surface },
+          ]}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              activeTab === 'home' && {
+                borderBottomColor: colors.primary,
+                backgroundColor: `${colors.primary}20`,
+              },
+            ]}
+            onPress={() => setActiveTab('home')}>
+            <Text
+              style={{
+                color: activeTab === 'home' ? colors.primary : colors.onSurface,
+                fontWeight: activeTab === 'home' ? '700' : '400',
+              }}>
+              Home
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              activeTab === 'community' && {
+                borderBottomColor: colors.primary,
+                backgroundColor: `${colors.primary}20`,
+              },
+            ]}
+            onPress={() => setActiveTab('community')}>
+            <Text
+              style={{
+                color: activeTab === 'community' ? colors.primary : colors.onSurface,
+                fontWeight: activeTab === 'community' ? '700' : '400',
+              }}>
+              Community
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {activeTab === 'home' ? (
+          <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: 100 }}>
+            <SearchSuggestionsComponent />
+            <View style={styles.header}>
+              <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>Welcome, {username || 'Loading...'}</Text>
+              <TouchableOpacity onPress={handleLogout}>
+                <Text style={styles.btnLogout}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+            {/* Pantry and Grocery Lists Container */}
+            <View
+              style={[
+                styles.sectionsContainer,
+                isSmallScreen ? styles.columnLayout : styles.rowLayout,
+              ]}
+            >
+              {/* Pantry Section */}
+              <View
+                style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
+              >
+                <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+                  Pantries
+                </Text>
+                {isSmallScreen ? (
+                  <FlatList
+                    key="pantries-grid"
+                    data={limitedPantries}
+                    renderItem={({ item }) => (
+                      <View style={styles.pantryCard}>
+                        <Link href={`../PantryUI?id=${item.id}`} asChild>
+                          <Pressable style={styles.pantryPressable}>
+                            <Text style={[styles.pantryName]}>
+                              {String(item.name)}
+                            </Text>
+                            <MaterialCommunityIcons
+                              name="fridge" // Use "fridge" for a filled icon
+                              size={80} // Icon size
+                              color="black" // Use theme color for the icon
+                            />
+                          </Pressable>
+                        </Link>
+                      </View>
+                    )}
+                    keyExtractor={item => item.id}
+                    numColumns={2}                    // always 2 columns
+                    columnWrapperStyle={styles.columnWrapper}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.flatListContent}
+                  />
+                ) : (
+                  <FlatList
+                    key="pantries-list"
+                    data={limitedPantries}
+                    renderItem={({ item }) => (
+                      <View style={styles.pantryCard}>
+                        <Link href={`../PantryUI?id=${item.id}`} asChild>
+                          <Pressable style={styles.pantryPressable}>
+                            <Text style={[styles.pantryName]}>
+                              {String(item.name)}
+                            </Text>
+                            <MaterialCommunityIcons
+                              name="fridge" // Use "fridge" for a filled icon
+                              size={80} // Icon size
+                              color="black" // Use theme color for the icon
+                            />
+                          </Pressable>
+                        </Link>
+                      </View>
+                    )}
+                    keyExtractor={item => item.id}
+                    horizontal                         // always horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.flatListContent}
+                  />
+                )}
+              </View>
+
+              {/* Grocery Section */}
+              <View
+                style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
+              >
+                <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+                  Grocery Lists
+                </Text>
+                {isSmallScreen ? (
+                  <FlatList
+                    key="grocery-grid"
+                    data={limitedGroceryLists}
+                    renderItem={({ item }) => (
+                      <View style={styles.pantryCard}>
+                        <Link href={`../ListUI?id=${item.id}`} asChild>
+                          <Pressable style={styles.pantryPressable}>
+                            <Text style={[styles.pantryName]}>
+                              {String(item.grocerylist_name)}
+                            </Text>
+                            <MaterialCommunityIcons
+                              name="cart-outline" // Use a grocery-related icon
+                              size={80} // Icon size
+                              color="black" // Use theme color for the icon
+                            />
+                          </Pressable>
+                        </Link>
+                      </View>
+                    )}
+                    keyExtractor={item => item.id}
+                    numColumns={2}
+                    columnWrapperStyle={styles.columnWrapper}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.flatListContent}
+                  />
+                ) : (
+                  <FlatList
+                    key="grocery-list"
+                    data={limitedGroceryLists}
+                    renderItem={({ item }) => (
+                      <View style={styles.pantryCard}>
+                        <Link href={`../ListUI?id=${item.id}`} asChild>
+                          <Pressable style={styles.pantryPressable}>
+                            <Text style={[styles.pantryName]}>
+                              {String(item.grocerylist_name)}
+                            </Text>
+                            <MaterialCommunityIcons
+                              name="cart-outline" // Use a grocery-related icon
+                              size={80} // Icon size
+                              color="black" // Use theme color for the icon
+                            />
+                          </Pressable>
+                        </Link>
+                      </View>
+                    )}
+                    keyExtractor={item => item.id}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.flatListContent}
+                  />
+                )}
+
+              </View>
+            </View>
+
+            {/* Nutrition Section */}
+            <View
+              style={[
+                styles.sectionsContainer,
+                isSmallScreen ? {} : styles.halfWidth,
+              ]}
+            >
+              <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
+                Nutrition
+              </Text>
+              <CalorieProgress
+                totalCalories={2000} // test data
+                consumedCalories={1698} // test data
+              />
+            </View>
+          </ScrollView>
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <CommunityBoard />
+          </View>
+        )}
+      </SafeAreaView>
+    );
+  }
+
   return (
     <View
       style={[
@@ -154,7 +354,7 @@ export default function HomeScreen() {
         { backgroundColor: colors.background },
       ]}
     >
-      <ScrollView style={[styles.mainContent, {minHeight: screenHeight - 125}]}>
+      <ScrollView style={[styles.mainContent, {minHeight: height - 125}]}>
         {/* Welcome Header and Logout */}
         <SearchSuggestionsComponent></SearchSuggestionsComponent>
         <View style={styles.header}>
@@ -314,7 +514,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
       <View style={styles.verticalDivider} />
-      <SafeAreaView style={[styles.communityContainer, {height: screenHeight - 125 }]}>
+      <SafeAreaView style={[styles.communityContainer, {height: height - 125 }]}>
       <CommunityBoard></CommunityBoard>
       </SafeAreaView>
     </View>
@@ -452,5 +652,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',    // or colors.onSurface
     // make it stretch to the container’s full height
     alignSelf: 'stretch',
+  },
+  // MOBILE-ONLY TAB BAR
+  toggleBar: {
+    flexDirection: 'row',
+    height: 50,
+    borderBottomWidth: 1,
+  },
+  toggleButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    paddingVertical: 8,
+    marginHorizontal: 8,
+    borderRadius: 8,
+  },
+  mobileContainer: {
+    flex: 1,
   },
 });
