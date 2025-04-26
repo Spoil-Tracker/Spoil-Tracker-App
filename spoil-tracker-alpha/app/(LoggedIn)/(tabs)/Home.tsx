@@ -134,7 +134,7 @@ export default function HomeScreen() {
   const limitedPantries = pantries.slice(0, 4);
   const limitedGroceryLists = grocery.slice(0, 4);
 
-  const isSmallScreen = width < 800; // checks display size
+  const isSmallScreen = width < 1000; // checks display size
 
   // Returns everything to the display for the user to see
   // MOBILE LAYOUT

@@ -3,7 +3,7 @@ import { db } from "../firestore";
 import { COLLECTIONS } from "./CollectionNames";
 import { GroceryList } from "./GroceryList";
 import { GraphQLISODateTime } from "type-graphql";
-import { key } from "../openaikey";
+import { key } from "../vars";
 import { FoodGlobal } from "./FoodGlobal";
 
 // ---------------------------

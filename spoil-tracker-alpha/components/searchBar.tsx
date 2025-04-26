@@ -33,15 +33,18 @@ import {
 } from './GroceryList/GroceryListService';
 import { searchFoodGlobalByFoodName } from './Food/FoodGlobalService';
 import { searchCustomItemsFromAccount } from './Account/AccountService';
+import {
+  searchPantries,
+  fetchPantryByID
+} from './Pantry/PantryService';
 
 import ProductPage from './Food/FoodUI';
 import ViewGroceryList from '@/components/GroceryList/ListUI_ViewOnly';
+// import ViewPantry from '@/components/Pantry/PantryUI';
 
-// Interface for grocery list items with id and name
-interface GroceryListItem {
-  id: string;
-  name: string;
-}
+interface GroceryListItem { id: string; name: string; }
+
+interface PantryItem { id: string; name: string; }
 
 interface Props {
   onSelectSuggestion?: (suggestion: any, section: string) => void;
@@ -56,10 +59,9 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
   const [groceryListResults, setGroceryListResults] = useState<GroceryListItem[]>([]);
   const [foodGlobalResults, setFoodGlobalResults] = useState<any[]>([]);
   const [customItemsResults, setCustomItemsResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [pantryResults, setPantryResults] = useState<PantryItem[]>([]);      // ← NEW
 
-  // selectedItem can be GroceryListItem or product/custom item
-  const [selectedItem, setSelectedItem] = useState<GroceryListItem | any>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -76,78 +78,65 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
     })();
   }, [user]);
 
-  /**
-   * performSearch
-   * 
-   * Performs the search by calling the client-side search functions in parallel,
-   * fetching grocery list names and search results for products and custom items.
-   * Resets results if query is empty.
-   *
-   * @param {string} q - The search query string.
-   */
   const performSearch = async (q: string) => {
     if (!accountId) return;
     if (q.trim().length === 0) {
       setGroceryListResults([]);
       setFoodGlobalResults([]);
       setCustomItemsResults([]);
+      setPantryResults([]);                             // ← CLEAR
       return;
     }
 
-    setLoading(true);
     try {
+      // 1) grocery lists
       const groceryIds = await searchGroceryLists(accountId, q);
       const groceryLists = await Promise.all(
         groceryIds.map(async (id: string) => {
           const list = await fetchGroceryListByID(id);
-          if (!list) return { id, name: 'Unknown' };
-          return { id: list.id, name: list.grocerylist_name };
+          return { id, name: list?.grocerylist_name ?? 'Unknown' };
         })
       );
-      const [_, foodGlobals, customItems] = await Promise.all([
-        Promise.resolve(groceryLists),
+
+      // 2) products & custom items
+      const [ foodGlobals, customItems ] = await Promise.all([
         searchFoodGlobalByFoodName(q),
         searchCustomItemsFromAccount(accountId, q),
       ]);
 
+      // 3) pantries ← NEW
+      const pantryIds = await searchPantries(accountId, q);
+      const pantries = await Promise.all(
+        pantryIds.map(async (id: string) => {
+          const p = await fetchPantryByID(id);
+          return { id, name: p?.pantry_name ?? 'Unknown' };
+        })
+      );
+
       setGroceryListResults(groceryLists);
       setFoodGlobalResults(foodGlobals);
       setCustomItemsResults(customItems);
+      setPantryResults(pantries);                       // ← SET
     } catch (error) {
       console.error('Error performing search:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const debouncedSearch = useCallback(debounce(performSearch, 300), [accountId]);
 
-  /**
-   * handleInputChange
-   * 
-   * Updates the query state and triggers the debounced search.
-   *
-   * @param {string} text - The current text input value.
-   */
   const handleInputChange = (text: string) => {
     setQuery(text);
     debouncedSearch(text);
   };
 
+  // add a new Pantries section
   const sections = [
     { title: 'Grocery Lists', data: groceryListResults },
-    { title: 'Products', data: foodGlobalResults },
+    { title: 'Products',     data: foodGlobalResults },
     { title: 'Custom Items', data: customItemsResults },
+    { title: 'Pantries',     data: pantryResults },  // ← NEW
   ];
 
-  /**
-   * handleSuggestionPress
-   * 
-   * Handles the event when a suggestion is pressed. Opens modal and sets selected item/section.
-   *
-   * @param {any} item - The selected search result item.
-   * @param {string} section - The section title.
-   */
   const handleSuggestionPress = (item: any, section: string) => {
     setSelectedItem(item);
     setSelectedSection(section);
@@ -155,11 +144,6 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
     onSelectSuggestion?.(item, section);
   };
 
-  /**
-   * closeModal
-   * 
-   * Closes the modal and resets selected item and section.
-   */
   const closeModal = () => {
     setModalVisible(false);
     setSelectedItem(null);
@@ -193,12 +177,13 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
                     onPress={() => handleSuggestionPress(item, title)}
                   >
                     <Text>
-                      {title === 'Grocery Lists'
-                        ? item.name
-                        : typeof item === 'string'
-                        ? item
-                        : item.food_name ?? item.title ?? item.username}
-                    </Text>
+                    {title === 'Grocery Lists' || title === 'Pantries'
+                      ? item.name
+                      : typeof item === 'string'
+                      ? item
+                      :
+                        item.food_name ?? item.title ?? item.username ?? 'Unknown'}
+                  </Text>
                   </TouchableOpacity>
                 ))
               ) : (
@@ -218,12 +203,11 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {selectedSection === 'Grocery Lists' ? (
-              selectedItem ? (
-                <ViewGroceryList id={selectedItem.id} />
-              ) : (
-                <Text>No grocery list selected.</Text>
-              )
-            ) : selectedItem ? (
+              <ViewGroceryList id={selectedItem.id} />
+            ) : selectedSection === 'Pantries' ? (
+              // ← YOU CAN SWAP THIS OUT for your pantry-view UI
+              <Text>Pantry: {selectedItem.name}</Text>
+            ) : selectedSection ? (
               <ProductPage foodId={selectedItem.id} accountId={accountId} />
             ) : (
               <Text>No item selected.</Text>
