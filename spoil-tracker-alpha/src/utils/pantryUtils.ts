@@ -6,7 +6,7 @@ import { getAuth } from 'firebase/auth';
  * Fetches the user's pantries from Firestore.
  * @returns An array of pantry objects with `id`, `name`, and other details.
  */
-export const fetchPantries = async () => {
+export const fetchPantries = async (user: unknown) => {
   try {
     const user = getAuth().currentUser;
 

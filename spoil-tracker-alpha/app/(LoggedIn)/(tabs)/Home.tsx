@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as Font from 'expo-font';
-import { useRouter, Link } from 'expo-router';
+import { useRouter, Link, usePathname } from 'expo-router';
 import {
   View,
   StyleSheet,
@@ -34,6 +34,10 @@ export default function HomeScreen() {
   const [screenWidth, setScreenWidth] = useState(
     Dimensions.get('window').width
   );
+  const [recentPages, setRecentPages] = useState<string[]>([]);
+  const pathname = usePathname();
+  const [pageTimes, setPageTimes] = useState<{[key: string]: number}>({});
+  const [lastPageChange, setLastPageChange] = useState<number>(Date.now());
 
   // function to fetch incomplete lists in order to display those on home
   const fetchIncompleteLists = async () => {
@@ -98,6 +102,63 @@ export default function HomeScreen() {
     return () => unsubscribe(); // Cleanup listener on unmount
   }, []);
 
+  // Function to update recent pages
+  const updateRecentPages = (newPage: string) => {
+    setRecentPages(prevPages => {
+      // Remove the new page if it already exists in the list
+      const filteredPages = prevPages.filter(page => page !== newPage);
+      // Add the new page to the beginning
+      const updatedPages = [newPage, ...filteredPages];
+      // Keep only the last 3 pages
+      return updatedPages.slice(0, 3);
+    });
+  };
+
+  // Update recent pages when pathname changes
+  useEffect(() => {
+    if (pathname) {
+      // Extract the page name from the path
+      const pageName = pathname.split('/').pop() || '';
+      // Format the page name for display
+      const formattedPageName = pageName.charAt(0).toUpperCase() + pageName.slice(1);
+      updateRecentPages(formattedPageName);
+    }
+  }, [pathname]);
+
+  // Function to format time
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) {
+      return `${seconds}s`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes}m`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours}h`;
+    }
+  };
+
+  // Update time spent on previous page
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (recentPages.length > 0) {
+        const currentPage = recentPages[0];
+        const timeSpent = Math.floor((Date.now() - lastPageChange) / 1000);
+        setPageTimes(prev => ({
+          ...prev,
+          [currentPage]: timeSpent
+        }));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [recentPages, lastPageChange]);
+
+  // Update lastPageChange when pathname changes
+  useEffect(() => {
+    setLastPageChange(Date.now());
+  }, [pathname]);
+
   if (!fontsLoaded) {
     return (
       <View style={styles.container}>
@@ -145,7 +206,7 @@ export default function HomeScreen() {
         <View
           style={[
             styles.sectionsContainer,
-            isSmallScreen ? styles.columnLayout : styles.rowLayout,
+            styles.rowLayout
           ]}
         >
           {/* Pantry Section */}
@@ -221,20 +282,47 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Nutrition Section */}
         <View
           style={[
             styles.sectionsContainer,
-            isSmallScreen ? {} : styles.halfWidth,
+            styles.rowLayout
           ]}
         >
-          <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
-            Nutrition
-          </Text>
-          <CalorieProgress
-            totalCalories={2000} // test data
-            consumedCalories={1698} // test data
-          />
+          {/* Nutrition Section */}
+          <View
+            style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
+          >
+            <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+              Nutrition
+            </Text>
+            <CalorieProgress
+              totalCalories={2000} // test data
+              consumedCalories={1698} // test data
+            />
+          </View>
+
+          {/*Recent Activity Section */}
+          <View
+            style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
+          >
+            <Text style={[styles.spoilTrackerText, {color: 'black'}]}>
+              Recent Activity
+            </Text>
+            <View style={styles.recentActivityList}>
+              {recentPages.map((page, index) => (
+                <View key={index} style={styles.recentActivityItem}>
+                  <View style={styles.recentActivityBox}>
+                    <Text style={styles.recentActivityText}>
+                      {index + 1}.) {page}
+                    </Text>
+                  </View>
+                  <Text style={styles.timeText}>
+                    {formatTime(pageTimes[page] || 0)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -334,5 +422,35 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     width: '48%', // Each section takes up 48% of the width on larger screens
+  },
+  recentActivityList: {
+    marginTop: 10,
+  },
+  recentActivityItem: {
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recentActivityBox: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    width: '70%',
+  },
+  recentActivityText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  timeText: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: 'black',
+    fontWeight: 'bold',
   },
 });
