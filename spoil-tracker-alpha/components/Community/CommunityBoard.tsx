@@ -1,19 +1,18 @@
 /**
- * CommunityBoard Component
+ * @file CommunityBoard.tsx
+ * @description
+ * Displays a community-driven dashboard with:
+ *  - Spoil Tracker activity stats
+ *  - Popular Foods & Seasonal Produce carousels
+ *  - Featured Meal Plans (community grocery lists)
+ *  - Community Posts (with sorting, filtering, pagination)
+ * Provides modals for creating posts and viewing lists in detail.
  *
- * This component renders the Community Board view, which displays:
- * - Popular Foods and Seasonal Produce sections (horizontal FlatLists)
- * - Featured Meal Plans (community grocery lists)
- * - Community Posts (paginated list of posts)
- *
- * It also provides modals for creating a new post and for viewing a grocery list in detail.
- * The component supports sorting, filtering, and pagination for posts and grocery lists.
- *
- * External services used:
- * - CommunityService: Functions to fetch community data, create posts, update likes, etc.
- * - AccountService: Functions to fetch account details and manage liked posts/lists.
- * - FoodGlobalService: Functions to fetch food items and determine popular/seasonal items.
- *
+ * External services:
+ *  - CommunityService: fetch/create posts, like/unlike, comments, lists
+ *  - AccountService: fetch account, manage liked entities
+ *  - FoodGlobalService: fetch all foods, compute popular/seasonal
+ *  - FoodLeaderboardService: fetch spoil-tracker totals
  */
 
 import React, { useState, useEffect, useCallback, } from 'react';
@@ -64,13 +63,17 @@ import { useFocusEffect } from 'expo-router';
 
 // ===== Type Definitions =====
 
-// Comment and Post interfaces.
+/** A single user comment on a post */
 interface Comment {
+  /** ID of the commenting account */
   account_id: string;
+  /** Comment text */
   message: string;
+  /** ISO timestamp */
   createdAt: string;
 }
 
+/** A community post */
 export interface Post {
   id: string;
   title: string;
@@ -81,7 +84,7 @@ export interface Post {
   comments: Comment[];
 }
 
-// GroceryListItem and GroceryList (full schema).
+/** One item within a community grocery list */
 export interface GroceryListItem {
   id: string;
   food_name: string;
@@ -93,6 +96,7 @@ export interface GroceryListItem {
   imageUrl: string;
 }
 
+/** A community grocery list ("Meal Plan") */
 export interface GroceryList {
   account_id: string;
   id: string;
@@ -107,25 +111,19 @@ export interface GroceryList {
   snapshotAt?: string;
 }
 
-// CommunityData interface.
+/** Data returned from getCommunity() */
 interface CommunityData {
   posts: Post[];
   copiedGroceryLists: GroceryList[];
 }
 
-// Account interface.
+/** User account stored locally */
 interface Account {
   id: string;
   owner_id: string;
   likedPosts: string[];
   likedCommunityGroceryLists: string[];
   // ... other fields if needed
-}
-
-// SectionData interface for SectionList (each section has a title and a data array).
-interface SectionData {
-  title: string;
-  data: any[]; // For food sections, this will be a dummy array with one item.
 }
 
 // Our union type for items in the SectionList.
@@ -135,11 +133,16 @@ type SectionItem =
   | GroceryList
   | Post;
 
+/** Generic section for SectionList */
 interface CustomSection {
   title: string;
   data: SectionItem[];
 }
 
+/**
+ * Memoized component to render a single post card,
+ * with like, delete, and comment functionality.
+ */
 const PostItem = React.memo(({ 
   item, 
   account,
@@ -243,6 +246,10 @@ const PostItem = React.memo(({
   );
 });
 
+/**
+ * Memoized component to render a single grocery-list card,
+ * with like/unlike and delete functionality.
+ */
 const GroceryItem = React.memo(({
   item,
   account,
@@ -294,7 +301,16 @@ const GroceryItem = React.memo(({
 });
 
 // ==============================
-
+/**
+ * CommunityBoard
+ *
+ * Main screen component. Fetches:
+ *  - Community feed (posts + lists)
+ *  - Account info + liked states
+ *  - Popular & seasonal foods
+ *  - Spoil-tracker totals
+ * Manages all sorting, filtering, pagination, and modals.
+ */
 const CommunityBoard: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();

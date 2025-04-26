@@ -4,6 +4,14 @@ import { Dropdown } from 'react-native-element-dropdown';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { getAllPantriesforAccount } from '@/components/Pantry/PantryService';
 
+/**
+ * @file PantryDropdownComponent.tsx
+ * @description
+ * A reusable dropdown component for selecting one of the user's pantries.
+ * Fetches all pantries for a given account and lets the user search/select.
+ * Displays a loading spinner while fetching.
+ */
+
 /** Represents one pantry in the dropdown. */
 interface PantryDropdownOption {
   label: string; // pantry name
@@ -11,17 +19,44 @@ interface PantryDropdownOption {
 }
 
 interface PantryDropdownProps {
+  /**
+   * The ID of the account whose pantries should be fetched.
+   */
   accountId: string;
+  /**
+   * Callback fired when the user selects a pantry.
+   * @param selectedItem The ID of the selected pantry, or null if cleared.
+   */
   onValueChange: (selectedItem: string | null) => void;
 }
 
+/**
+ * A dropdown component that displays all pantries for an account.
+ *
+ * Features:
+ * - Fetches pantry list on mount or whenever `accountId` changes.
+ * - Shows a loading indicator while fetching.
+ * - Allows searching by pantry name.
+ * - Displays a floating label when focused or a value is selected.
+ *
+ * @param accountId The account whose pantries to load.
+ * @param onValueChange Called with the selected pantry ID.
+ */
 const PantryDropdownComponent: React.FC<PantryDropdownProps> = ({ accountId, onValueChange }) => {
+  /** Currently selected pantry ID (valueField). */
   const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  /** Whether the dropdown currently has focus (for styling). */
   const [isFocus, setIsFocus] = useState(false);
+  /** The list of pantry options, mapped to { label, value }. */
   const [data, setData] = useState<PantryDropdownOption[]>([]);
+  /** Loading flag while fetching pantry data. */
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    /**
+     * Fetches pantries for the given accountId, maps them into the
+     * format the Dropdown component expects, and handles errors.
+     */
     const fetchPantries = async () => {
       try {
         const pantries = await getAllPantriesforAccount(accountId);
@@ -39,7 +74,11 @@ const PantryDropdownComponent: React.FC<PantryDropdownProps> = ({ accountId, onV
 
     fetchPantries();
   }, [accountId]);
-
+  
+  /**
+   * Conditionally renders the floating label above the dropdown.
+   * Visible when a value is selected or the dropdown is focused.
+   */
   const renderLabel = () => {
     if (selectedValue || isFocus) {
       return (

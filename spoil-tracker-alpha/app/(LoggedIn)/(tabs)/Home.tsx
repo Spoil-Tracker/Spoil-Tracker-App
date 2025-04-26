@@ -24,6 +24,8 @@ import CommunityBoard from '@/components/Community/CommunityBoard';
 import { getAccountByOwnerID } from '@/components/Account/AccountService';
 import { fetchAllGroceryLists } from '@/components/GroceryList/GroceryListService';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FdcSearch from '@/components/FDA_APISearch';
+import MealSearch from '@/components/TheMealDB_API';
 
 export default function HomeScreen() {
   // State for Home screen
@@ -337,6 +339,8 @@ export default function HomeScreen() {
                 consumedCalories={1698} // test data
               />
             </View>
+            <FdcSearch></FdcSearch>
+            <MealSearch></MealSearch>
           </ScrollView>
         ) : (
           <View style={{ flex: 1, alignItems: 'center' }}>
@@ -354,7 +358,7 @@ export default function HomeScreen() {
         { backgroundColor: colors.background },
       ]}
     >
-      <ScrollView style={[styles.mainContent, {minHeight: height - 125}]}>
+      <ScrollView style={[styles.mainContent, {height: height - 125}]}>
         {/* Welcome Header and Logout */}
         <SearchSuggestionsComponent></SearchSuggestionsComponent>
         <View style={styles.header}>
@@ -512,6 +516,9 @@ export default function HomeScreen() {
             consumedCalories={1698} // test data
           />
         </View>
+
+        <FdcSearch></FdcSearch>
+        <MealSearch></MealSearch>
       </ScrollView>
       <View style={styles.verticalDivider} />
       <SafeAreaView style={[styles.communityContainer, {height: height - 125 }]}>

@@ -104,7 +104,6 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
         searchCustomItemsFromAccount(accountId, q),
       ]);
 
-      // 3) pantries ← NEW
       const pantryIds = await searchPantries(accountId, q);
       const pantries = await Promise.all(
         pantryIds.map(async (id: string) => {
@@ -205,7 +204,6 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
             {selectedSection === 'Grocery Lists' ? (
               <ViewGroceryList id={selectedItem.id} />
             ) : selectedSection === 'Pantries' ? (
-              // ← YOU CAN SWAP THIS OUT for your pantry-view UI
               <Text>Pantry: {selectedItem.name}</Text>
             ) : selectedSection ? (
               <ProductPage foodId={selectedItem.id} accountId={accountId} />

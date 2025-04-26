@@ -22,33 +22,73 @@ import { getAccountByOwnerID } from '@/components/Account/AccountService';
 import PantryDropdownComponent from '@/components/Pantry/PantryDropdown';
 import { router } from 'expo-router';
 
+/**
+ * @file BarcodeScanner.tsx
+ * @description
+ * Screen for adding grocery or pantry items by scanning a barcode, choosing from matches,
+ * or entering data manually. Supports:
+ *  - Camera-based barcode scanning
+ *  - Manual barcode entry
+ *  - Looking up product info via OpenFoodFacts (and related) APIs
+ *  - Choosing an existing grocery list or pantry
+ *  - Falling back to a custom item form
+ */
 export default function BarcodeScanner() {
+  // --------------------------------------------------------------------------
+  // Auth & Account
+  // --------------------------------------------------------------------------
+
   const { user } = useAuth();
+  /** The current account ID, loaded once based on authenticated user */
   const [accountId, setAccountId] = useState<string | null>(null);
 
-  // Load account ID once
   useEffect(() => {
-    if (user) {
-      getAccountByOwnerID(user.uid)
-        .then(ac => setAccountId(ac.id))
-        .catch(e => console.warn('Error loading account:', e));
-    }
+    if (!user) return;
+    getAccountByOwnerID(user.uid)
+      .then(ac => setAccountId(ac.id))
+      .catch(e => console.warn('Error loading account:', e));
   }, [user]);
 
+  // --------------------------------------------------------------------------
+  // UI Mode & Camera
+  // --------------------------------------------------------------------------
+
+  /** 'menu' | 'camera' | 'manual' determines which UI to show */
   const [mode, setMode] = useState<'menu' | 'camera' | 'manual'>('menu');
+  /** front or back camera */
   const [facing, setFacing] = useState<CameraType>('back');
+  /** Manual entry text for barcode */
   const [manualInput, setManualInput] = useState<string>('');
+  /** Expo camera permission status and request function */
   const [permission, requestPermission] = useCameraPermissions();
+  /** Flag to prevent double-scanning within debounce period */
   const scanningRef = useRef<boolean>(false);
 
+  // --------------------------------------------------------------------------
+  // Product Lookup & Selection
+  // --------------------------------------------------------------------------
+
+  /** Parameters for populating the custom item form */
   const [formParams, setFormParams] = useState<Record<string, string> | null>(null);
+  /** List of nearest matching FoodGlobal results */
   const [matches, setMatches] = useState<FoodGlobal[]>([]);
+  /** The user-selected FoodGlobal item */
   const [selectedFood, setSelectedFood] = useState<FoodGlobal | null>(null);
+  /** Chosen grocery list ID (overrides pantry) */
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  /** Chosen pantry ID (overrides list) */
   const [selectedPantryId, setSelectedPantryId] = useState<string | null>(null);
+  /** Whether the user has opted into the custom item form */
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
 
+  /**
+   * Lookup product data by barcode from multiple Open*Facts endpoints,
+   * populate formParams if found, and fetch nearest FoodGlobal matches.
+   *
+   * @param barcode  The scanned or entered barcode string
+   */
   const lookupAndShowForm = async (barcode: string) => {
+    // Reset previous state
     setMatches([]);
     setSelectedFood(null);
     setFormParams(null);
@@ -72,14 +112,14 @@ export default function BarcodeScanner() {
           const name = p.product_name || '';
           Alert.alert('Product Found', name || 'Unknown');
 
+          // Build form initial values from API response
           const nutr = p.nutriments || {};
           const params: Record<string, string> = {
             initialName: name,
             initialDescription: p.generic_name || p.generic_name_en || '',
             initialCategory: p.categories || p.brands || '',
             initialAmount: p.serving_size || '',
-            initialImageLink:
-              p.image_url || p.image_front_url || p.image_small_url || '',
+            initialImageLink: p.image_url || p.image_front_url || p.image_small_url || '',
             initialTotalFat: nutr['fat_100g']?.toString() || '',
             initialSatFat: nutr['saturated-fat_100g']?.toString() || '',
             initialTransFat: nutr['trans-fat_100g']?.toString() || '',
@@ -96,6 +136,7 @@ export default function BarcodeScanner() {
             initialPotassium: nutr['potassium_100g']?.toString() || '',
           };
 
+          // Fetch the top 3 nearest FoodGlobal entries
           try {
             const top = await getClosestFoodGlobal(name, 3);
             setMatches(top);
@@ -111,9 +152,14 @@ export default function BarcodeScanner() {
       }
     }
 
+    // If none of the sources returned a product
     Alert.alert('Not Found', 'No product found in Open Facts databases.');
   };
 
+  /**
+   * Handler invoked by CameraView when a barcode is scanned.
+   * Debounces back-to-back scans within 3 seconds.
+   */
   const handleBarCodeScanned = ({ data }: { type: string; data: string }) => {
     if (scanningRef.current) return;
     scanningRef.current = true;
@@ -121,21 +167,31 @@ export default function BarcodeScanner() {
     setTimeout(() => (scanningRef.current = false), 3000);
   };
 
-  const toggleCameraFacing = () => setFacing(cur => (cur === 'back' ? 'front' : 'back'));
+  /** Toggle between front and back camera */
+  const toggleCameraFacing = () =>
+    setFacing(cur => (cur === 'back' ? 'front' : 'back'));
 
-  // Custom form
+  // --------------------------------------------------------------------------
+  // Conditional Rendering
+  // --------------------------------------------------------------------------
+
+  // 1) Custom item form
   if (isCustomMode && formParams) {
     return (
       <CustomGroceryItemScreen
         {...formParams}
-        onItemAdded={() => { setFormParams(null); router.back(); }}
+        onItemAdded={() => {
+          setFormParams(null);
+          router.back();
+        }}
       />
     );
   }
 
-  // Matches view
+  // 2) Matches list view
   if (matches.length > 0) {
     if (!accountId) {
+      // Still loading account info
       return (
         <View style={styles.container}>
           <ActivityIndicator size="large" color="green" />
@@ -143,15 +199,17 @@ export default function BarcodeScanner() {
         </View>
       );
     }
+
     return (
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.cardTitle}>Select a Match:</Text>
+
         {matches.map(item => (
           <TouchableOpacity
             key={item.id}
             style={[
               styles.card,
-              selectedFood?.id === item.id && styles.selectedCard
+              selectedFood?.id === item.id && styles.selectedCard,
             ]}
             onPress={() => setSelectedFood(item)}
           >
@@ -162,20 +220,28 @@ export default function BarcodeScanner() {
             </View>
           </TouchableOpacity>
         ))}
+
         {selectedFood && (
           <View style={styles.actionBlock}>
             <PantryDropdownComponent
               accountId={accountId}
-              onValueChange={val => { setSelectedPantryId(val); setSelectedListId(null); }}
+              onValueChange={val => {
+                setSelectedPantryId(val);
+                setSelectedListId(null);
+              }}
             />
             <GroceryListDropdownComponent
               accountId={accountId}
-              onValueChange={val => { setSelectedListId(val); setSelectedPantryId(null); }}
+              onValueChange={val => {
+                setSelectedListId(val);
+                setSelectedPantryId(null);
+              }}
             />
+
             <TouchableOpacity
               style={[
                 styles.actionButton,
-                !(selectedPantryId || selectedListId) && styles.disabledButton
+                !(selectedPantryId || selectedListId) && styles.disabledButton,
               ]}
               onPress={async () => {
                 if (!(selectedPantryId || selectedListId)) {
@@ -183,11 +249,11 @@ export default function BarcodeScanner() {
                 }
                 try {
                   if (selectedPantryId) {
-                // TODO: addPantryItem not implemented yet
-                Alert.alert('Added to pantry (placeholder)');
-              } else if (selectedListId) {
+                    // TODO: implement addPantryItem when service is ready
+                    Alert.alert('Added to pantry (placeholder)');
+                  } else {
                     await addGroceryListItem(
-                      selectedListId,
+                      selectedListId!,
                       accountId!,
                       selectedFood.id,
                       selectedFood.food_name
@@ -207,6 +273,7 @@ export default function BarcodeScanner() {
             </TouchableOpacity>
           </View>
         )}
+
         <Text style={styles.cardTitle}>OR</Text>
         <TouchableOpacity
           style={styles.secondaryButton}
@@ -218,7 +285,7 @@ export default function BarcodeScanner() {
     );
   }
 
-  // Mode menu, manual, camera: unchanged...
+  // 3) Mode selection menu
   if (mode === 'menu') {
     return (
       <View style={styles.menuContainer}>
@@ -233,6 +300,7 @@ export default function BarcodeScanner() {
     );
   }
 
+  // 4) Manual barcode entry
   if (mode === 'manual') {
     return (
       <View style={styles.container}>
@@ -244,59 +312,104 @@ export default function BarcodeScanner() {
           placeholder="Barcode Number"
           keyboardType="numeric"
         />
-        <TouchableOpacity style={styles.actionButton} onPress={() => {
-          if (!manualInput.trim()) Alert.alert('Input Required', 'Please enter a barcode.');
-          else lookupAndShowForm(manualInput.trim());
-        }}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => {
+            if (!manualInput.trim()) {
+              Alert.alert('Input Required', 'Please enter a barcode.');
+            } else {
+              lookupAndShowForm(manualInput.trim());
+            }
+          }}
+        >
           <Text style={styles.actionButtonText}>Submit</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => setMode('menu')}>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => setMode('menu')}
+        >
           <Text style={styles.secondaryButtonText}>Back to Menu</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  // 5) Camera scanning view
   if (mode === 'camera') {
-    if (!permission) return <View />;
+    if (!permission) {
+      // Permission object not yet available
+      return <View />;
+    }
     if (!permission.granted) {
+      // Permission denied or not requested yet
       return (
         <View style={styles.container}>
           <Text style={styles.label}>Camera permission is required.</Text>
           <TouchableOpacity style={styles.actionButton} onPress={requestPermission}>
             <Text style={styles.actionButtonText}>Grant Permission</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => setMode('menu')}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => setMode('menu')}
+          >
             <Text style={styles.secondaryButtonText}>Back to Menu</Text>
           </TouchableOpacity>
         </View>
       );
     }
+    // Permission granted: show camera preview
     return (
       <View style={styles.container}>
-        <CameraView style={styles.camera} facing={facing} onBarcodeScanned={handleBarCodeScanned}>
+        <CameraView
+          style={styles.camera}
+          facing={facing}
+          onBarcodeScanned={handleBarCodeScanned}
+        >
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
+            <TouchableOpacity
+              style={styles.flipButton}
+              onPress={toggleCameraFacing}
+            >
               <Text style={styles.flipButtonText}>Flip Camera</Text>
             </TouchableOpacity>
           </View>
         </CameraView>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => setMode('menu')}>
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => setMode('menu')}
+        >
           <Text style={styles.secondaryButtonText}>Back to Menu</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  // Fallback empty view
   return <View />;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  menuContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  menuTitle: { fontSize: 24, fontWeight: '700', marginBottom: 20 },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  menuTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 20,
+  },
 
-  scrollContainer: { padding: 20, alignItems: 'center' },
+  scrollContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
   card: {
     backgroundColor: '#fff',
     width: 300,
@@ -313,11 +426,28 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#4CAF50',
   },
-  cardTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12 },
-  cardImage: { width: 80, height: 80, borderRadius: 40, marginBottom: 12 },
-  cardText: { alignItems: 'center' },
-  cardFoodName: { fontSize: 18, fontWeight: '700' },
-  cardFoodCategory: { fontSize: 14, color: '#666' },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  cardImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
+  },
+  cardText: {
+    alignItems: 'center',
+  },
+  cardFoodName: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  cardFoodCategory: {
+    fontSize: 14,
+    color: '#666',
+  },
 
   actionButton: {
     backgroundColor: '#4CAF50',
@@ -328,7 +458,11 @@ const styles = StyleSheet.create({
     width: '80%',
     alignItems: 'center',
   },
-  actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '500' },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
 
   secondaryButton: {
     backgroundColor: '#2196F3',
@@ -339,7 +473,11 @@ const styles = StyleSheet.create({
     width: '80%',
     alignItems: 'center',
   },
-  secondaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '500' },
+  secondaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
 
   menuButton: {
     backgroundColor: '#FFC107',
@@ -350,7 +488,11 @@ const styles = StyleSheet.create({
     width: '70%',
     alignItems: 'center',
   },
-  menuButtonText: { color: '#000', fontSize: 16, fontWeight: '600' },
+  menuButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 
   textInput: {
     height: 40,
@@ -371,11 +513,31 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 
-  camera: { flex: 1, width: '100%' },
-  buttonContainer: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', marginBottom: 30 },
+  camera: {
+    flex: 1,
+    width: '100%',
+  },
+  buttonContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
 
-  flipButton: { backgroundColor: '#00000080', padding: 10, borderRadius: 8 },
-  flipButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  flipButton: {
+    backgroundColor: '#00000080',
+    padding: 10,
+    borderRadius: 8,
+  },
+  flipButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 
-  label: { fontSize: 18, textAlign: 'center', marginBottom: 10 },
+  label: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
 });
