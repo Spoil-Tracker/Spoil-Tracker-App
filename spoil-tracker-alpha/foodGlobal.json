@@ -3,7 +3,7 @@
       "id": "1",
       "food_name": "Apple",
       "food_category": "Fruit",
-      "food_picture_url": "https://example.com/images/apple.jpg",
+      "food_picture_url": "https://i.imgur.com/y7QzUUR.png",
       "amount_per_serving": "1 medium apple",
       "description": "A fresh and crispy red apple.",
       "macronutrients": {
@@ -29,7 +29,7 @@
       "id": "2",
       "food_name": "Banana",
       "food_category": "Fruit",
-      "food_picture_url": "https://example.com/images/banana.jpg",
+      "food_picture_url": "https://i.imgur.com/Z7VnPmh.png",
       "amount_per_serving": "1 medium banana",
       "description": "A ripe and sweet banana.",
       "macronutrients": {
@@ -55,7 +55,7 @@
       "id": "3",
       "food_name": "Orange",
       "food_category": "Fruit",
-      "food_picture_url": "https://example.com/images/orange.jpg",
+      "food_picture_url": "https://i.imgur.com/retEx6c.png",
       "amount_per_serving": "1 medium orange",
       "description": "A juicy and tangy orange.",
       "macronutrients": {
@@ -81,7 +81,7 @@
       "id": "4",
       "food_name": "Grapes",
       "food_category": "Fruit",
-      "food_picture_url": "https://example.com/images/grapes.jpg",
+      "food_picture_url": "https://i.imgur.com/t9voh8l.png",
       "amount_per_serving": "1 cup of grapes",
       "description": "A bowl of sweet, seedless grapes.",
       "macronutrients": {
@@ -107,7 +107,7 @@
       "id": "5",
       "food_name": "Strawberries",
       "food_category": "Fruit",
-      "food_picture_url": "https://example.com/images/strawberries.jpg",
+      "food_picture_url": "https://i.imgur.com/Dt1a4fv.png",
       "amount_per_serving": "1 cup of strawberries",
       "description": "Bright red and sweet strawberries.",
       "macronutrients": {
@@ -133,7 +133,7 @@
       "id": "6",
       "food_name": "Blueberries",
       "food_category": "Fruit",
-      "food_picture_url": "https://example.com/images/blueberries.jpg",
+      "food_picture_url": "https://i.imgur.com/xqIViio.png",
       "amount_per_serving": "1 cup of blueberries",
       "description": "Fresh and antioxidant-rich blueberries.",
       "macronutrients": {
@@ -159,7 +159,7 @@
       "id": "7",
       "food_name": "Broccoli",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/broccoli.jpg",
+      "food_picture_url": "https://i.imgur.com/nkIpySF.png",
       "amount_per_serving": "1 cup of broccoli florets",
       "description": "Fresh and nutrient-packed broccoli.",
       "macronutrients": {
@@ -185,7 +185,7 @@
       "id": "8",
       "food_name": "Carrot",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/carrot.jpg",
+      "food_picture_url": "https://i.imgur.com/AocHF5Z.png",
       "amount_per_serving": "1 medium carrot",
       "description": "Crunchy and sweet carrot.",
       "macronutrients": {
@@ -211,7 +211,7 @@
       "id": "9",
       "food_name": "Lettuce",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/lettuce.jpg",
+      "food_picture_url": "https://i.imgur.com/hwtTVqf.png",
       "amount_per_serving": "1 cup shredded lettuce",
       "description": "Crisp and refreshing lettuce.",
       "macronutrients": {
@@ -237,7 +237,7 @@
       "id": "10",
       "food_name": "Spinach",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/spinach.jpg",
+      "food_picture_url": "https://i.imgur.com/6I4iTng.png",
       "amount_per_serving": "1 cup raw spinach",
       "description": "Leafy green spinach full of vitamins.",
       "macronutrients": {
@@ -263,7 +263,7 @@
       "id": "11",
       "food_name": "Tomato",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/tomato.jpg",
+      "food_picture_url": "https://i.imgur.com/rVYEx4N.png",
       "amount_per_serving": "1 medium tomato",
       "description": "Juicy and flavorful tomato.",
       "macronutrients": {
@@ -289,7 +289,7 @@
       "id": "12",
       "food_name": "Cucumber",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/cucumber.jpg",
+      "food_picture_url": "https://i.imgur.com/0XqiK1d.png",
       "amount_per_serving": "1 medium cucumber",
       "description": "Cool and hydrating cucumber.",
       "macronutrients": {
@@ -315,7 +315,7 @@
       "id": "13",
       "food_name": "Potato",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/potato.jpg",
+      "food_picture_url": "https://i.imgur.com/gPuzKYk.png",
       "amount_per_serving": "1 medium potato",
       "description": "A versatile and filling potato.",
       "macronutrients": {
@@ -341,7 +341,7 @@
       "id": "14",
       "food_name": "Sweet Potato",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/sweet_potato.jpg",
+      "food_picture_url": "https://i.imgur.com/fmEWhJK.png",
       "amount_per_serving": "1 medium sweet potato",
       "description": "Naturally sweet and nutritious sweet potato.",
       "macronutrients": {
@@ -367,7 +367,7 @@
       "id": "15",
       "food_name": "Onion",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/onion.jpg",
+      "food_picture_url": "https://i.imgur.com/gLM6McP.png",
       "amount_per_serving": "1 medium onion",
       "description": "A flavorful onion perfect for cooking.",
       "macronutrients": {
@@ -393,7 +393,7 @@
       "id": "16",
       "food_name": "Garlic",
       "food_category": "Vegetable",
-      "food_picture_url": "https://example.com/images/garlic.jpg",
+      "food_picture_url": "https://i.imgur.com/D3OemPZ.png",
       "amount_per_serving": "1 clove of garlic",
       "description": "A small clove of aromatic garlic.",
       "macronutrients": {
@@ -419,7 +419,7 @@
       "id": "17",
       "food_name": "Chicken Breast",
       "food_category": "Meat",
-      "food_picture_url": "https://example.com/images/chicken_breast.jpg",
+      "food_picture_url": "https://i.imgur.com/ShaUczb.png",
       "amount_per_serving": "100g serving",
       "description": "Lean and protein-rich chicken breast.",
       "macronutrients": {
@@ -445,7 +445,7 @@
       "id": "18",
       "food_name": "Beef Steak",
       "food_category": "Meat",
-      "food_picture_url": "https://example.com/images/beef_steak.jpg",
+      "food_picture_url": "https://i.imgur.com/xseTOLe.png",
       "amount_per_serving": "100g serving",
       "description": "A hearty and juicy beef steak.",
       "macronutrients": {
@@ -471,7 +471,7 @@
       "id": "19",
       "food_name": "Pork Chop",
       "food_category": "Meat",
-      "food_picture_url": "https://example.com/images/pork_chop.jpg",
+      "food_picture_url": "https://i.imgur.com/HkmOQW4.png",
       "amount_per_serving": "100g serving",
       "description": "A savory and tender pork chop.",
       "macronutrients": {
@@ -497,7 +497,7 @@
       "id": "20",
       "food_name": "Salmon",
       "food_category": "Seafood",
-      "food_picture_url": "https://example.com/images/salmon.jpg",
+      "food_picture_url": "https://i.imgur.com/QdUYSvA.png",
       "amount_per_serving": "100g serving",
       "description": "Fresh and omega-rich salmon.",
       "macronutrients": {
@@ -523,7 +523,7 @@
       "id": "21",
       "food_name": "Tuna",
       "food_category": "Seafood",
-      "food_picture_url": "https://example.com/images/tuna.jpg",
+      "food_picture_url": "https://i.imgur.com/BvRb4si.png",
       "amount_per_serving": "100g serving",
       "description": "Canned tuna, a lean protein source.",
       "macronutrients": {
@@ -549,7 +549,7 @@
       "id": "22",
       "food_name": "Shrimp",
       "food_category": "Seafood",
-      "food_picture_url": "https://example.com/images/shrimp.jpg",
+      "food_picture_url": "https://i.imgur.com/IxpYjz1.png",
       "amount_per_serving": "100g serving",
       "description": "Succulent shrimp, great for various dishes.",
       "macronutrients": {
@@ -575,7 +575,7 @@
       "id": "23",
       "food_name": "Eggs",
       "food_category": "Dairy/Protein",
-      "food_picture_url": "https://example.com/images/eggs.jpg",
+      "food_picture_url": "https://i.imgur.com/5VtsHNF.png",
       "amount_per_serving": "1 large egg",
       "description": "A protein-packed whole egg.",
       "macronutrients": {
@@ -601,7 +601,7 @@
       "id": "24",
       "food_name": "Milk",
       "food_category": "Dairy",
-      "food_picture_url": "https://example.com/images/milk.jpg",
+      "food_picture_url": "https://i.imgur.com/HLELUkt.png",
       "amount_per_serving": "1 cup (240ml)",
       "description": "A glass of nutrient-rich milk.",
       "macronutrients": {
@@ -627,7 +627,7 @@
       "id": "25",
       "food_name": "Yogurt",
       "food_category": "Dairy",
-      "food_picture_url": "https://example.com/images/yogurt.jpg",
+      "food_picture_url": "https://i.imgur.com/SfWRkha.png",
       "amount_per_serving": "1 cup",
       "description": "Plain yogurt, rich in probiotics.",
       "macronutrients": {
@@ -653,7 +653,7 @@
       "id": "26",
       "food_name": "Cheese",
       "food_category": "Dairy",
-      "food_picture_url": "https://example.com/images/cheese.jpg",
+      "food_picture_url": "https://i.imgur.com/1oT5Y7Y.png",
       "amount_per_serving": "1 slice",
       "description": "A slice of cheddar cheese.",
       "macronutrients": {
@@ -679,7 +679,7 @@
       "id": "27",
       "food_name": "Butter",
       "food_category": "Dairy",
-      "food_picture_url": "https://example.com/images/butter.jpg",
+      "food_picture_url": "https://i.imgur.com/nwwgiHh.png",
       "amount_per_serving": "1 tablespoon",
       "description": "Creamy butter perfect for cooking.",
       "macronutrients": {
@@ -705,7 +705,7 @@
       "id": "28",
       "food_name": "Bread",
       "food_category": "Bakery",
-      "food_picture_url": "https://example.com/images/bread.jpg",
+      "food_picture_url": "https://i.imgur.com/5Vl64BJ.png",
       "amount_per_serving": "1 slice",
       "description": "Soft and fresh white bread.",
       "macronutrients": {
@@ -731,7 +731,7 @@
       "id": "29",
       "food_name": "Rice",
       "food_category": "Grains",
-      "food_picture_url": "https://example.com/images/rice.jpg",
+      "food_picture_url": "https://i.imgur.com/2NpUslj.png",
       "amount_per_serving": "1 cup cooked",
       "description": "Steamed white rice.",
       "macronutrients": {
@@ -739,7 +739,7 @@
         "sat_fat": 0.1,
         "trans_fat": 0,
         "carbohydrate": 45,
-        "fiber": 0.6,
+        "fiber": 0.6, 
         "total_sugars": 0.1,
         "added_sugars": 0,
         "protein": 4
@@ -757,7 +757,7 @@
       "id": "30",
       "food_name": "Pasta",
       "food_category": "Grains",
-      "food_picture_url": "https://example.com/images/pasta.jpg",
+      "food_picture_url": "https://i.imgur.com/mn8zgWk.png",
       "amount_per_serving": "1 cup cooked",
       "description": "Classic pasta perfect for any sauce.",
       "macronutrients": {
@@ -783,7 +783,7 @@
       "id": "31",
       "food_name": "Cereal",
       "food_category": "Grains",
-      "food_picture_url": "https://example.com/images/cereal.jpg",
+      "food_picture_url": "https://i.imgur.com/GJ8v244.png",
       "amount_per_serving": "1 cup",
       "description": "Crunchy and sweet breakfast cereal.",
       "macronutrients": {
@@ -809,7 +809,7 @@
       "id": "32",
       "food_name": "Oatmeal",
       "food_category": "Grains",
-      "food_picture_url": "https://example.com/images/oatmeal.jpg",
+      "food_picture_url": "https://i.imgur.com/68u4p8x.png",
       "amount_per_serving": "1 cup cooked",
       "description": "Warm and hearty oatmeal.",
       "macronutrients": {
@@ -835,7 +835,7 @@
       "id": "33",
       "food_name": "Orange Juice",
       "food_category": "Beverage",
-      "food_picture_url": "https://example.com/images/orange_juice.jpg",
+      "food_picture_url": "https://i.imgur.com/vqiss9A.png",
       "amount_per_serving": "1 cup",
       "description": "Freshly squeezed orange juice.",
       "macronutrients": {
@@ -861,7 +861,7 @@
       "id": "34",
       "food_name": "Apple Juice",
       "food_category": "Beverage",
-      "food_picture_url": "https://example.com/images/apple_juice.jpg",
+      "food_picture_url": "https://i.imgur.com/rNANRfH.png",
       "amount_per_serving": "1 cup",
       "description": "Sweet and refreshing apple juice.",
       "macronutrients": {
@@ -887,7 +887,7 @@
       "id": "35",
       "food_name": "Coffee",
       "food_category": "Beverage",
-      "food_picture_url": "https://example.com/images/coffee.jpg",
+      "food_picture_url": "https://i.imgur.com/Kys7RAD.png",
       "amount_per_serving": "1 cup",
       "description": "Hot and energizing black coffee.",
       "macronutrients": {
@@ -913,7 +913,7 @@
       "id": "36",
       "food_name": "Tea",
       "food_category": "Beverage",
-      "food_picture_url": "https://example.com/images/tea.jpg",
+      "food_picture_url": "https://i.imgur.com/zY2Kdi9.png",
       "amount_per_serving": "1 cup",
       "description": "A soothing cup of tea.",
       "macronutrients": {
@@ -939,7 +939,7 @@
       "id": "37",
       "food_name": "Bottled Water",
       "food_category": "Beverage",
-      "food_picture_url": "https://example.com/images/bottled_water.jpg",
+      "food_picture_url": "https://i.imgur.com/wm9kUnh.png",
       "amount_per_serving": "8 oz",
       "description": "Pure and refreshing bottled water.",
       "macronutrients": {
@@ -965,7 +965,7 @@
       "id": "38",
       "food_name": "Soda",
       "food_category": "Beverage",
-      "food_picture_url": "https://example.com/images/soda.jpg",
+      "food_picture_url": "https://i.imgur.com/nb0c73u.png",
       "amount_per_serving": "12 oz can",
       "description": "A fizzy and sweet soda.",
       "macronutrients": {
@@ -991,7 +991,7 @@
       "id": "39",
       "food_name": "Energy Drink",
       "food_category": "Beverage",
-      "food_picture_url": "https://example.com/images/energy_drink.jpg",
+      "food_picture_url": "https://i.imgur.com/EPBI4tH.png",
       "amount_per_serving": "8 oz",
       "description": "An energizing drink with a kick.",
       "macronutrients": {
@@ -1017,7 +1017,7 @@
       "id": "40",
       "food_name": "Peanut Butter",
       "food_category": "Condiments",
-      "food_picture_url": "https://example.com/images/peanut_butter.jpg",
+      "food_picture_url": "https://i.imgur.com/CU7IYhZ.png",
       "amount_per_serving": "2 tablespoons",
       "description": "Creamy peanut butter, perfect for sandwiches.",
       "macronutrients": {
@@ -1043,7 +1043,7 @@
       "id": "41",
       "food_name": "Jelly",
       "food_category": "Condiments",
-      "food_picture_url": "https://example.com/images/jelly.jpg",
+      "food_picture_url": "https://i.imgur.com/cqX6emu.png",
       "amount_per_serving": "1 tablespoon",
       "description": "Sweet jelly to spread on toast.",
       "macronutrients": {
@@ -1069,7 +1069,7 @@
       "id": "42",
       "food_name": "Honey",
       "food_category": "Condiments",
-      "food_picture_url": "https://example.com/images/honey.jpg",
+      "food_picture_url": "https://i.imgur.com/39ddDLE.png",
       "amount_per_serving": "1 tablespoon",
       "description": "Natural honey, sweet and smooth.",
       "macronutrients": {
@@ -1095,7 +1095,7 @@
       "id": "43",
       "food_name": "Mayonnaise",
       "food_category": "Condiments",
-      "food_picture_url": "https://example.com/images/mayonnaise.jpg",
+      "food_picture_url": "https://i.imgur.com/9e6ipOV.png",
       "amount_per_serving": "1 tablespoon",
       "description": "Creamy mayonnaise for sandwiches.",
       "macronutrients": {
@@ -1121,7 +1121,7 @@
       "id": "44",
       "food_name": "Ketchup",
       "food_category": "Condiments",
-      "food_picture_url": "https://example.com/images/ketchup.jpg",
+      "food_picture_url": "https://i.imgur.com/FYGKSU8.png",
       "amount_per_serving": "1 tablespoon",
       "description": "Tangy ketchup for burgers and fries.",
       "macronutrients": {
@@ -1147,7 +1147,7 @@
       "id": "45",
       "food_name": "Mustard",
       "food_category": "Condiments",
-      "food_picture_url": "https://example.com/images/mustard.jpg",
+      "food_picture_url": "https://i.imgur.com/bnJN2Ba.png",
       "amount_per_serving": "1 teaspoon",
       "description": "Zesty mustard to spice up your meal.",
       "macronutrients": {

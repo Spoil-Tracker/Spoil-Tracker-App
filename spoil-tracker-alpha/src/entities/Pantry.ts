@@ -119,4 +119,38 @@ export class PantryResolver {
 
         return true;
     }
+
+    /**
+     * Searches pantries by a keyword across pantry name and description only.
+     *
+     * @param account_id – the account to restrict the search to
+     * @param query – the search term
+     * @returns a list of pantry IDs whose name or description contains the keyword
+     */
+    @Query(() => [String])
+    async searchPantries(
+        @Arg("account_id") account_id: string,
+        @Arg("query") query: string
+    ): Promise<string[]> {
+        // fetch all pantries for this account
+        const snap = await db
+        .collection(COLLECTIONS.PANTRY)
+        .where("account_id", "==", account_id)
+        .get();
+
+        const lowerQ = query.toLowerCase();
+        const matches: string[] = [];
+
+        snap.forEach(doc => {
+        const pantry = doc.data() as Pantry;
+        if (
+            pantry.pantry_name.toLowerCase().includes(lowerQ) ||
+            pantry.description.toLowerCase().includes(lowerQ)
+        ) {
+            matches.push(pantry.id);
+        }
+        });
+
+        return matches;
+    }
 }

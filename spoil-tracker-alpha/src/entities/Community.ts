@@ -3,7 +3,7 @@ import { db } from "../firestore";
 import { COLLECTIONS } from "./CollectionNames";
 import { GroceryList } from "./GroceryList";
 import { GraphQLISODateTime } from "type-graphql";
-import { key } from "../openaikey";
+import { key } from "../vars";
 import { FoodGlobal } from "./FoodGlobal";
 
 // ---------------------------
@@ -161,7 +161,7 @@ export class CommunityResolver {
       const initialCommunity: Community = {
         posts: [],
         copiedGroceryLists: [],
-        updated: new Date(),
+        updated: new Date(0),
         popular_foods: [],
         seasonal_foods: []
       };

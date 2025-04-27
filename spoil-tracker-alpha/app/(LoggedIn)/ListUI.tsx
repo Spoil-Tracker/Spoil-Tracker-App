@@ -17,7 +17,8 @@ import {
   updateGroceryListIsComplete,
   updateGroceryListDescription,
   updateGroceryListItemIsBought,
-  updateGroceryListIsShared
+  updateGroceryListIsShared,
+  convertToPantry
 } from '@/components/GroceryList/GroceryListService';
 import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPDF, exportGroceryListToPDFWeb } from '@/components/ExportService';
 import ProductPage from '@/components/Food/FoodUI';
@@ -26,6 +27,9 @@ import { getAccountByOwnerID } from '@/components/Account/AccountService';
 import { useTheme } from 'react-native-paper';
 import { addCopiedGroceryList } from '@/components/Community/CommunityService';
 import { OpenAI } from '@/openAIAPI';
+import { white } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import { decrementBought, incrementBought } from '@/components/Food/FoodLeaderboardService';
+import PantryDropdownComponent from '@/components/Pantry/PantryDropdown';
 
 // list used for the dropdown located with each grocery list item in the flatlist
 const FOOD_UNITS = [
@@ -66,6 +70,7 @@ const GroceryList = () => {
   const [selectedFood, setSelectedFood] = useState<{ label: string; value: string } | null>(null);
   const [productModalVisible, setProductModalVisible] = useState(false);
   const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+  const [selectedPantryId, setSelectedPantryId] = useState<string | null>(null);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(null);
   const { user } = useAuth();
@@ -78,6 +83,7 @@ const GroceryList = () => {
   const [groceryListShared, setGroceryListShared] = useState(false);
   const [groceryListValue, setGroceryListValue] = useState<string | null>(null);
   const [loadingValue, setLoadingValue] = useState(false);
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
   
 
 
@@ -295,12 +301,12 @@ const GroceryList = () => {
       Animated.timing(scaleAnim, {
         toValue: 1.2,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
 
@@ -333,18 +339,30 @@ const GroceryList = () => {
      updates the Firestore document and local state accordingly
      */
 
-    const toggleCompleteStatus = async () => {
-      // This example toggles locally; you might later add a service call to update the item.
-      await updateGroceryListItemIsBought(groceryListId, item.id);
+     const toggleCompleteStatus = async () => {
+      const willBeBought = !item.isBought;
       const updatedItems = items.map(i =>
-        i.id === item.id ? { ...i, isBought: !i.isBought } : i
+        i.id === item.id ? { ...i, isBought: willBeBought } : i
       );
       const updatedFilterItems = filteredItems.map(i =>
-        i.id === item.id ? { ...i, isBought: !i.isBought } : i
+        i.id === item.id ? { ...i, isBought: willBeBought } : i
       );
       setItems(updatedItems);
       setFilteredItems(updatedFilterItems);
-      // Optionally refetch the grocery list from the backend.
+    
+      await updateGroceryListItemIsBought(groceryListId, item.id);
+
+      try {
+        if (willBeBought) {
+          await incrementBought(item.food_global_id, accountId);
+        } else {
+          await decrementBought(item.food_global_id, accountId);
+        }
+      } catch (error) {
+        console.error('Failed to update FoodLeaderboard:', error);
+      }
+    
+
     };
 
     /**
@@ -448,6 +466,7 @@ const GroceryList = () => {
               style={styles.measurementDropdown}
               itemContainerStyle={styles.measurementContainer}
               itemTextStyle={styles.measurementText}
+              renderItem={renderItemDropdown}
             />
             <Pressable style={[styles.itemButton, item.isBought ? styles.completeButton: styles.incompleteButton]} onPress={toggleCompleteStatus}>
               <Text style={styles.itemButtonText}>{item.isBought ? 'X' : '✔'}</Text>
@@ -466,7 +485,7 @@ const GroceryList = () => {
           />
           */}
         </View>
-        <Image source={{ uri: item.imageUrl }} style={styles.unitImage} />
+        <Image source={item.imageUrl ? { uri: item.imageUrl } : undefined} style={styles.unitImage} />
       </View>
     );
   };
@@ -497,6 +516,16 @@ const GroceryList = () => {
       calculateGroceryListValue();
     }
   };
+
+  const renderItemDropdown = (item: { label: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; }) => {
+    return (
+      <View style={{ padding: 10, backgroundColor: 'transparent' }}>
+        <Text style={{ color: '#000', fontSize: 16 }}>
+          {item.label}
+        </Text>
+      </View>
+    );
+  };
   
   const toggleSummary = () => {
     Animated.timing(summaryAnim, {
@@ -521,7 +550,7 @@ const GroceryList = () => {
     Animated.timing(dropdownAnimMobile, {
       toValue,
       duration: 300,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
     setDropdownVisibleMobile(!dropdownVisibleMobile);
   };
@@ -688,27 +717,20 @@ const GroceryList = () => {
 
           <Text style={{fontFamily: 'inter-bold', fontSize: 30, color: '#39913b', marginTop: 20}}>Transfer to Pantry: </Text>
             
-          <FoodDropdownComponent 
+          <PantryDropdownComponent
               accountId={accountId} 
-              onValueChange={setSelectedFood}  />
+              onValueChange={setSelectedPantryId}  />
           <Pressable
             style={[styles.sidebarButton, styles.transferButton]}
             onPress={async () => {
-              if (selectedFood) {
-                await addGroceryListItem(groceryListId, accountId, selectedFood.value, selectedFood.label);
-                const newFood = await fetchGroceryListByID(groceryListId);
-                if(newFood){
-                  setItems(newFood.grocery_list_items);
-                  setFilteredItems(newFood.grocery_list_items);
-                  setSearchText('');
-                  setSelectedFood(null);
-                }
+              if (selectedPantryId) {
+                await convertToPantry(groceryListId, selectedPantryId);
               } else {
-                alert('Please select a food item first.');
+                alert('Please select a pantry first.');
               }
             }}
           >
-            <Text style={[styles.buttonText, { fontSize: 28, color: '#39913b' }]}>
+            <Text style={[styles.buttonText, {fontSize: 28, color: '#39913b' }]}>
               Transfer
             </Text>
           </Pressable>
@@ -853,7 +875,7 @@ const GroceryList = () => {
 
               {/* Only render ProductPage if we have a selectedFoodId */}
               {selectedFoodId && (
-                  <ScrollView style={{ flex: 1 }}>
+                  <ScrollView style={{ flex: 1 } } showsHorizontalScrollIndicator={false}>
                       <ProductPage foodId={selectedFoodId} accountId={accountId} />
                   </ScrollView>
               )}
@@ -919,10 +941,10 @@ const GroceryList = () => {
       <Animated.View
         style={[
           styles.dropdownMobile,
-          { position: 'absolute', height: dropdownHeightMobile, width: width, justifyContent: 'center', alignItems: 'center',  transform: [{ translateY: dropdownAnimMobile }] },
+          { overflow: 'visible', position: 'absolute', height: 400, width: width, justifyContent: 'center', alignItems: 'center',  transform: [{ translateY: dropdownAnimMobile }] },
         ]}
       >
-        <ScrollView contentContainerStyle={[styles.dropdownScrollMobile, {width: width - 40, marginTop: 20}]} showsHorizontalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.dropdownScrollMobile, {flexGrow: 1, width: width - 40, marginTop: 20}]} alwaysBounceVertical={true} showsHorizontalScrollIndicator={false} scrollEnabled={true}>
           <View style={styles.textBox}>
             <Text style={styles.textBoxTitle}>{groceryListTitle}</Text>
             <Text style={styles.textBoxContent}>Created: {groceryListDate}</Text>
@@ -1009,6 +1031,78 @@ const GroceryList = () => {
         </Pressable>
       </Animated.View>
 
+        {/* Add your new circular floating info button */}
+      <Animated.View style={styles.infoFloatingButton}>
+        <Pressable onPress={() => setInfoModalVisible(true)}>
+          {/* Use an info icon from AntDesign (infocirlceo) */}
+          <AntDesign name="infocirlceo" size={24} color="white" />
+        </Pressable>
+      </Animated.View>
+
+      <Modal
+        visible={infoModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setInfoModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Information</Text>
+            <ScrollView style={[styles.infoTab]}>
+              {/* Grocery List Value Dropdown */}
+              <Pressable onPress={toggleGroceryListValue} style={styles.dropdownHeaderRight}>
+                <Text style={styles.dropdownHeaderTextRight}>Grocery List Value</Text>
+                <AntDesign name={groceryListValueOpen ? 'up' : 'down'} size={30} color="#007bff" style={{ marginLeft: 8 }} />
+              </Pressable>
+              <Animated.View style={[styles.dropdownContentRight, { height: groceryListValueAnim }]}>
+              <ScrollView showsHorizontalScrollIndicator={false}>
+                {loadingValue ? (
+                  <ActivityIndicator size="small" color="#007bff" />
+                ) : (
+                  groceryListValue
+                    ? parsePricingResult(groceryListValue)
+                    : <Text style={styles.dropdownContentText}>
+                        Press the button below to calculate value
+                      </Text>
+                )}
+                <Pressable onPress={calculateGroceryListValue} style={[styles.sidebarButton, { marginTop: 10 }]}>
+                  <Text style={styles.buttonText}>Calculate Value</Text>
+                </Pressable>
+              </ScrollView>
+              </Animated.View>
+
+              {/* Summary Dropdown */}
+              <Pressable onPress={toggleSummary} style={styles.dropdownHeaderRight}>
+                <Text style={styles.dropdownHeaderTextRight}>Summary</Text>
+                <AntDesign name={summaryOpen ? 'up' : 'down'} size={30} color="#007bff" style={{ marginLeft: 8 }} />
+              </Pressable>
+              <Animated.View style={[styles.dropdownContentRight, { height: summaryAnim,  }]}>
+                <ScrollView>
+                  {buildSummaryElements(items)}
+                </ScrollView>
+              </Animated.View>
+
+              {/* Settings Dropdown */}
+              <Pressable onPress={toggleSettings} style={styles.dropdownHeaderRight}>
+                <Text style={styles.dropdownHeaderTextRight}>Settings</Text>
+                <AntDesign name={settingsOpen ? 'up' : 'down'} size={30} color="#007bff" style={{ marginLeft: 8 }} />
+              </Pressable>
+              <Animated.View style={[styles.dropdownContentRight, { height: settingsAnim }]}>
+                <Pressable onPress={toggleShared} style={styles.sharedToggleButton}>
+                  <Text style={styles.sharedToggleText}>Shared: {groceryListShared ? "Yes" : "No"}</Text>
+                </Pressable>
+              </Animated.View>
+            </ScrollView> 
+            <Pressable
+              style={styles.modalButton}
+              onPress={() => setInfoModalVisible(false)}
+            >
+              <Text style={styles.buttonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       <Modal
       transparent={true}
       visible={sortModalVisible}
@@ -1086,20 +1180,22 @@ const GroceryList = () => {
         animationType= "fade"          
         onRequestClose={closeProductModal} 
       >
-        <View style={styles.modalOverlay}>
-          <View>
-              {/* Circular Close Button */}
-              <Pressable onPress={closeProductModal} style={styles.closeButtonModal}>
-                  <Text style={styles.closeButtonTextModal}>✕</Text>
-              </Pressable>
-
-              {/* Only render ProductPage if we have a selectedFoodId */}
-              {selectedFoodId && (
-                  <ScrollView style={{ flex: 1 }}>
-                      <ProductPage foodId={selectedFoodId} accountId={accountId} />
-                  </ScrollView>
-              )}
-          </View>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <Pressable onPress={closeProductModal} style={styles.closeButtonModal}>
+              <Text style={styles.closeButtonTextModal}>✕</Text>
+            </Pressable>
+            {/* Only render ProductPage if we have a selectedFoodId */}
+            {selectedFoodId && (
+              <ScrollView
+                contentContainerStyle={
+                {flexGrow: 1, paddingBottom: 20 }}
+                showsHorizontalScrollIndicator={false}
+              >
+                  <ProductPage foodId={selectedFoodId} accountId={accountId} />
+              </ScrollView>
+            )}
+          </SafeAreaView>
         </View>
       </Modal>
       <Modal
@@ -1226,6 +1322,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingVertical: 100
   },
   modalContent: {
     backgroundColor: '#1e81b0',
@@ -1468,7 +1565,7 @@ const styles = StyleSheet.create({
   measurementDropdown: {
     backgroundColor: 'white',
     height: 25,
-    width: 55,
+    width: 70,
     borderColor: 'gray',
     borderWidth: 0.5,
     borderRadius: 8,
@@ -1538,7 +1635,7 @@ const styles = StyleSheet.create({
   transferButton: {
     marginTop: 10,
     borderColor: '#39913b',
-    height: 60, 
+    height: 64, 
     backgroundColor: '#e0e9e0'
   },
   stickyButton: {
@@ -1566,11 +1663,13 @@ const styles = StyleSheet.create({
     flex: 1
   },
   dropdownScrollMobile: {
-    flex: 1
+    flex: 1,
+    minHeight: Platform.OS === 'ios' ? '190%' : 400, // Adjust minHeight based on platform
   },
   closeButtonModal: {
     position: 'absolute',
-    right: 0,
+    top: 80,
+    right: 50,
     width: 50,
     height: 50,
     borderRadius: 25, // Makes it circular
@@ -1636,6 +1735,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#333',
   },
+  infoFloatingButton: {
+    position: 'absolute',
+    bottom: 30,
+    left: 30, // or right: 30, depending on your desired placement
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#2196F3', // Use a color that fits your theme
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1100, // Make sure it appears above other elements
+  },
+  infoTab: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    width: '28%',
+    minWidth: 320,
+  }
 
 });
 
