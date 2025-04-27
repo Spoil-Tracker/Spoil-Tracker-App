@@ -9,6 +9,9 @@ import {
   Dimensions,
   Pressable,
   ScrollView,
+  Image,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useAuth } from '../../../services/authContext'; // Import the authentication context
 import { useTheme, Text, Icon } from 'react-native-paper'; // Import useTheme and Text from react-native-paper
@@ -43,6 +46,16 @@ export default function HomeScreen() {
     sharedPantries: 4,
     sharedLists: 2
   });
+  const [appleData, setAppleData] = useState<any>(null);
+  const [bananaData, setBananaData] = useState<any>(null);
+  const [orangeData, setOrangeData] = useState<any>(null);
+  const [grapeData, setGrapeData] = useState<any>(null);
+  const [appleJuiceData, setAppleJuiceData] = useState<any>(null);
+  const [orangeJuiceData, setOrangeJuiceData] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // function to fetch incomplete lists in order to display those on home
   const fetchIncompleteLists = async () => {
@@ -193,6 +206,45 @@ export default function HomeScreen() {
     fetchFamilyInfo();
   }, []);
 
+  useEffect(() => {
+    const fetchFruitData = async () => {
+      try {
+        const foodSnapshot = await getDocs(collection(db, 'food_global'));
+        const foods = foodSnapshot.docs.map(doc => doc.data());
+        setAppleData(foods.find(item => item.food_name === 'Apple'));
+        setBananaData(foods.find(item => item.food_name === 'Banana'));
+        setOrangeData(foods.find(item => item.food_name === 'Orange'));
+        setGrapeData(foods.find(item => item.food_name === 'Grapes'));
+        setAppleJuiceData(foods.find(item => item.food_name === 'Apple Juice'));
+        setOrangeJuiceData(foods.find(item => item.food_name === 'Orange Juice'));
+      } catch (error) {
+        console.error('Error fetching fruit data:', error);
+      }
+    };
+    fetchFruitData();
+  }, []);
+
+  // Search handler
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    // Fetch from Firestore food_global collection
+    const foodSnapshot = await getDocs(collection(db, 'food_global'));
+    const foods = foodSnapshot.docs.map(doc => doc.data());
+    const results = foods.filter((item) =>
+      item.food_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setSearchResults(results);
+  };
+
+  // Handle item click
+  const handleItemPress = (item: any) => {
+    setSelectedItem(item);
+    setModalVisible(true);
+  };
+
   if (!fontsLoaded) {
     return (
       <View style={styles.container}>
@@ -226,15 +278,74 @@ export default function HomeScreen() {
       ]}
     >
       <View style={styles.container}>
-        {/* Welcome Header and Logout */}
-        <View style={styles.header}>
-          <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
+        {/* Header Row: Welcome, Logout */}
+        <View style={styles.headerRow}>
+          <Text style={[styles.spoilTrackerText, styles.headerWelcome, { color: colors.onSurface }]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             Welcome, {username ? username : 'Loading...'}!
           </Text>
           <TouchableOpacity onPress={handleLogout}>
             <Text style={styles.btnLogout}>Logout</Text>
           </TouchableOpacity>
         </View>
+        {/* Search Bar in its own row below header */}
+        <View style={styles.searchBarRow}>
+          <View style={styles.searchBarContainerSmall}>
+            <View style={styles.searchIconCircle}>
+              <MaterialCommunityIcons name="magnify" size={24} color="white" />
+            </View>
+            <TextInput
+              style={styles.searchInputSmall}
+              placeholder="Product Search"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+          </View>
+        </View>
+        {/* Search Results Dropdown as a block below search bar */}
+        {searchResults.length > 0 && (
+          <View style={styles.searchResultsDropdownBlock}>
+            {searchResults.map((item, idx) => (
+              <TouchableOpacity key={idx} style={styles.searchResultItem} onPress={() => handleItemPress(item)}>
+                <Text style={styles.searchResultText}>{item.food_name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Item Details Modal */}
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {selectedItem && (
+                <>
+                  <Text style={styles.modalTitle}>{selectedItem.food_name}</Text>
+                  {selectedItem.food_picture_url ? (
+                    <Image
+                      source={{ uri: selectedItem.food_picture_url }}
+                      style={{ width: 50, height: 50, borderRadius: 5, alignSelf: 'center', marginBottom: 10 }}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                  <Text style={styles.modalDescription}>{selectedItem.description || 'No description available.'}</Text>
+                  {/* Add more details as needed */}
+                  <TouchableOpacity style={styles.closeModalButton} onPress={() => setModalVisible(false)}>
+                    <Text style={styles.closeModalText}>Close</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
 
         {/* Pantry and Grocery Lists Container */}
         <View
@@ -403,6 +514,99 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        {/* Produce Feed Section */}
+        <View style={styles.produceFeedContainer}>
+          <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+            Produce Feed
+          </Text>
+          
+          {/* Produce in Season Container */}
+          <View style={styles.produceInSeasonContainer}>
+            <Text style={styles.produceInSeasonTitle}>Produce in Season</Text>
+            <View style={styles.appleGrid}>
+              {/* Top Left - Apple */}
+              <View style={styles.appleItem}>
+                {appleData && (
+                  <>
+                    <Image
+                      source={{ uri: appleData.food_picture_url }}
+                      style={styles.appleImage}
+                    />
+                    <Text style={styles.appleText}>Apple</Text>
+                  </>
+                )}
+              </View>
+              {/* Top Right - Banana */}
+              <View style={styles.appleItem}>
+                {bananaData && (
+                  <>
+                    <Image
+                      source={{ uri: bananaData.food_picture_url }}
+                      style={styles.appleImage}
+                    />
+                    <Text style={styles.appleText}>Banana</Text>
+                  </>
+                )}
+              </View>
+              {/* Bottom Left - Orange */}
+              <View style={styles.appleItem}>
+                {orangeData && (
+                  <>
+                    <Image
+                      source={{ uri: orangeData.food_picture_url }}
+                      style={styles.appleImage}
+                    />
+                    <Text style={styles.appleText}>Orange</Text>
+                  </>
+                )}
+              </View>
+              {/* Bottom Right - Grape */}
+              <View style={styles.appleItem}>
+                {grapeData && (
+                  <>
+                    <Image
+                      source={{ uri: grapeData.food_picture_url }}
+                      style={styles.appleImage}
+                    />
+                    <Text style={styles.appleText}>Grape</Text>
+                  </>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Recommended Products Container */}
+        <View style={styles.recommendedContainer}>
+          <Text style={styles.recommendedTitle}>Recommended Products</Text>
+          <View style={styles.juiceRow}>
+            {/* Apple Juice */}
+            <View style={styles.juiceItem}>
+              {appleJuiceData && (
+                <>
+                  <Image
+                    source={{ uri: appleJuiceData.food_picture_url }}
+                    style={styles.juiceImage}
+                  />
+                  <Text style={styles.juiceText}>Apple Juice</Text>
+                </>
+              )}
+            </View>
+            {/* Orange Juice */}
+            <View style={styles.juiceItem}>
+              {orangeJuiceData && (
+                <>
+                  <Image
+                    source={{ uri: orangeJuiceData.food_picture_url }}
+                    style={styles.juiceImage}
+                  />
+                  <Text style={styles.juiceText}>Orange Juice</Text>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -414,17 +618,25 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 8,
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 24,
+    marginBottom: 16,
+    width: '100%',
+    gap: 8,
   },
   spoilTrackerText: {
     fontSize: 24,
     fontFamily: 'inter-bold',
     color: '#4CAE4F',
     marginBottom: 10,
+  },
+  headerWelcome: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
   },
   btnLogout: {
     backgroundColor: 'red',
@@ -580,5 +792,173 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     fontSize: 16,
     color: 'black',
+  },
+  produceFeedContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  produceInSeasonContainer: {
+    marginTop: 15,
+    padding: 15,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+  },
+  produceInSeasonTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  appleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  appleItem: {
+    width: '48%',
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  appleImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    marginBottom: 5,
+  },
+  appleText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  recommendedContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recommendedTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  juiceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  juiceItem: {
+    width: '48%',
+    alignItems: 'center',
+  },
+  juiceImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    marginBottom: 5,
+  },
+  juiceText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  searchBarContainerSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    width: 220,
+    marginHorizontal: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    zIndex: 2,
+  },
+  searchInputSmall: {
+    flex: 1,
+    padding: 6,
+    fontSize: 14,
+  },
+  searchIconCircle: {
+    padding: 10,
+    borderRadius: 100,
+    backgroundColor: '#4CAE4F',
+  },
+  searchResultsDropdownBlock: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    width: 220,
+    alignSelf: 'center',
+    padding: 0,
+    marginTop: 0,
+    zIndex: 10,
+  },
+  searchResultItem: {
+    padding: 10,
+  },
+  searchResultText: {
+    fontSize: 16,
+    color: 'black',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  modalImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+  },
+  closeModalButton: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  closeModalText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  searchBarRow: {
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 0,
   },
 });
