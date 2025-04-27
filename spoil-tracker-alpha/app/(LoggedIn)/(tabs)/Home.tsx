@@ -13,7 +13,7 @@ import {
 import { useAuth } from '../../../services/authContext'; // Import the authentication context
 import { useTheme, Text, Icon } from 'react-native-paper'; // Import useTheme and Text from react-native-paper
 import { db, auth } from '../../../services/firebaseConfig'; // imports authentication
-import { doc, getDoc } from 'firebase/firestore'; // imports user information from firestore
+import { doc, getDoc, getDocs, collection } from 'firebase/firestore'; // imports user information from firestore
 import { onAuthStateChanged, getAuth } from 'firebase/auth'; // gets authentication from firebase
 import { fetchPantries } from '../../../src/utils/pantryUtils'; // calls fetchpantries to display on home
 import { fetchGroceryLists } from '../../../src/utils/groceryUtils'; // calls fetchgrocerylists to display on home
@@ -38,6 +38,11 @@ export default function HomeScreen() {
   const pathname = usePathname();
   const [pageTimes, setPageTimes] = useState<{[key: string]: number}>({});
   const [lastPageChange, setLastPageChange] = useState<number>(Date.now());
+  const [familyInfo, setFamilyInfo] = useState({
+    name: 'Best Family Ever',
+    sharedPantries: 4,
+    sharedLists: 2
+  });
 
   // function to fetch incomplete lists in order to display those on home
   const fetchIncompleteLists = async () => {
@@ -158,6 +163,35 @@ export default function HomeScreen() {
   useEffect(() => {
     setLastPageChange(Date.now());
   }, [pathname]);
+
+  // Fetch family information
+  useEffect(() => {
+    const fetchFamilyInfo = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      try {
+        const familyQuerySnapshot = await getDocs(collection(db, 'family'));
+        const foundFamily = familyQuerySnapshot.docs.find(docSnap => {
+          const data = docSnap.data();
+          return data.members?.includes(currentUser.uid);
+        });
+
+        if (foundFamily) {
+          const data = foundFamily.data();
+          setFamilyInfo({
+            name: data.name || 'Best Family Ever',
+            sharedPantries: data.kitchenItems?.length || 0,
+            sharedLists: data.groceryLists?.length || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching family info:', error);
+      }
+    };
+
+    fetchFamilyInfo();
+  }, []);
 
   if (!fontsLoaded) {
     return (
@@ -313,7 +347,7 @@ export default function HomeScreen() {
                 <View key={index} style={styles.recentActivityItem}>
                   <View style={styles.recentActivityBox}>
                     <Text style={styles.recentActivityText}>
-                      {index + 1}.) {page}
+                      {index + 1}. {page}
                     </Text>
                   </View>
                   <Text style={styles.timeText}>
@@ -321,6 +355,51 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Family Section */}
+        <View
+          style={[
+            styles.sectionsContainer,
+            styles.rowLayout
+          ]}
+        >
+          <View
+            style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
+          >
+            <Text style={[styles.spoilTrackerText, {color: 'black'}]}>
+              Family
+            </Text>
+            <View style={styles.familyContainer}>
+              {/* Family Info Section */}
+              <View style={styles.familyInfoSection}>
+                <View style={styles.infoBox}>
+                  <View style={styles.infoItem}>
+                    <Text style={[styles.label, {color: '#3568A6'}]}>Name:</Text>
+                    <Text style={[styles.detail, {color: 'black'}]}>{familyInfo.name}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={[styles.label, {color: '#3568A6'}]}>Shared Pantries:</Text>
+                    <Text style={[styles.detail, {color: 'black'}]}>{familyInfo.sharedPantries}</Text>
+                  </View>
+                  <View style={styles.infoItem}>
+                    <Text style={[styles.label, {color: '#3568A6'}]}>Shared Lists:</Text>
+                    <Text style={[styles.detail, {color: 'black'}]}>{familyInfo.sharedLists}</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Family Members Section */}
+              <View style={styles.familyMembersSection}>
+                <View style={styles.memberTitleContainer}>
+                  <Text style={[styles.memberTitle, {color: '#3568A6'}]}>Family Members:</Text>
+                </View>
+                <Text style={styles.memberText}>
+                  You are not part of any family yet.
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -421,7 +500,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column', // Stacked on smaller screens
   },
   halfWidth: {
-    width: '48%', // Each section takes up 48% of the width on larger screens
+    width: '48%',
   },
   recentActivityList: {
     marginTop: 10,
@@ -452,5 +531,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'black',
     fontWeight: 'bold',
+  },
+  infoBox: {
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 10,
+    width: '90%',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  infoItem: {
+    marginBottom: 10,
+    width: '100%',
+  },
+  label: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  detail: {
+    fontSize: 18,
+    marginTop: 5,
+  },
+  familyContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  familyInfoSection: {
+    flex: 1,
+    paddingRight: 20,
+    height: '100%',
+  },
+  familyMembersSection: {
+    flex: 1,
+    paddingLeft: 20,
+    height: '100%',
+  },
+  memberTitleContainer: {
+    marginBottom: 10,
+  },
+  memberTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  memberText: {
+    fontStyle: 'italic',
+    fontSize: 16,
+    color: 'black',
   },
 });
