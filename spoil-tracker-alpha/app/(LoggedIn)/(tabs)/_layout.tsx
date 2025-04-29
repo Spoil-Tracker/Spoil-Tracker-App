@@ -66,11 +66,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="Settings"
+        name="Family"
         options={{
-          tabBarLabel: 'Settings',
+          tabBarLabel: 'Family',
           tabBarActiveBackgroundColor: '#39913b',
-          tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -81,6 +81,23 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="nutritionix" color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="VirtualSuperMarket"
+        options={{
+          tabBarLabel: 'SuperMarket',
+          tabBarActiveBackgroundColor: '#39913b',
+          tabBarIcon: ({ color }) => <TabBarIcon name="store" color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="Settings"
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarActiveBackgroundColor: '#39913b',
+          tabBarIcon: ({ color }) => <TabBarIcon name="cog" color={color} />,
         }}
       />
     </Tabs>

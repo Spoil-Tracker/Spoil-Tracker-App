@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  Dimensions, 
-  Pressable, 
-  ActivityIndicator, 
-  TextInput, 
-  ScrollView 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  Dimensions,
+  Pressable,
+  ActivityIndicator,
+  TextInput,
+  ScrollView,
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
@@ -20,11 +20,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Dropdown } from 'react-native-element-dropdown';
 import {
   GroceryList,
-  fetchAllGroceryLists
+  fetchAllGroceryLists,
 } from '@/components/GroceryList/GroceryListService';
 import {
   getAccountByOwnerID,
-  getCustomItemsFromAccount
+  getCustomItemsFromAccount,
 } from '@/components/Account/AccountService';
 import CustomItemsMenu from '@/components/Food/CustomItems';
 import { useTheme } from 'react-native-paper'; // allows for dark mode
@@ -34,13 +34,15 @@ import { useAuth } from '@/services/authContext';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // Sorting options for lists
-const SORT_OPTIONS = [
-  { label: 'Alphabetical', value: 'alphabetical' }
-]
+const SORT_OPTIONS = [{ label: 'Alphabetical', value: 'alphabetical' }];
 
 const formatDate = (isoString: string) => {
   const date = new Date(isoString);
-  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 };
 
 /**
@@ -51,7 +53,9 @@ const ButtonListScreen = () => {
   const [completeLists, setcompleteLists] = useState<GroceryList[]>([]);
   const [incompleteLists, setIncompleteLists] = useState<GroceryList[]>([]);
   const [customItems, setCustomItems] = useState<any[]>([]);
-  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [screenWidth, setScreenWidth] = useState(
+    Dimensions.get('window').width
+  );
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
@@ -76,7 +80,7 @@ const ButtonListScreen = () => {
 
       const customItemsResult = await getCustomItemsFromAccount(account.id);
       setCustomItems(customItemsResult);
-      console.log("Custom Items fetched:", customItemsResult);
+      console.log('Custom Items fetched:', customItemsResult);
 
       const complete = [];
       const incomplete = [];
@@ -98,7 +102,7 @@ const ButtonListScreen = () => {
         };
 
         if (currList.isComplete) {
-          complete.push(currList); 
+          complete.push(currList);
         } else {
           incomplete.push(currList);
         }
@@ -106,7 +110,6 @@ const ButtonListScreen = () => {
 
       setcompleteLists(complete);
       setIncompleteLists(incomplete);
-
     } catch (error) {
       console.error('Error fetching grocery lists: ', error);
     }
@@ -114,7 +117,6 @@ const ButtonListScreen = () => {
   };
 
   useEffect(() => {
-    
     fetchLists();
     const subscription = Dimensions.addEventListener('change', () => {
       setScreenWidth(Dimensions.get('window').width);
@@ -130,20 +132,22 @@ const ButtonListScreen = () => {
    @param {Array} lists - The list of grocery lists to be sorted
    @returns {Array} - Sorted list.
    */
-   const sortLists = (lists: GroceryList[]) => {
+  const sortLists = (lists: GroceryList[]) => {
     if (sortCriteria === 'alphabetical') {
-      return lists.sort((a, b) => a.grocerylist_name.localeCompare(b.grocerylist_name));
+      return lists.sort((a, b) =>
+        a.grocerylist_name.localeCompare(b.grocerylist_name)
+      );
     }
     return lists; // Default no sort (you could add more sorting criteria here)
   };
-  
+
   /**
    * Filters lists based on the user's search query.
    * @param {GroceryList[]} lists - The list of grocery lists to filter
    * @returns {GroceryList[]} - Filtered list
    */
   const filterLists = (lists: GroceryList[]) => {
-    return lists.filter(list =>
+    return lists.filter((list) =>
       list.grocerylist_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
@@ -160,19 +164,22 @@ const ButtonListScreen = () => {
         contentContainerStyle={styles.scrollViewContent}
         style={styles.scrollView}
       >
-        <Text style={[styles.title, {color: "#4CAE4F", fontSize: 40}]}>Inventory</Text>
+        <Text style={[styles.title, { color: '#4CAE4F', fontSize: 40 }]}>
+          Inventory
+        </Text>
 
         <View style={styles.customItemsContainer}>
-          <CustomItemsMenu customItems={customItems} onItemsChange={fetchLists} />
+          <CustomItemsMenu
+            customItems={customItems}
+            onItemsChange={fetchLists}
+          />
         </View>
 
         <View style={styles.groceryListsContainer}>
           <Text style={[styles.title]}>Grocery Lists</Text>
           {/* Dropdown for sorting */}
           <View style={styles.sortContainer}>
-            <Text style={[styles.sortText, { color: colors.text }]}>
-              Sort By:
-            </Text>
+            <Text style={[styles.sortText, {}]}>Sort By:</Text>
             <Dropdown
               style={styles.dropdown}
               data={SORT_OPTIONS}
@@ -199,9 +206,18 @@ const ButtonListScreen = () => {
               style={{ marginTop: 20 }}
             />
           ) : (
-            <View style={[styles.contentContainer, isSmallScreen ? styles.columnLayout : styles.rowLayout]}>
+            <View
+              style={[
+                styles.contentContainer,
+                isSmallScreen ? styles.columnLayout : styles.rowLayout,
+              ]}
+            >
               {/* complete Lists Section */}
-              <ListSection title="Complete Lists" lists={sortedcompleteLists} fetchLists={fetchLists} />
+              <ListSection
+                title="Complete Lists"
+                lists={sortedcompleteLists}
+                fetchLists={fetchLists}
+              />
 
               {/* Incomplete Lists Section */}
               <ListSection
@@ -358,27 +374,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   customItemsContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    width: "88%",
-    margin: 20
+    width: '88%',
+    margin: 20,
   },
   groceryListsContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    width: "88%",
+    width: '88%',
     shadowRadius: 5,
-    margin: 20
-  }
+    margin: 20,
+  },
 });
 
 export default ButtonListScreen;
