@@ -10,6 +10,9 @@ import {
   Pressable,
   ScrollView,
   useWindowDimensions,
+  TextInput,
+  Modal,
+  Image,
 } from 'react-native';
 import { useAuth } from '../../../services/authContext'; // Import the authentication context
 import { useTheme, Text} from 'react-native-paper'; // Import useTheme and Text from react-native-paper
@@ -40,6 +43,25 @@ export default function HomeScreen() {
   const user = getAuth().currentUser; // gets user auth to display username on home
   const { width, height } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState<'home' | 'community'>('home');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [recentPages, setRecentPages] = useState<string[]>([]);
+  const [pageTimes, setPageTimes] = useState<Record<string, number>>({});
+  const [lastPageChange, setLastPageChange] = useState<number>(Date.now());
+  const [familyInfo, setFamilyInfo] = useState({
+    name: '',
+    sharedPantries: 0,
+    sharedLists: 0
+  });
+  const [appleData, setAppleData] = useState<any>(null);
+  const [bananaData, setBananaData] = useState<any>(null);
+  const [orangeData, setOrangeData] = useState<any>(null);
+  const [grapeData, setGrapeData] = useState<any>(null);
+  const [appleJuiceData, setAppleJuiceData] = useState<any>(null);
+  const [orangeJuiceData, setOrangeJuiceData] = useState<any>(null);
+  const pathname = usePathname();
 
   // function to fetch incomplete lists in order to display those on home
   const fetchIncompleteLists = async () => {
@@ -53,7 +75,7 @@ export default function HomeScreen() {
       // get the _array_ of lists
       const account = await getAccountByOwnerID(user.uid);
       const allLists = await fetchAllGroceryLists(account.id);
-      // pull out only the ones that aren’t complete
+      // pull out only the ones that aren't complete
       const incomplete = allLists.filter((list: { isComplete: any; }) => !list.isComplete);
       console.log('incomplete lists:', incomplete);
       setGrocery(incomplete);
@@ -1005,7 +1027,7 @@ const styles = StyleSheet.create({
   verticalDivider: {
     width: 2.5,
     backgroundColor: '#ccc',    // or colors.onSurface
-    // make it stretch to the container’s full height
+    // make it stretch to the container's full height
     alignSelf: 'stretch',
   },
   // MOBILE-ONLY TAB BAR
@@ -1026,5 +1048,215 @@ const styles = StyleSheet.create({
   },
   mobileContainer: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  searchBarRow: {
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 0,
+  },
+  searchBarContainerSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 8,
+    width: 220,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  searchIconCircle: {
+    backgroundColor: '#4CAE4F',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  searchInputSmall: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+  },
+  searchResultsDropdownBlock: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    width: 220,
+    alignSelf: 'center',
+    padding: 0,
+    marginTop: 0,
+    zIndex: 10,
+  },
+  searchResultItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  searchResultText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalDescription: {
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  closeModalButton: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeModalText: {
+    color: 'white',
+    fontSize: 16,
+  },
+  recentActivityList: {
+    marginTop: 10,
+  },
+  recentActivityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  recentActivityBox: {
+    flex: 1,
+  },
+  recentActivityText: {
+    fontSize: 16,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  familyContainer: {
+    marginTop: 10,
+  },
+  familyInfoSection: {
+    marginBottom: 20,
+  },
+  infoBox: {
+    backgroundColor: '#f5f5f5',
+    padding: 15,
+    borderRadius: 8,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  detail: {
+    fontSize: 16,
+  },
+  familyMembersSection: {
+    marginTop: 20,
+  },
+  memberTitleContainer: {
+    marginBottom: 10,
+  },
+  memberTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  memberText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  produceFeedContainer: {
+    marginTop: 20,
+  },
+  produceInSeasonContainer: {
+    marginTop: 10,
+  },
+  produceInSeasonTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  appleGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  appleItem: {
+    width: '48%',
+    marginBottom: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
+  appleImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 5,
+  },
+  appleText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  recommendedContainer: {
+    marginTop: 20,
+  },
+  recommendedTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  juiceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  juiceItem: {
+    width: '48%',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
+  juiceImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 5,
+  },
+  juiceText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
