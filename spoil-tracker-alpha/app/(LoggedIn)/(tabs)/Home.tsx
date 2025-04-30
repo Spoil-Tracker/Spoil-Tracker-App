@@ -335,7 +335,7 @@ export default function HomeScreen() {
           <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: 100 }}>
             <SearchSuggestionsComponent />
             <View style={styles.header}>
-              <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>Welcome, {username || 'Loading...'}</Text>
+              <Text style={[styles.spoilTrackerText, { color: '#4CAE4F' }]}>Welcome, {username || 'Loading...'}</Text>
               <TouchableOpacity onPress={handleLogout}>
                 <Text style={styles.btnLogout}>Logout</Text>
               </TouchableOpacity>
@@ -351,7 +351,7 @@ export default function HomeScreen() {
               <View
                 style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
               >
-                <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+                <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
                   Pantries
                 </Text>
                 {isSmallScreen ? (
@@ -412,7 +412,7 @@ export default function HomeScreen() {
               <View
                 style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
               >
-                <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+                <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
                   Grocery Lists
                 </Text>
                 {isSmallScreen ? (
@@ -478,7 +478,7 @@ export default function HomeScreen() {
                 isSmallScreen ? {} : styles.halfWidth,
               ]}
             >
-              <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
+              <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
                 Nutrition
               </Text>
               <CalorieProgress
@@ -509,7 +509,7 @@ export default function HomeScreen() {
         {/* Welcome Header and Logout */}
         <SearchSuggestionsComponent></SearchSuggestionsComponent>
         <View style={styles.header}>
-          <Text style={[styles.spoilTrackerText, { color: colors.onSurface }]}>
+          <Text style={[styles.spoilTrackerText, { color: '#4CAE4F' }]}>
             Welcome, {username ? username : 'Loading...'}!
           </Text>
           <TouchableOpacity onPress={handleLogout}>
@@ -519,7 +519,7 @@ export default function HomeScreen() {
         {/* Search Bar */}
         <View style={styles.searchBarRow}>
           <View style={styles.searchBarContainerSmall}>
-            <View style={styles.searchIconCircle}>
+            <View style={[styles.searchIconCircle, { backgroundColor: '#4CAE4F' }]}>
               <MaterialCommunityIcons name="magnify" size={24} color="white" />
             </View>
             <TextInput
@@ -584,7 +584,7 @@ export default function HomeScreen() {
           <View
             style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
           >
-            <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+            <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
               Pantries
             </Text>
             {isSmallScreen ? (
@@ -645,7 +645,7 @@ export default function HomeScreen() {
           <View
             style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
           >
-            <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+            <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
               Grocery Lists
             </Text>
             {isSmallScreen ? (
@@ -714,7 +714,7 @@ export default function HomeScreen() {
           <View
             style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
           >
-            <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+            <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
               Nutrition
             </Text>
             <CalorieProgress
@@ -727,18 +727,18 @@ export default function HomeScreen() {
           <View
             style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
           >
-            <Text style={[styles.spoilTrackerText, {color: 'black'}]}>
+            <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
               Recent Activity
             </Text>
             <View style={styles.recentActivityList}>
               {recentPages.map((page, index) => (
                 <View key={index} style={styles.recentActivityItem}>
                   <View style={styles.recentActivityBox}>
-                    <Text style={styles.recentActivityText}>
+                    <Text style={[styles.recentActivityText, { color: 'black' }]}>
                       {index + 1}. {page}
                     </Text>
                   </View>
-                  <Text style={styles.timeText}>
+                  <Text style={[styles.timeText, { color: 'black' }]}>
                     {formatTime(pageTimes[page] || 0)}
                   </Text>
                 </View>
@@ -757,7 +757,7 @@ export default function HomeScreen() {
           <View
             style={[styles.listSection, isSmallScreen ? {} : styles.halfWidth]}
           >
-            <Text style={[styles.spoilTrackerText, {color: 'black'}]}>
+            <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
               Family
             </Text>
             <View style={styles.familyContainer}>
@@ -778,29 +778,21 @@ export default function HomeScreen() {
                   </View>
                 </View>
               </View>
-
-              {/* Family Members Section */}
-              <View style={styles.familyMembersSection}>
-                <View style={styles.memberTitleContainer}>
-                  <Text style={[styles.memberTitle, {color: '#3568A6'}]}>Family Members:</Text>
-                </View>
-                <Text style={styles.memberText}>
-                  You are not part of any family yet.
-                </Text>
-              </View>
             </View>
           </View>
         </View>
 
         {/* Produce Feed Section */}
         <View style={styles.produceFeedContainer}>
-          <Text style={[styles.spoilTrackerText, { color: 'black' }]}>
+          <Text style={[styles.spoilTrackerText, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
             Produce Feed
           </Text>
           
           {/* Produce in Season Container */}
           <View style={styles.produceInSeasonContainer}>
-            <Text style={styles.produceInSeasonTitle}>Produce in Season</Text>
+            <Text style={[styles.produceInSeasonTitle, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
+              Produce in Season
+            </Text>
             <View style={styles.appleGrid}>
               <View style={styles.appleItem}>
                 {appleData && (
@@ -809,7 +801,7 @@ export default function HomeScreen() {
                       source={{ uri: appleData.food_picture_url }}
                       style={styles.appleImage}
                     />
-                    <Text style={styles.appleText}>Apple</Text>
+                    <Text style={[styles.appleText, { color: 'black' }]}>Apple</Text>
                   </>
                 )}
               </View>
@@ -820,7 +812,7 @@ export default function HomeScreen() {
                       source={{ uri: bananaData.food_picture_url }}
                       style={styles.appleImage}
                     />
-                    <Text style={styles.appleText}>Banana</Text>
+                    <Text style={[styles.appleText, { color: 'black' }]}>Banana</Text>
                   </>
                 )}
               </View>
@@ -831,7 +823,7 @@ export default function HomeScreen() {
                       source={{ uri: orangeData.food_picture_url }}
                       style={styles.appleImage}
                     />
-                    <Text style={styles.appleText}>Orange</Text>
+                    <Text style={[styles.appleText, { color: 'black' }]}>Orange</Text>
                   </>
                 )}
               </View>
@@ -842,7 +834,7 @@ export default function HomeScreen() {
                       source={{ uri: grapeData.food_picture_url }}
                       style={styles.appleImage}
                     />
-                    <Text style={styles.appleText}>Grape</Text>
+                    <Text style={[styles.appleText, { color: 'black' }]}>Grape</Text>
                   </>
                 )}
               </View>
@@ -852,7 +844,9 @@ export default function HomeScreen() {
 
         {/* Recommended Products Container */}
         <View style={styles.recommendedContainer}>
-          <Text style={styles.recommendedTitle}>Recommended Products</Text>
+          <Text style={[styles.recommendedTitle, { color: '#4CAE4F', textAlign: 'center', fontWeight: 'bold' }]}>
+            Recommended Products
+          </Text>
           <View style={styles.juiceRow}>
             <View style={styles.juiceItem}>
               {appleJuiceData && (
@@ -861,7 +855,7 @@ export default function HomeScreen() {
                     source={{ uri: appleJuiceData.food_picture_url }}
                     style={styles.juiceImage}
                   />
-                  <Text style={styles.juiceText}>Apple Juice</Text>
+                  <Text style={[styles.juiceText, { color: 'black' }]}>Apple Juice</Text>
                 </>
               )}
             </View>
@@ -872,7 +866,7 @@ export default function HomeScreen() {
                     source={{ uri: orangeJuiceData.food_picture_url }}
                     style={styles.juiceImage}
                   />
-                  <Text style={styles.juiceText}>Orange Juice</Text>
+                  <Text style={[styles.juiceText, { color: 'black' }]}>Orange Juice</Text>
                 </>
               )}
             </View>
@@ -1181,20 +1175,6 @@ const styles = StyleSheet.create({
   },
   detail: {
     fontSize: 16,
-  },
-  familyMembersSection: {
-    marginTop: 20,
-  },
-  memberTitleContainer: {
-    marginBottom: 10,
-  },
-  memberTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  memberText: {
-    fontSize: 16,
-    color: '#666',
   },
   produceFeedContainer: {
     marginTop: 20,
