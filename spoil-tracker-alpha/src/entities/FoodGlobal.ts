@@ -1,7 +1,52 @@
-import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType } from "type-graphql";
+import { Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType, Int } from "type-graphql";
 import { COLLECTIONS } from "./CollectionNames";
 import { db } from "../firestore";
 import { FoodAbstractResolver } from "./FoodAbstract";
+
+
+/**
+ * Computes the standard Levenshtein distance.
+ */
+function levenshteinDistance(a: string, b: string): number {
+    const matrix: number[][] = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        matrix[i][j] = b.charAt(i - 1) === a.charAt(j - 1)
+          ? matrix[i - 1][j - 1]
+          : Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+      }
+    }
+    return matrix[b.length][a.length];
+  }
+  
+/**
+ * Normalize a string into sorted tokens: lowercased, punctuation removed,
+ * split on whitespace, sorted alphabetically, joined by spaces.
+ */
+function normalizeTokens(s: string): string {
+return s
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")   // remove punctuation
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
+/**
+ * Token-sort Levenshtein: applies normalizeTokens then computes distance.
+ */
+function tokenSortLevenshtein(a: string, b: string): number {
+const na = normalizeTokens(a);
+const nb = normalizeTokens(b);
+return levenshteinDistance(na, nb);
+}
 
 /**
  * Represents the macronutrient values for a food item.
@@ -359,6 +404,31 @@ export class FoodGlobalResolver {
         });
 
         return matchingFoods;
+    }
+
+    /**
+     * Finds the IDs of the top N FoodGlobal items whose names are closest
+     * to the searchName, using token-sort Levenshtein distance.
+     */
+    @Query(() => [FoodGlobal])
+    async getClosestFoodGlobal(
+        @Arg("searchName") searchName: string,
+        @Arg("topN",   () => Int, { nullable: true }) topN: number = 3
+    ): Promise<FoodGlobal[]> {
+        const snapshot = await db.collection(COLLECTIONS.FOOD_GLOBAL).get();
+
+        // build array of { food, distance }
+        const scored = snapshot.docs.map(doc => {
+            const food = doc.data() as FoodGlobal;
+            return {
+            food,
+            distance: tokenSortLevenshtein(food.food_name, searchName),
+            };
+        });
+
+        // sort and take top N
+        scored.sort((a, b) => a.distance - b.distance);
+        return scored.slice(0, topN).map(pair => pair.food);
     }
 
 }

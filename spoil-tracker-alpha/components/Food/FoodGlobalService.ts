@@ -184,6 +184,37 @@ const SEARCH_FOOD_GLOBAL_BY_FOOD_NAME = gql`
   }
 `;
 
+const GET_CLOSEST_FOOD_GLOBAL = gql`
+  query GetClosestFoodGlobal($searchName: String!, $topN: Int!) {
+    getClosestFoodGlobal(searchName: $searchName, topN: $topN) {
+      id
+      food_name
+      food_category
+      food_picture_url
+      amount_per_serving
+      description
+      macronutrients {
+        total_fat
+        sat_fat
+        trans_fat
+        carbohydrate
+        fiber
+        total_sugars
+        added_sugars
+        protein
+      }
+      micronutrients {
+        cholesterol
+        sodium
+        vitamin_d
+        calcium
+        iron
+        potassium
+      }
+    }
+  }
+`;
+
 // Mutation to delete a FoodGlobal item
 const DELETE_FOOD_GLOBAL = gql`
   mutation DeleteFoodGlobal($food_global_id: String!) {
@@ -214,6 +245,7 @@ interface Micronutrients {
 export interface FoodGlobal {
   id: string;
   food_name: string;
+  food_category: string;
   food_picture_url: string;
   amount_per_serving: string;
   description: string;
@@ -400,4 +432,19 @@ export async function searchFoodGlobalByFoodName(query: string): Promise<FoodGlo
     console.error('Error searching FoodGlobal by food_name:', error);
     throw error;
   }
+}
+
+/**
+ * Fetches the top‐N closest FoodGlobal items by name using Levenshtein distance.
+ */
+export async function getClosestFoodGlobal(
+  searchName: string,
+  topN: number = 3
+): Promise<FoodGlobal[]> {
+  const result = await client.query({
+    query: GET_CLOSEST_FOOD_GLOBAL,
+    variables: { searchName, topN },
+    fetchPolicy: 'network-only'
+  });
+  return result.data.getClosestFoodGlobal;
 }

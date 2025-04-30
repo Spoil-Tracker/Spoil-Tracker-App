@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Animated,
   SafeAreaView,
@@ -9,100 +9,107 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
-import { addCustomItem, getAccountByOwnerID } from '@/components/Account/AccountService'; // Adjust the path as needed
+import { addCustomItem, getAccountByOwnerID } from '@/components/Account/AccountService';
 import { useAuth } from '@/services/authContext';
 
 interface CustomGroceryItemScreenProps {
   onItemAdded?: () => void;
+  initialName?: string;
+  initialDescription?: string;
+  initialCategory?: string;
+  initialAmount?: string;
+  initialImageLink?: string;
+  initialTotalFat?: string;
+  initialSatFat?: string;
+  initialTransFat?: string;
+  initialCarbohydrate?: string;
+  initialFiber?: string;
+  initialTotalSugars?: string;
+  initialAddedSugars?: string;
+  initialProtein?: string;
+  initialCholesterol?: string;
+  initialSodium?: string;
+  initialVitaminD?: string;
+  initialCalcium?: string;
+  initialIron?: string;
+  initialPotassium?: string;
 }
 
-const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({ onItemAdded }) => {
-  // Basic grocery item details.
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [amount, setAmount] = useState('');
-  // New state for the image link.
-  const [imageLink, setImageLink] = useState('');
+const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({
+  onItemAdded,
+  initialName = '',
+  initialDescription = '',
+  initialCategory = '',
+  initialAmount = '',
+  initialImageLink = '',
+  initialTotalFat = '',
+  initialSatFat = '',
+  initialTransFat = '',
+  initialCarbohydrate = '',
+  initialFiber = '',
+  initialTotalSugars = '',
+  initialAddedSugars = '',
+  initialProtein = '',
+  initialCholesterol = '',
+  initialSodium = '',
+  initialVitaminD = '',
+  initialCalcium = '',
+  initialIron = '',
+  initialPotassium = '',
+}) => {
+  // Basic grocery item details
+  const [name, setName] = useState(initialName);
+  const [description, setDescription] = useState(initialDescription);
+  const [category, setCategory] = useState(initialCategory);
+  const [amount, setAmount] = useState(initialAmount);
+  const [imageLink, setImageLink] = useState(initialImageLink);
 
-  // Macronutrients state (stored as strings, to be converted to numbers)
-  const [totalFat, setTotalFat] = useState('');
-  const [satFat, setSatFat] = useState('');
-  const [transFat, setTransFat] = useState('');
-  const [carbohydrate, setCarbohydrate] = useState('');
-  const [fiber, setFiber] = useState('');
-  const [totalSugars, setTotalSugars] = useState('');
-  const [addedSugars, setAddedSugars] = useState('');
-  const [protein, setProtein] = useState('');
+  // Macronutrients state (strings -> numbers)
+  const [totalFat, setTotalFat] = useState(initialTotalFat);
+  const [satFat, setSatFat] = useState(initialSatFat);
+  const [transFat, setTransFat] = useState(initialTransFat);
+  const [carbohydrate, setCarbohydrate] = useState(initialCarbohydrate);
+  const [fiber, setFiber] = useState(initialFiber);
+  const [totalSugars, setTotalSugars] = useState(initialTotalSugars);
+  const [addedSugars, setAddedSugars] = useState(initialAddedSugars);
+  const [protein, setProtein] = useState(initialProtein);
 
-  // Micronutrients state (stored as strings, to be converted to numbers)
-  const [cholesterol, setCholesterol] = useState('');
-  const [sodium, setSodium] = useState('');
-  const [vitaminD, setVitaminD] = useState('');
-  const [calcium, setCalcium] = useState('');
-  const [iron, setIron] = useState('');
-  const [potassium, setPotassium] = useState('');
+  // Micronutrients state
+  const [cholesterol, setCholesterol] = useState(initialCholesterol);
+  const [sodium, setSodium] = useState(initialSodium);
+  const [vitaminD, setVitaminD] = useState(initialVitaminD);
+  const [calcium, setCalcium] = useState(initialCalcium);
+  const [iron, setIron] = useState(initialIron);
+  const [potassium, setPotassium] = useState(initialPotassium);
 
-  // Constants defining the expanded heights of dropdown sections.
   const MACROS_EXPANDED_HEIGHT = 480;
   const MICROS_EXPANDED_HEIGHT = 360;
 
-  // State to control the visibility and animation of the macronutrient dropdown.
+  // Dropdown animations
   const [showMacros, setShowMacros] = useState(false);
   const macrosHeight = useRef(new Animated.Value(0)).current;
-  
-  // State to control the visibility and animation of the micronutrient dropdown.
   const [showMicros, setShowMicros] = useState(false);
   const microsHeight = useRef(new Animated.Value(0)).current;
 
-  // Retrieve the current authenticated user.
   const { user } = useAuth();
 
-  /**
-   * Toggles the visibility of the macronutrients dropdown.
-   */
   const toggleMacros = () => {
-    if (!showMacros) {
-      setShowMacros(true);
-      Animated.timing(macrosHeight, {
-        toValue: MACROS_EXPANDED_HEIGHT,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-    } else {
-      Animated.timing(macrosHeight, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: false,
-      }).start(() => setShowMacros(false));
-    }
+    Animated.timing(macrosHeight, {
+      toValue: showMacros ? 0 : MACROS_EXPANDED_HEIGHT,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => setShowMacros(!showMacros));
   };
 
-  /**
-   * Toggles the visibility of the micronutrients dropdown.
-   */
   const toggleMicros = () => {
-    if (!showMicros) {
-      setShowMicros(true);
-      Animated.timing(microsHeight, {
-        toValue: MICROS_EXPANDED_HEIGHT,
-        duration: 300,
-        useNativeDriver: false,
-      }).start();
-    } else {
-      Animated.timing(microsHeight, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: false,
-      }).start(() => setShowMicros(false));
-    }
+    Animated.timing(microsHeight, {
+      toValue: showMicros ? 0 : MICROS_EXPANDED_HEIGHT,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => setShowMicros(!showMicros));
   };
 
-  /**
-   * Handles form submission.
-   */
   const handleSubmit = async () => {
-    // Convert nutrient values from strings to numbers
     const macronutrients = {
       total_fat: Number(totalFat),
       sat_fat: Number(satFat),
@@ -124,14 +131,9 @@ const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({ onIte
     };
 
     try {
-      if (!user) {
-        return;
-      }
-
+      if (!user) return;
       const account = await getAccountByOwnerID(user.uid);
-      
-      // Use the imageLink state as the food_picture_url value.
-      const response = await addCustomItem(
+      await addCustomItem(
         account.id,
         name,
         category,
@@ -141,44 +143,33 @@ const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({ onIte
         macronutrients,
         micronutrients
       );
-      console.log('Custom item added successfully:', response);
-      if (onItemAdded) {
-        onItemAdded();
-      }
+      onItemAdded?.();
+      // Reset fields
+      setName(initialName);
+      setDescription(initialDescription);
+      setCategory(initialCategory);
+      setAmount(initialAmount);
+      setImageLink(initialImageLink);
+      setTotalFat(initialTotalFat);
+      setSatFat(initialSatFat);
+      setTransFat(initialTransFat);
+      setCarbohydrate(initialCarbohydrate);
+      setFiber(initialFiber);
+      setTotalSugars(initialTotalSugars);
+      setAddedSugars(initialAddedSugars);
+      setProtein(initialProtein);
+      setCholesterol(initialCholesterol);
+      setSodium(initialSodium);
+      setVitaminD(initialVitaminD);
+      setCalcium(initialCalcium);
+      setIron(initialIron);
+      setPotassium(initialPotassium);
+      // Collapse dropdowns
+      Animated.timing(macrosHeight, { toValue: 0, duration: 300, useNativeDriver: false }).start(() => setShowMacros(false));
+      Animated.timing(microsHeight, { toValue: 0, duration: 300, useNativeDriver: false }).start(() => setShowMicros(false));
     } catch (error) {
       console.error('Error adding custom item:', error);
     }
-
-    // Reset the form fields and collapse dropdowns
-    setName('');
-    setDescription('');
-    setCategory('');
-    setAmount('');
-    setImageLink('');
-    setTotalFat('');
-    setSatFat('');
-    setTransFat('');
-    setCarbohydrate('');
-    setFiber('');
-    setTotalSugars('');
-    setAddedSugars('');
-    setProtein('');
-    setCholesterol('');
-    setSodium('');
-    setVitaminD('');
-    setCalcium('');
-    setIron('');
-    setPotassium('');
-    Animated.timing(macrosHeight, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start(() => setShowMacros(false));
-    Animated.timing(microsHeight, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start(() => setShowMicros(false));
   };
 
   return (
@@ -186,13 +177,7 @@ const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({ onIte
       <ScrollView contentContainerStyle={styles.contentContainer} showsHorizontalScrollIndicator={false}>
         <View style={styles.form}>
           <Text style={styles.title}>Create Custom Grocery Item</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Name"
-            value={name}
-            onChangeText={setName}
-          />
+          <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} />
           <TextInput
             style={[styles.input, styles.multilineInput]}
             placeholder="Description"
@@ -200,140 +185,38 @@ const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({ onIte
             onChangeText={setDescription}
             multiline
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Category"
-            value={category}
-            onChangeText={setCategory}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Amount Per Serving"
-            value={amount}
-            onChangeText={setAmount}
-          />
-          {/* New Input Field for Image URL */}
-          <TextInput
-            style={styles.input}
-            placeholder="Image URL"
-            value={imageLink}
-            onChangeText={setImageLink}
-          />
+          <TextInput style={styles.input} placeholder="Category" value={category} onChangeText={setCategory} />
+          <TextInput style={styles.input} placeholder="Amount Per Serving" value={amount} onChangeText={setAmount} />
+          <TextInput style={styles.input} placeholder="Image URL" value={imageLink} onChangeText={setImageLink} />
 
-          {/* Animated Dropdown for Macronutrients */}
           <Pressable style={styles.dropdownHeader} onPress={toggleMacros}>
             <Text style={styles.dropdownHeaderText}>
               {showMacros ? 'Hide Macronutrients' : 'Show Macronutrients'}
             </Text>
           </Pressable>
-          <Animated.View style={[styles.dropdownContent, { height: macrosHeight, overflow: 'hidden' }]}>
-            <TextInput
-              style={styles.input}
-              placeholder="Total Fat"
-              value={totalFat}
-              onChangeText={setTotalFat}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Saturated Fat"
-              value={satFat}
-              onChangeText={setSatFat}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Trans Fat"
-              value={transFat}
-              onChangeText={setTransFat}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Carbohydrate"
-              value={carbohydrate}
-              onChangeText={setCarbohydrate}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Fiber"
-              value={fiber}
-              onChangeText={setFiber}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Total Sugars"
-              value={totalSugars}
-              onChangeText={setTotalSugars}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Added Sugars"
-              value={addedSugars}
-              onChangeText={setAddedSugars}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Protein"
-              value={protein}
-              onChangeText={setProtein}
-              keyboardType="numeric"
-            />
+          <Animated.View style={[styles.dropdownContent, { height: macrosHeight, overflow: 'hidden' }]}>            
+            <TextInput style={styles.input} placeholder="Total Fat" value={totalFat} onChangeText={setTotalFat} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Saturated Fat" value={satFat} onChangeText={setSatFat} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Trans Fat" value={transFat} onChangeText={setTransFat} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Carbohydrate" value={carbohydrate} onChangeText={setCarbohydrate} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Fiber" value={fiber} onChangeText={setFiber} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Total Sugars" value={totalSugars} onChangeText={setTotalSugars} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Added Sugars" value={addedSugars} onChangeText={setAddedSugars} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Protein" value={protein} onChangeText={setProtein} keyboardType="numeric" />
           </Animated.View>
 
-          {/* Animated Dropdown for Micronutrients */}
           <Pressable style={styles.dropdownHeader} onPress={toggleMicros}>
             <Text style={styles.dropdownHeaderText}>
               {showMicros ? 'Hide Micronutrients' : 'Show Micronutrients'}
             </Text>
           </Pressable>
-          <Animated.View style={[styles.dropdownContent, { height: microsHeight, overflow: 'hidden' }]}>
-            <TextInput
-              style={styles.input}
-              placeholder="Cholesterol"
-              value={cholesterol}
-              onChangeText={setCholesterol}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Sodium"
-              value={sodium}
-              onChangeText={setSodium}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Vitamin D"
-              value={vitaminD}
-              onChangeText={setVitaminD}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Calcium"
-              value={calcium}
-              onChangeText={setCalcium}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Iron"
-              value={iron}
-              onChangeText={setIron}
-              keyboardType="numeric"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Potassium"
-              value={potassium}
-              onChangeText={setPotassium}
-              keyboardType="numeric"
-            />
+          <Animated.View style={[styles.dropdownContent, { height: microsHeight, overflow: 'hidden' }]}>            
+            <TextInput style={styles.input} placeholder="Cholesterol" value={cholesterol} onChangeText={setCholesterol} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Sodium" value={sodium} onChangeText={setSodium} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Vitamin D" value={vitaminD} onChangeText={setVitaminD} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Calcium" value={calcium} onChangeText={setCalcium} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Iron" value={iron} onChangeText={setIron} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Potassium" value={potassium} onChangeText={setPotassium} keyboardType="numeric" />
           </Animated.View>
 
           <Pressable style={styles.button} onPress={handleSubmit}>
@@ -348,14 +231,8 @@ const CustomGroceryItemScreen: React.FC<CustomGroceryItemScreenProps> = ({ onIte
 export default CustomGroceryItemScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { flex: 1 },
+  contentContainer: { padding: 20, alignItems: 'center', justifyContent: 'center' },
   form: {
     width: '100%',
     maxWidth: 600,
@@ -368,13 +245,7 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
   },
-  title: {
-    fontFamily: 'inter-bold',
-    fontSize: 24,
-    color: '#007bff',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
+  title: { fontFamily: 'inter-bold', fontSize: 24, color: '#007bff', textAlign: 'center', marginBottom: 20 },
   dropdownHeader: {
     backgroundColor: '#e2e6ea',
     paddingVertical: 12,
@@ -384,15 +255,8 @@ const styles = StyleSheet.create({
     borderColor: '#007bff',
     marginTop: 10,
   },
-  dropdownHeaderText: {
-    color: '#007bff',
-    fontFamily: 'inter-bold',
-    fontSize: 18,
-    textAlign: 'center',
-  },
-  dropdownContent: {
-    marginTop: 10,
-  },
+  dropdownHeaderText: { color: '#007bff', fontFamily: 'inter-bold', fontSize: 18, textAlign: 'center' },
+  dropdownContent: { marginTop: 10 },
   input: {
     borderColor: '#ccc',
     borderWidth: 2,
@@ -402,10 +266,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: 'white',
   },
-  multilineInput: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
+  multilineInput: { height: 100, textAlignVertical: 'top' },
   button: {
     backgroundColor: '#e2e6ea',
     paddingVertical: 15,
@@ -415,9 +276,5 @@ const styles = StyleSheet.create({
     borderColor: '#007bff',
     marginTop: 20,
   },
-  buttonText: {
-    color: '#007bff',
-    fontFamily: 'inter-bold',
-    fontSize: 18,
-  },
+  buttonText: { color: '#007bff', fontFamily: 'inter-bold', fontSize: 18 },
 });

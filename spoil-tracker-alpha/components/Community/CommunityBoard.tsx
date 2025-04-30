@@ -1,22 +1,21 @@
 /**
- * CommunityBoard Component
+ * @file CommunityBoard.tsx
+ * @description
+ * Displays a community-driven dashboard with:
+ *  - Spoil Tracker activity stats
+ *  - Popular Foods & Seasonal Produce carousels
+ *  - Featured Meal Plans (community grocery lists)
+ *  - Community Posts (with sorting, filtering, pagination)
+ * Provides modals for creating posts and viewing lists in detail.
  *
- * This component renders the Community Board view, which displays:
- * - Popular Foods and Seasonal Produce sections (horizontal FlatLists)
- * - Featured Meal Plans (community grocery lists)
- * - Community Posts (paginated list of posts)
- *
- * It also provides modals for creating a new post and for viewing a grocery list in detail.
- * The component supports sorting, filtering, and pagination for posts and grocery lists.
- *
- * External services used:
- * - CommunityService: Functions to fetch community data, create posts, update likes, etc.
- * - AccountService: Functions to fetch account details and manage liked posts/lists.
- * - FoodGlobalService: Functions to fetch food items and determine popular/seasonal items.
- *
+ * External services:
+ *  - CommunityService: fetch/create posts, like/unlike, comments, lists
+ *  - AccountService: fetch account, manage liked entities
+ *  - FoodGlobalService: fetch all foods, compute popular/seasonal
+ *  - FoodLeaderboardService: fetch spoil-tracker totals
  */
 
-import React, { useState, useEffect, } from 'react';
+import React, { useState, useEffect, useCallback, } from 'react';
 import {
   SafeAreaView,
   SectionList,
@@ -31,6 +30,8 @@ import {
   TextInput,
   Dimensions,
   Image,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import ViewGroceryList from '@/components/GroceryList/ListUI_Community';
@@ -53,19 +54,26 @@ import {
   removeLikedPost,
   addLikedCommunityGroceryList,
   removeLikedCommunityGroceryList,
+  getAccountNameByID,
 } from '../Account/AccountService';
 import { useAuth } from '@/services/authContext';
 import { getAllFoodGlobal, FoodGlobal } from '@/components/Food/FoodGlobalService';
+import { getTotalTimesBought, getTotalTimesEaten, getTotalTimesTossed } from '../Food/FoodLeaderboardService';
+import { useFocusEffect } from 'expo-router';
 
 // ===== Type Definitions =====
 
-// Comment and Post interfaces.
+/** A single user comment on a post */
 interface Comment {
+  /** ID of the commenting account */
   account_id: string;
+  /** Comment text */
   message: string;
+  /** ISO timestamp */
   createdAt: string;
 }
 
+/** A community post */
 export interface Post {
   id: string;
   title: string;
@@ -76,7 +84,7 @@ export interface Post {
   comments: Comment[];
 }
 
-// GroceryListItem and GroceryList (full schema).
+/** One item within a community grocery list */
 export interface GroceryListItem {
   id: string;
   food_name: string;
@@ -88,6 +96,7 @@ export interface GroceryListItem {
   imageUrl: string;
 }
 
+/** A community grocery list ("Meal Plan") */
 export interface GroceryList {
   account_id: string;
   id: string;
@@ -102,13 +111,13 @@ export interface GroceryList {
   snapshotAt?: string;
 }
 
-// CommunityData interface.
+/** Data returned from getCommunity() */
 interface CommunityData {
-  posts: { [id: string]: Post };
+  posts: Post[];
   copiedGroceryLists: GroceryList[];
 }
 
-// Account interface.
+/** User account stored locally */
 interface Account {
   id: string;
   owner_id: string;
@@ -117,31 +126,201 @@ interface Account {
   // ... other fields if needed
 }
 
-// SectionData interface for SectionList (each section has a title and a data array).
-interface SectionData {
-  title: string;
-  data: any[]; // For food sections, this will be a dummy array with one item.
-}
-
 // Our union type for items in the SectionList.
-type SectionItem = Post | GroceryList;
+type SectionItem = 
+  | { bought: number; eaten: number; tossed: number }
+  | FoodGlobal
+  | GroceryList
+  | Post;
 
-// Custom section interface for SectionList.
+/** Generic section for SectionList */
 interface CustomSection {
   title: string;
   data: SectionItem[];
 }
 
-// ==============================
+/**
+ * Memoized component to render a single post card,
+ * with like, delete, and comment functionality.
+ */
+const PostItem = React.memo(({ 
+  item, 
+  account,
+  accountNames, 
+  commentInput, 
+  onToggleLike, 
+  onDelete, 
+  onSubmitComment, 
+  onCommentChange 
+}: {
+  item: Post;
+  account: Account | null;
+  accountNames: Record<string,string>;
+  commentInput: string;
+  onToggleLike: (postId: string) => void;
+  onDelete: (postId: string) => void;
+  onSubmitComment: (postId: string) => void;
+  onCommentChange: (postId: string, text: string) => void;
+}) => {
+  const formattedDate = new Date(item.createdAt).toLocaleString();
+  const displayName = accountNames[item.account_id] || item.account_id;
+  const isOwner = account?.id === item.account_id;
+  const hasLiked = account?.likedPosts.includes(item.id);
 
+  const [localComments, setLocalComments] = useState<Comment[]>(item.comments);
+
+  // ── 2) When the parent ever *does* pass in new item.comments (e.g. on full reload),
+  //       sync them in.  This keeps localComments up to date if you ever do a full refetch.
+  useEffect(() => {
+    setLocalComments(item.comments);
+  }, [item.comments]);
+
+  const handleAddComment = async () => {
+    // you still call the API
+    await onSubmitComment(item.id);
+    // then locally append
+    setLocalComments(c => [
+      ...c,
+      {
+        account_id: account!.id,
+        message: commentInput,
+        createdAt: new Date().toISOString(),
+      }
+    ]);
+    // and clear the input
+    onCommentChange(item.id, '');
+  };
+  
+  return (
+    <View style={styles.postCard}>
+      <Text style={styles.postTitle}>{item.title}</Text>
+        <Text style={styles.postContent}>{item.content}</Text>
+        <Text style={styles.postMeta}>
+          By: {displayName} | Posted on: {formattedDate}
+        </Text>
+        <View style={styles.postActions}>
+          {!isOwner && (
+            <TouchableOpacity style={styles.actionButton} onPress={() => onToggleLike(item.id)}>
+              <Text style={styles.actionButtonText}>{hasLiked ? 'Unlike' : 'Like'}</Text>
+            </TouchableOpacity>
+          )}
+          <Text style={styles.postMeta}>Likes: {item.likes}</Text>
+          {isOwner && (
+            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => onDelete(item.id)}>
+              <Text style={styles.actionButtonText}>Delete</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.commentInputRow}>
+          <TextInput
+            style={styles.commentInput}
+            placeholder="Add a comment..."
+            value={commentInput}
+            onChangeText={(text) =>
+              onCommentChange(item.id, text)
+            }
+          />
+          <TouchableOpacity style={styles.commentSubmitButton} onPress={handleAddComment}>
+            <Text style={styles.commentSubmitButtonText}>&gt;</Text>
+          </TouchableOpacity>
+        </View>
+        {localComments.length > 0 && (
+          <ScrollView
+            style={styles.commentScroll}
+            contentContainerStyle={styles.commentContainer}
+            nestedScrollEnabled={true}       // for Android inner‑scroll
+          >
+            {localComments.map((comment, idx) => {
+              const commenter = accountNames[comment.account_id] || comment.account_id;
+              return (
+                <Text key={idx} style={styles.commentText}>
+                  {commenter}: {comment.message} (
+                    {new Date(comment.createdAt).toLocaleDateString()}
+                  )
+                </Text>
+              );
+            })}
+          </ScrollView>
+        )}
+    </View>
+  );
+});
+
+/**
+ * Memoized component to render a single grocery-list card,
+ * with like/unlike and delete functionality.
+ */
+const GroceryItem = React.memo(({
+  item,
+  account,
+  onToggleLike,
+  onDelete,
+  onOpenModal
+}: {
+  item: GroceryList;
+  account: Account | null;
+  onToggleLike: (listId: string) => void;
+  onDelete: (listId: string) => void;
+  onOpenModal: (listId: string) => void;
+}) => {
+  const hasLiked = account?.likedCommunityGroceryLists.includes(item.id);
+  const isOwner = account?.id === item.account_id;
+  const likes = (item as any).likes || 0;
+  
+  return (
+    <View style={styles.groceryCard}>
+      <TouchableOpacity onPress={() => onOpenModal(item.id)} style={styles.cardContent}>
+          <Text style={styles.groceryTitle}>{item.grocerylist_name}</Text>
+          {item.description && (
+            <Text style={styles.groceryDescription} numberOfLines={3} ellipsizeMode="tail">
+              {item.description}
+            </Text>
+          )}
+          {item.snapshotAt && (
+            <Text style={styles.snapshotText}>
+              Posted: {new Date(item.snapshotAt).toLocaleString()}
+            </Text>
+          )}
+        </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          {isOwner ? (
+            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => onDelete(item.id)}>
+              <Text style={styles.actionButtonText}>Delete</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.actionButton} onPress={() => onToggleLike(item.id)}>
+              <Text style={styles.actionButtonText}>{hasLiked ? 'Unlike' : 'Like'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.likeCounterContainer}>
+          <Text style={styles.likeCounterText}>Likes: {likes}</Text>
+        </View>
+    </View>
+  );
+});
+
+// ==============================
+/**
+ * CommunityBoard
+ *
+ * Main screen component. Fetches:
+ *  - Community feed (posts + lists)
+ *  - Account info + liked states
+ *  - Popular & seasonal foods
+ *  - Spoil-tracker totals
+ * Manages all sorting, filtering, pagination, and modals.
+ */
 const CommunityBoard: React.FC = () => {
   const { colors } = useTheme();
   const { user } = useAuth();
+  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width); // Store screen width
+  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Store screen width
 
   // Community data and account state.
   const [communityData, setCommunityData] = useState<CommunityData | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Modal state for creating a new post.
   const [postModalVisible, setPostModalVisible] = useState<boolean>(false);
@@ -172,20 +351,29 @@ const CommunityBoard: React.FC = () => {
   const [seasonalProduce, setSeasonalProduce] = useState<FoodGlobal[]>([]);
   const [loadingFood, setLoadingFood] = useState<boolean>(true);
 
+  const [accountNames, setAccountNames] = useState<Record<string,string>>({});
+
+  const [totals, setTotals] = useState<{
+    bought: number;
+    eaten: number;
+    tossed: number;
+  } | null>(null);
+  const [loadingTotals, setLoadingTotals] = useState(true);
+
+  
+
   /**
    * fetchCommunityData
    *
    * Retrieves the community data from the backend and updates the state.
    */
   const fetchCommunityData = async (): Promise<void> => {
-    setLoading(true);
     try {
       const data: CommunityData = await getCommunity();
       setCommunityData(data);
     } catch (error) {
       console.error('Error fetching community feed: ', error);
     }
-    setLoading(false);
   };
 
   /**
@@ -209,30 +397,108 @@ const CommunityBoard: React.FC = () => {
     fetchAccountData();
   }, [user]);
 
-  // Fetch community data when the component mounts.
-  useEffect(() => {
-    fetchCommunityData();
-  }, []);
 
   /**
    * Fetch food details for the Popular Foods and Seasonal Produce sections.
    */
   useEffect(() => {
-    const fetchFoodDetails = async () => {
-      setLoadingFood(true); // Start loading food details.
-      try {
-        const allFoodItems: FoodGlobal[] = await getAllFoodGlobal();
-        const popularIds: string[] = await fetchPopularFoods();
-        const seasonalIds: string[] = await fetchSeasonalFoods();
-        setPopularFoods(allFoodItems.filter(item => popularIds.includes(item.id)));
-        setSeasonalProduce(allFoodItems.filter(item => seasonalIds.includes(item.id)));
-      } catch (error) {
-        console.error('Error fetching food details: ', error);
-      }
-      setLoadingFood(false); // Finished loading food details.
+    const onChange = () => {
+      setScreenWidth(Dimensions.get('window').width);
+      setScreenHeight(Dimensions.get('window').height);
     };
-    fetchFoodDetails();
+    const dimensionsHandler = Dimensions.addEventListener('change', onChange);
+    return () => dimensionsHandler.remove();
   }, []);
+
+  // Fetch community data on focus
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      setInitialLoading(true);
+      getCommunity()
+        .then(data => { if (isActive) setCommunityData(data); })
+        .catch(console.error)
+        .finally(() => { if (isActive) setInitialLoading(false); });
+      return () => { isActive = false; };
+    }, [])
+  );
+
+  // Fetch food for sections
+  useEffect(() => {
+    (async () => {
+      setLoadingFood(true);
+      try {
+        const allItems = await getAllFoodGlobal();
+        const popIds = await fetchPopularFoods();
+        const secIds = await fetchSeasonalFoods();
+        setPopularFoods(allItems.filter((i: { id: any; }) => popIds.includes(i.id)));
+        setSeasonalProduce(allItems.filter((i: { id: any; }) => secIds.includes(i.id)));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingFood(false);
+      }
+    })();
+  }, []);
+
+  // Fetch totals
+  useEffect(() => {
+    (async () => {
+      setLoadingTotals(true);
+      try {
+        const [b, e, t] = await Promise.all([
+          getTotalTimesBought(),
+          getTotalTimesEaten(),
+          getTotalTimesTossed(),
+        ]);
+        setTotals({ bought: b, eaten: e, tossed: t });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingTotals(false);
+      }
+    })();
+  }, []);
+
+  // Fetch missing account names
+  useEffect(() => {
+    if (!communityData) return;
+    const ids = new Set<string>();
+    communityData.posts.forEach(p => { ids.add(p.account_id); p.comments.forEach(c => ids.add(c.account_id)); });
+    const toFetch = Array.from(ids).filter(id => !accountNames[id]);
+    if (!toFetch.length) return;
+    Promise.all(
+      toFetch.map(id => getAccountNameByID(id).then(name => ({ id, name })).catch(() => null))
+    ).then(results => {
+      const upd: Record<string,string> = {};
+      results.forEach(r => { if (r) upd[r.id] = r.name; });
+      setAccountNames(prev => ({ ...prev, ...upd }));
+    });
+  }, [communityData]);
+
+  const handleTogglePostLike = useCallback(async (postId: string) => {
+    if (!account) return;
+    const hasLiked = account.likedPosts.includes(postId);
+    try {
+      if (hasLiked) {
+        await removeLikedPost(account.id, postId);
+        await decrementPostLikes(postId);
+      } else {
+        await addLikedPost(account.id, postId);
+        await incrementPostLikes(postId);
+      }
+      setAccount(acc => ({
+        ...acc!,
+        likedPosts: hasLiked ? acc!.likedPosts.filter(i => i !== postId) : [...acc!.likedPosts, postId]
+      }));
+      setCommunityData(cd => ({
+        ...cd!,
+        posts: cd!.posts.map(p => p.id === postId ? { ...p, likes: p.likes + (hasLiked ? -1 : 1) } : p)
+      }));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [account]);
 
   // Modal open/close functions for post creation.
   const openPostModal = (): void => setPostModalVisible(true);
@@ -269,48 +535,24 @@ const CommunityBoard: React.FC = () => {
    *
    * @param postId - The ID of the post to comment on.
    */
-  const handleSubmitComment = async (postId: string): Promise<void> => {
-    if (!account) {
-      alert('No account loaded.');
-      return;
-    }
+  const handleSubmitComment = useCallback(async (postId: string) => {
     const text = commentInputs[postId]?.trim();
-    if (!text) {
-      alert('Please enter a comment.');
-      return;
-    }
+    if (!text || !account) return;
     try {
       await addCommentToPost(postId, account.id, text);
-      await fetchCommunityData();
-      setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
-    } catch (error) {
-      console.error('Error adding comment: ', error);
+      setCommunityData(cd => {
+        if (!cd) return cd;
+        const newC = { account_id: account.id, message: text, createdAt: new Date().toISOString() };
+        return {
+          ...cd,
+          posts: cd.posts.map(p => p.id === postId ? { ...p, comments: [...p.comments, newC] } : p)
+        };
+      });
+      setCommentInputs(ci => ({ ...ci, [postId]: '' }));
+    } catch (err) {
+      console.error(err);
     }
-  };
-
-  /**
-   * handleTogglePostLike
-   *
-   * Toggles the like status for a post.
-   *
-   * @param postId - The ID of the post.
-   */
-  const handleTogglePostLike = async (postId: string): Promise<void> => {
-    if (!account) return;
-    try {
-      if (account.likedPosts.includes(postId)) {
-        await removeLikedPost(account.id, postId);
-        await decrementPostLikes(postId);
-      } else {
-        await addLikedPost(account.id, postId);
-        await incrementPostLikes(postId);
-      }
-      await fetchAccountData();
-      await fetchCommunityData();
-    } catch (error) {
-      console.error('Error toggling post like: ', error);
-    }
-  };
+  }, [account, commentInputs]);
 
   /**
    * handleToggleGroceryLike
@@ -319,7 +561,7 @@ const CommunityBoard: React.FC = () => {
    *
    * @param groceryListId - The ID of the grocery list.
    */
-  const handleToggleGroceryLike = async (groceryListId: string): Promise<void> => {
+  const handleToggleGroceryLike = useCallback(async (groceryListId: string) => {
     if (!account) return;
     try {
       if (account.likedCommunityGroceryLists.includes(groceryListId)) {
@@ -329,12 +571,15 @@ const CommunityBoard: React.FC = () => {
         await addLikedCommunityGroceryList(account.id, groceryListId);
         await incrementCopiedGroceryListLikes(groceryListId);
       }
-      await fetchAccountData();
-      await fetchCommunityData();
-    } catch (error) {
-      console.error('Error toggling grocery list like: ', error);
+      // refetch account & data
+      const acc = await getAccountByOwnerID(account.id);
+      setAccount(acc);
+      const data = await getCommunity();
+      setCommunityData(data);
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }, [account]);
 
   /**
    * handleDeletePost
@@ -343,15 +588,16 @@ const CommunityBoard: React.FC = () => {
    *
    * @param postId - The ID of the post to delete.
    */
-  const handleDeletePost = async (postId: string): Promise<void> => {
+  const handleDeletePost = useCallback(async (postId: string) => {
     try {
       await deletePost(postId);
-      await fetchCommunityData();
+      const data = await getCommunity();
+      setCommunityData(data);
       setCurrentPostPage(1);
-    } catch (error) {
-      console.error('Error deleting post: ', error);
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }, []);
 
   /**
    * handleDeleteGroceryList
@@ -360,14 +606,15 @@ const CommunityBoard: React.FC = () => {
    *
    * @param groceryListId - The ID of the grocery list to delete.
    */
-  const handleDeleteGroceryList = async (groceryListId: string): Promise<void> => {
+  const handleDeleteGroceryList = useCallback(async (groceryListId: string) => {
     try {
       await removeCopiedGroceryList(groceryListId);
-      await fetchCommunityData();
-    } catch (error) {
-      console.error('Error deleting grocery list: ', error);
+      const data = await getCommunity();
+      setCommunityData(data);
+    } catch (err) {
+      console.error(err);
     }
-  };
+  }, []);
 
   // Functions to open/close the grocery list modal.
   const openGroceryModal = (listId: string): void => {
@@ -379,6 +626,81 @@ const CommunityBoard: React.FC = () => {
     setGroceryModalVisible(false);
     setSelectedGroceryListId(null);
   };
+
+  const renderItem = React.useCallback(
+    ({ item, section }: { item: SectionItem; section: CustomSection }) => {
+      if (section.title === 'Popular Foods' || section.title === 'Seasonal Produce') {
+        return null;
+      }
+      switch (section.title) {
+        case "Spoil Tracker Activity":
+          if (loadingTotals || !totals) {
+            return <ActivityIndicator size="small" color="#2196F3" />;
+          }
+          return (
+            <View style={styles.totalsContainer}>
+              <Text style={[styles.totalsText, {color: '#007bff'}]}>Products have been bought...</Text>
+              <Text style={[styles.totalsText, {color: '#007bff', fontSize: 30}]}>{totals.bought} times </Text>
+              <Text style={[styles.totalsText, {color: '#007bff'}]}>...from Spoil Tracker grocery lists.</Text>
+              <View style={{marginVertical: 10}}></View>
+
+              <Text style={[styles.totalsText, {color: '#39913b'}]}>Products have been eaten...</Text>
+              <Text style={[styles.totalsText, {color: '#39913b', fontSize: 30}]}>{totals.eaten} times </Text>
+              <Text style={[styles.totalsText, {color: '#39913b'}]}>...from Spoil Tracker pantries.</Text>
+              <View style={{marginVertical: 10}}></View>
+
+              <Text style={[styles.totalsText, {color: '#39913b'}]}>Products have been tossed...</Text>
+              <Text style={[styles.totalsText, {color: '#39913b', fontSize: 30}]}>{totals.tossed} times </Text>
+              <Text style={[styles.totalsText, {color: '#39913b'}]}>...from Spoil Tracker pantries.</Text>
+              <View style={{marginVertical: 10}}></View>
+            </View>
+          );
+
+        case "Featured Meal Plans":
+          return (
+            <GroceryItem
+              item={item as GroceryList}
+              account={account}
+              onToggleLike={handleToggleGroceryLike}
+              onDelete={handleDeleteGroceryList}
+              onOpenModal={openGroceryModal}
+            />
+          );
+
+        case "Community Posts":
+          return (
+            <PostItem
+              item={item as Post}
+              account={account}
+              accountNames={accountNames}
+              commentInput={commentInputs[(item as Post).id] || ""}
+              onToggleLike={handleTogglePostLike}
+              onDelete={handleDeletePost}
+              onSubmitComment={handleSubmitComment}
+              onCommentChange={(postId, text) =>
+                setCommentInputs((prev) => ({ ...prev, [postId]: text }))
+              }
+            />
+          );
+
+        default:
+          return null;
+      }
+    },
+    [
+      loadingTotals,
+      totals,
+      loadingFood,
+      account,
+      commentInputs,
+      handleToggleGroceryLike,
+      handleDeleteGroceryList,
+      openGroceryModal,
+      handleTogglePostLike,
+      handleDeletePost,
+      handleSubmitComment,
+    ]
+  );
 
   // ---- Compute Filtered and Sorted Data for Posts ----
   const postsArray: Post[] = Object.values(communityData ? communityData.posts : {});
@@ -443,119 +765,31 @@ const CommunityBoard: React.FC = () => {
   );
 
   // ---- Combine Sections for SectionList ----
-  const sectionsData: SectionData[] = [
-    { title: 'Popular Foods', data: [popularFoods] },
-    { title: 'Seasonal Produce', data: [seasonalProduce] },
-    { title: 'Featured Meal Plans', data: [sortedGroceries] },
-    { title: 'Community Posts', data: paginatedPosts },
-  ];
-
-  /**
-   * renderPostItem
-   *
-   * Renders a single community post.
-   *
-   * @param item - The post to render.
-   * @returns A JSX.Element representing the post card.
-   */
-  const renderPostItem = ({ item }: { item: Post }): JSX.Element => {
-    const currentComment = commentInputs[item.id] || '';
-    const formattedDate = new Date(item.createdAt).toLocaleString();
-    const isOwner = account?.id === item.account_id;
-    const hasLiked = account?.likedPosts.includes(item.id);
-    return (
-      <View style={styles.postCard}>
-        <Text style={styles.postTitle}>{item.title}</Text>
-        <Text style={styles.postContent}>{item.content}</Text>
-        <Text style={styles.postMeta}>
-          By: {item.account_id} | Posted on: {formattedDate}
-        </Text>
-        <View style={styles.postActions}>
-          {!isOwner && (
-            <TouchableOpacity style={styles.actionButton} onPress={() => handleTogglePostLike(item.id)}>
-              <Text style={styles.actionButtonText}>{hasLiked ? 'Unlike' : 'Like'}</Text>
-            </TouchableOpacity>
-          )}
-          <Text style={styles.postMeta}>Likes: {item.likes}</Text>
-          {isOwner && (
-            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => handleDeletePost(item.id)}>
-              <Text style={styles.actionButtonText}>Delete</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.commentInputRow}>
-          <TextInput
-            style={styles.commentInput}
-            placeholder="Add a comment..."
-            value={currentComment}
-            onChangeText={(text) =>
-              setCommentInputs((prev) => ({ ...prev, [item.id]: text }))
-            }
-          />
-          <TouchableOpacity style={styles.commentSubmitButton} onPress={() => handleSubmitComment(item.id)}>
-            <Text style={styles.commentSubmitButtonText}>&gt;</Text>
-          </TouchableOpacity>
-        </View>
-        {item.comments && item.comments.length > 0 && (
-          <View style={styles.commentContainer}>
-            {item.comments.map((comment, index) => (
-              <Text key={index} style={styles.commentText}>
-                {comment.account_id}: {comment.message} ({new Date(comment.createdAt).toLocaleDateString()})
-              </Text>
-            ))}
-          </View>
-        )}
-      </View>
-    );
-  };
-
-  /**
-   * renderGroceryItem
-   *
-   * Renders a single grocery list item for the Featured Meal Plans section.
-   *
-   * @param item - The grocery list to render.
-   * @returns A JSX.Element representing the grocery list card.
-   */
-  const renderGroceryItem = ({ item }: { item: GroceryList }): JSX.Element => {
-    const hasLiked = account?.likedCommunityGroceryLists.includes(item.id);
-    const isOwner = account?.id === item.account_id;
-    const likes = (item as any).likes || 0;
-    return (
-      <View style={styles.groceryCard}>
-        <TouchableOpacity onPress={() => openGroceryModal(item.id)} style={styles.cardContent}>
-          <Text style={styles.groceryTitle}>{item.grocerylist_name}</Text>
-          {item.description && (
-            <Text style={styles.groceryDescription} numberOfLines={3} ellipsizeMode="tail">
-              {item.description}
-            </Text>
-          )}
-          {item.snapshotAt && (
-            <Text style={styles.snapshotText}>
-              Posted: {new Date(item.snapshotAt).toLocaleString()}
-            </Text>
-          )}
-        </TouchableOpacity>
-        <View style={styles.buttonRow}>
-          {isOwner ? (
-            <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => handleDeleteGroceryList(item.id)}>
-              <Text style={styles.actionButtonText}>Delete</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.actionButton} onPress={() => handleToggleGroceryLike(item.id)}>
-              <Text style={styles.actionButtonText}>{hasLiked ? 'Unlike' : 'Like'}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.likeCounterContainer}>
-          <Text style={styles.likeCounterText}>Likes: {likes}</Text>
-        </View>
-      </View>
-    );
-  };
+  const sectionsData = React.useMemo<CustomSection[]>(() => [
+    {
+      title: 'Spoil Tracker Activity',
+      data: totals ? [totals] : [],
+    },
+    { 
+      title: 'Popular Foods', 
+      data: popularFoods
+    },
+    { 
+      title: 'Seasonal Produce', 
+      data: seasonalProduce
+    },
+    { 
+      title: 'Featured Meal Plans', 
+      data: sortedGroceries
+    },
+    { 
+      title: 'Community Posts', 
+      data: paginatedPosts
+    },
+  ], [totals, popularFoods, seasonalProduce, sortedGroceries, paginatedPosts]);
 
   // Display a loading indicator if data is being fetched.
-  if (loading || !communityData) {
+  if (initialLoading || !communityData) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#2196F3" />
@@ -567,15 +801,45 @@ const CommunityBoard: React.FC = () => {
   const selectedGroceryList =
     selectedGroceryListId &&
     communityData.copiedGroceryLists.find((gl) => gl.id === selectedGroceryListId);
+  
+  
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { height: screenHeight - 125 }]}>
       <SectionList
         sections={sectionsData}
-        keyExtractor={(item, index) => index.toString()}
+        stickySectionHeadersEnabled={false}
+        keyExtractor={(item) => {
+          // for posts & grocery lists, use their id
+          if ('id' in item) return item.id;
+          // for other sections (totals, foods), fall back to title or index
+          return JSON.stringify(item);
+        }}
+        showsHorizontalScrollIndicator={false}
+        extraData={communityData}
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeaderContainer}>
             <Text style={styles.sectionHeader}>{section.title}</Text>
+            { (section.title === 'Popular Foods' || section.title === 'Seasonal Produce') && (
+              <FlatList<FoodGlobal>
+                horizontal
+                data={section.data as FoodGlobal[]}
+                keyExtractor={item => item.id}
+                renderItem={({ item: foodItem }) => (
+                  <View style={styles.foodCard}>
+                    <View style={styles.foodTextContainer}>
+                      <Text style={styles.foodName}>{foodItem.food_name}</Text>
+                    </View>
+                    <Image
+                      source={{ uri: foodItem.food_picture_url }}
+                      style={styles.foodImage}
+                    />
+                  </View>
+                )}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalSection}
+              />
+            )}
             {section.title === 'Community Posts' && (
               <>
                 <View style={styles.searchSortContainer}>
@@ -680,77 +944,14 @@ const CommunityBoard: React.FC = () => {
             </View>
           ) : null
         }
-        renderItem={({ item, section }) => {
-          // Render different section items based on section title.
-          if (section.title === 'Popular Foods') {
-            // Horizontal FlatList for Popular Foods.
-            return loadingFood ? (
-              <ActivityIndicator size="small" color="#2196F3" />
-            ) : (
-              <FlatList
-                data={item} // item is the popularFoods array.
-                horizontal
-                keyExtractor={(foodItem) => foodItem.id}
-                renderItem={({ item: foodItem }) => (
-                  <View style={styles.foodCard}>
-                    <View style={styles.foodTextContainer}>
-                      <Text style={styles.foodName}>{foodItem.food_name}</Text>
-                    </View>
-                    <Image source={{ uri: foodItem.food_picture_url }} style={styles.foodImage} />
-                  </View>
-                )}
-                showsHorizontalScrollIndicator={false}
-              />
-            );
-          }
-          if (section.title === 'Seasonal Produce') {
-            // Horizontal FlatList for Seasonal Produce.
-            return loadingFood ? (
-              <ActivityIndicator size="small" color="#2196F3" />
-            ) : (
-              <FlatList
-                data={item} // item is the seasonalProduce array.
-                horizontal
-                keyExtractor={(foodItem) => foodItem.id}
-                renderItem={({ item: foodItem }) => (
-                  <View style={styles.foodCard}>
-                    <View style={styles.foodTextContainer}>
-                      <Text style={styles.foodName}>{foodItem.food_name}</Text>
-                    </View>
-                    <Image source={{ uri: foodItem.food_picture_url }} style={styles.foodImage} />
-                  </View>
-                )}
-                showsHorizontalScrollIndicator={false}
-              />
-            );
-          }
-          if (section.title === 'Featured Meal Plans') {
-            // Horizontal FlatList for Featured Meal Plans (community grocery lists).
-            return loadingFood ? (
-              <ActivityIndicator size="small" color="#2196F3" />
-            ) : (
-              <FlatList
-                data={item} // item is the sortedGroceries array.
-                horizontal
-                keyExtractor={(grocery) => grocery.id}
-                renderItem={({ item: groceryItem }) => renderGroceryItem({ item: groceryItem })}
-                showsHorizontalScrollIndicator={false}
-              />
-            );
-          }
-          if (section.title === 'Community Posts') {
-            // Render a single community post.
-            return renderPostItem({ item });
-          }
-          return null;
-        }}
+        renderItem={renderItem}
         ListHeaderComponent={
           <>
             <Text style={styles.header}>Community Board</Text>
           </>
         }
-        contentContainerStyle={styles.listContainer}
       />
+        
 
       {/* Modal for creating a new post */}
       <Modal visible={postModalVisible} animationType="fade" onRequestClose={closePostModal} transparent>
@@ -778,7 +979,7 @@ const CommunityBoard: React.FC = () => {
       {/* Modal for viewing a grocery list */}
       <Modal visible={groceryModalVisible} animationType="fade" onRequestClose={closeGroceryModal} transparent>
         <View style={[styles.modalOverlay, styles.modalContainer]}>
-          <View style={[styles.modalContent, { backgroundColor: 'transparent' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background}]}>
             {selectedGroceryList ? (
               <ViewGroceryList groceryList={selectedGroceryList} />
             ) : (
@@ -795,7 +996,7 @@ const CommunityBoard: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, maxWidth: 400 },
+  container: { flex: 1, maxWidth: 320 },
   listContainer: { paddingHorizontal: 20, paddingBottom: 20 },
   header: {
     fontSize: 32,
@@ -894,7 +1095,7 @@ const styles = StyleSheet.create({
   },
   commentSubmitButtonText: { color: '#fff', fontSize: 16, fontFamily: 'inter-bold' },
   commentContainer: { marginTop: 10, padding: 5, borderRadius: 5 },
-  commentText: { fontSize: 12, color: '#333' },
+  commentText: { fontSize: 12, color: '#333',marginBottom: 2 },
   groceryCard: {
     marginHorizontal: 5,
     backgroundColor: '#f3f3f3',
@@ -947,6 +1148,7 @@ const styles = StyleSheet.create({
     width: '90%',
     alignItems: 'center',
     maxWidth: 450,
+    minHeight: Platform.OS === 'web' ? 0 : 525,
   },
   modalHeader: { fontSize: 24, fontFamily: 'inter-bold', color: '#007bff', marginBottom: 20 },
   input: {
@@ -1015,6 +1217,21 @@ const styles = StyleSheet.create({
   foodTextContainer: {
     flex: 1,
     alignItems: 'flex-start',   // Ensures text is left-aligned.
+  },
+  totalsContainer: {
+    backgroundColor: '#eef2f5',
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 10
+  },
+  totalsText: {
+    fontSize: 16,
+    fontFamily: 'inter-bold',
+    color: '#333',
+    marginBottom: 5
+  },
+  commentScroll: {
+    maxHeight: 80,      // adjust to whatever makes sense in your card
   },
 });
 
