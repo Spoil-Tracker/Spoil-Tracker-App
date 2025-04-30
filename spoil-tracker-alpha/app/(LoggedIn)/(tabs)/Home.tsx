@@ -14,7 +14,7 @@ import {
   TextInput,
 } from 'react-native';
 import { useAuth } from '../../../services/authContext'; // Import the authentication context
-import { useTheme, Text, Icon } from 'react-native-paper'; // Import useTheme and Text from react-native-paper
+import { useTheme, Text} from 'react-native-paper'; // Import useTheme and Text from react-native-paper
 import { db, auth } from '../../../services/firebaseConfig'; // imports authentication
 import { doc, getDoc, getDocs, collection } from 'firebase/firestore'; // imports user information from firestore
 import { onAuthStateChanged, getAuth } from 'firebase/auth'; // gets authentication from firebase
@@ -290,7 +290,7 @@ export default function HomeScreen() {
             <Text style={styles.btnLogout}>Logout</Text>
           </TouchableOpacity>
         </View>
-        {/* Search Bar in its own row below header */}
+        {/* Search Bar */}
         <View style={styles.searchBarRow}>
           <View style={styles.searchBarContainerSmall}>
             <View style={styles.searchIconCircle}>
@@ -306,7 +306,7 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-        {/* Search Results Dropdown as a block below search bar */}
+        {/* Search Results Dropdown */}
         {searchResults.length > 0 && (
           <View style={styles.searchResultsDropdownBlock}>
             {searchResults.map((item, idx) => (
@@ -317,7 +317,7 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Item Details Modal */}
+        {/* Item Details */}
         <Modal
           visible={modalVisible}
           transparent
@@ -525,7 +525,6 @@ export default function HomeScreen() {
           <View style={styles.produceInSeasonContainer}>
             <Text style={styles.produceInSeasonTitle}>Produce in Season</Text>
             <View style={styles.appleGrid}>
-              {/* Top Left - Apple */}
               <View style={styles.appleItem}>
                 {appleData && (
                   <>
@@ -537,7 +536,6 @@ export default function HomeScreen() {
                   </>
                 )}
               </View>
-              {/* Top Right - Banana */}
               <View style={styles.appleItem}>
                 {bananaData && (
                   <>
@@ -549,7 +547,6 @@ export default function HomeScreen() {
                   </>
                 )}
               </View>
-              {/* Bottom Left - Orange */}
               <View style={styles.appleItem}>
                 {orangeData && (
                   <>
@@ -561,7 +558,6 @@ export default function HomeScreen() {
                   </>
                 )}
               </View>
-              {/* Bottom Right - Grape */}
               <View style={styles.appleItem}>
                 {grapeData && (
                   <>
@@ -581,7 +577,6 @@ export default function HomeScreen() {
         <View style={styles.recommendedContainer}>
           <Text style={styles.recommendedTitle}>Recommended Products</Text>
           <View style={styles.juiceRow}>
-            {/* Apple Juice */}
             <View style={styles.juiceItem}>
               {appleJuiceData && (
                 <>
@@ -593,7 +588,6 @@ export default function HomeScreen() {
                 </>
               )}
             </View>
-            {/* Orange Juice */}
             <View style={styles.juiceItem}>
               {orangeJuiceData && (
                 <>
