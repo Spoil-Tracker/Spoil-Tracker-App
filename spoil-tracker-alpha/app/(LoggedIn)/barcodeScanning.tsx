@@ -21,6 +21,12 @@ import { useAuth } from '@/services/authContext';
 import { getAccountByOwnerID } from '@/components/Account/AccountService';
 import PantryDropdownComponent from '@/components/Pantry/PantryDropdown';
 import { router } from 'expo-router';
+import { Platform } from 'react-native';
+
+let Html5QrcodeScanner: any;
+if (Platform.OS === 'web') {
+  Html5QrcodeScanner = require('html5-qrcode').Html5QrcodeScanner;
+}
 
 /**
  * @file BarcodeScanner.tsx
@@ -41,6 +47,7 @@ export default function BarcodeScanner() {
   const { user } = useAuth();
   /** The current account ID, loaded once based on authenticated user */
   const [accountId, setAccountId] = useState<string | null>(null);
+  const webScannerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -80,6 +87,34 @@ export default function BarcodeScanner() {
   const [selectedPantryId, setSelectedPantryId] = useState<string | null>(null);
   /** Whether the user has opted into the custom item form */
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (mode === 'camera' && Platform.OS === 'web' && webScannerRef.current) {
+      const scanner = new Html5QrcodeScanner(
+        'web-barcode-scanner',
+        { fps: 10, qrbox: 250 },
+        false
+      );
+  
+      scanner.render(
+        (decodedText: string) => {
+          if (!scanningRef.current) {
+            scanningRef.current = true;
+            lookupAndShowForm(decodedText);
+            setTimeout(() => (scanningRef.current = false), 3000);
+          }
+          scanner.clear(); // Optional: stop after 1 scan
+        },
+        (error: any) => {
+          // You can handle errors or ignore
+        }
+      );
+  
+      return () => {
+        scanner.clear().catch(() => {});
+      };
+    }
+  }, [mode]);
 
   /**
    * Lookup product data by barcode from multiple Open*Facts endpoints,
@@ -336,12 +371,27 @@ export default function BarcodeScanner() {
 
   // 5) Camera scanning view
   if (mode === 'camera') {
-    if (!permission) {
-      // Permission object not yet available
-      return <View />;
+    if (Platform.OS === 'web') {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.label}>Scan Barcode via Web Camera</Text>
+          <div
+            id="web-barcode-scanner"
+            ref={webScannerRef}
+            style={{ width: '100%', maxWidth: 500 }}
+          />
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => setMode('menu')}
+          >
+            <Text style={styles.secondaryButtonText}>Back to Menu</Text>
+          </TouchableOpacity>
+        </View>
+      );
     }
+  
+    if (!permission) return <View />;
     if (!permission.granted) {
-      // Permission denied or not requested yet
       return (
         <View style={styles.container}>
           <Text style={styles.label}>Camera permission is required.</Text>
@@ -357,7 +407,7 @@ export default function BarcodeScanner() {
         </View>
       );
     }
-    // Permission granted: show camera preview
+  
     return (
       <View style={styles.container}>
         <CameraView
