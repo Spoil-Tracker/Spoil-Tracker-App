@@ -48,7 +48,7 @@ const MealSearch = () => {
         value={query}
         onChangeText={setQuery}
       />
-      <Button title="Search" onPress={searchMeal} />
+      <Button title="Search" onPress={searchMeal} color="#4CAE4F" />
       {error && <Text style={styles.error}>{error}</Text>}
       {meal && (
         <View style={styles.mealCard}>
