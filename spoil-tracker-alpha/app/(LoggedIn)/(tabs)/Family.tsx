@@ -1,96 +1,191 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView } from 'react-native';
-import { MaterialIcons, AntDesign, Feather } from '@expo/vector-icons';
-import { doc, getDoc, getDocs, collection, arrayRemove, updateDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView, Image } from 'react-native';
+import { MaterialIcons, AntDesign } from '@expo/vector-icons';
+import { doc, getDoc, getDocs, collection, arrayRemove, updateDoc, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '../../../services/firebaseConfig';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import {
+  createGroceryList,
+  updateGroceryListIsFamily,
+  updateGroceryListIsShared,
+  fetchGroceryListByID,
+  updateGroceryListName,
+} from '@/components/GroceryList/GroceryListService';
+import { getAccountByOwnerID } from '@/components/Account/AccountService'
+import type { GroceryList } from '@/components/GroceryList/GroceryListService';
 
 export default function FamilyManagementScreen() {
-    const [kitchenItems, setKitchenItems] = useState([
-        { name: 'Fridge', count: 35 },
-        { name: 'Pantry', count: 15 },
-        { name: 'Freezer', count: 20 },
-        { name: 'Beverage', count: 26 },
-      ]);
-    const [isModalVisible, setModalVisible] = useState(false);
-    const [newItemName, setNewItemName] = useState('');
-    const [newItemCount, setNewItemCount] = useState('');
-    
-    const addKitchenItem = () => {
-        if (newItemName.trim() && !isNaN(parseInt(newItemCount, 10))) {
-          setKitchenItems([...kitchenItems, { name: newItemName, count: parseInt(newItemCount, 10) }]);
-          setNewItemName('');
-          setNewItemCount('');
-          setModalVisible(false);
-        }
-    };
-      
-    const [groceryLists, setGroceryLists] = useState(['Grocery List 1', 'Grocery List 2']);
 
-    const [familyMembers, setFamilyMembers] = useState<string[]>([]);
-    const [ownerID, setOwnerID] = useState('');
-    const [usernamesMap, setUsernamesMap] = useState<{ [key: string]: string }>({});
+  const router = useRouter();
+  const currentUser = auth.currentUser;
+  const [kitchenItems, setKitchenItems] = useState([
+    { name: 'Fridge', count: 35 },
+    { name: 'Pantry', count: 15 },
+    { name: 'Freezer', count: 20 },
+    { name: 'Beverage', count: 26 },
+  ]);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [newItemCount, setNewItemCount] = useState('');
+  const addKitchenItem = () => {
+    if (newItemName.trim() && !isNaN(parseInt(newItemCount, 10))) {
+      setKitchenItems([...kitchenItems, { name: newItemName, count: parseInt(newItemCount, 10) }]);
+      setNewItemName('');
+      setNewItemCount('');
+      setModalVisible(false);
+    }
+  };
+  const [sharedLists, setSharedLists] = useState<GroceryList[]>([]);
+  const [sharedListIds, setSharedListIds] = useState<string[]>([]);
+  //Add shared list
+  const [isAddSharedModalVisible, setAddSharedModalVisible] = useState(false);
+  const [newSharedListName, setNewSharedListName] = useState('');
+  // Editing grocery-list names
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState('');
+  // "Share family" members
+  const [familyMembers, setFamilyMembers] = useState<string[]>([]);
+  const [ownerID, setOwnerID] = useState('');
+  const [familyDocId, setFamilyDocId] = useState<string>('');
+  const [usernamesMap, setUsernamesMap] = useState<{ [key: string]: string }>({});
 
-    const [isGroceryModalVisible, setGroceryModalVisible] = useState(false);
-    const [newGroceryName, setNewGroceryName] = useState('');
-
-    const addGroceryList = () => {
-        if (newGroceryName.trim()) {
-            setGroceryLists([...groceryLists, newGroceryName]);
-            setNewGroceryName('');
-            setGroceryModalVisible(false);
-        }
-    };
-
-    const currentUser = auth.currentUser;
-    const [selectedNewOwner, setSelectedNewOwner] = useState('');
-    const [showTransferOptions, setShowTransferOptions] = useState(false); 
   
+
     // **Fetch Family Data */
     useFocusEffect(
       useCallback(() => {
+        let active = true;
+
         const fetchFamilyData = async () => {
           const currentUser = auth.currentUser;
           if (!currentUser) return;
-      
+    
           try {
-            // Search for a family doc where this user is a member
+            // 1) find the family doc this user belongs to
             const familyQuerySnapshot = await getDocs(collection(db, 'family'));
-            let foundFamily: QueryDocumentSnapshot<DocumentData> | undefined = familyQuerySnapshot.docs.find(docSnap => {
+            const foundFamily = familyQuerySnapshot.docs.find(docSnap => {
               const data = docSnap.data() as { members: string[]; owner_id: string };
-              return data.members?.includes(currentUser.uid);
+              return Array.isArray(data.members) && data.members.includes(currentUser.uid);
             });
-      
+    
             if (!foundFamily) {
               console.log('No family document found for current user');
               return;
             }
-      
-            const data = foundFamily.data() as { members: string[]; owner_id: string };
-            const members: string[] = data.members;
-            const owner: string = data.owner_id;
-      
-            setFamilyMembers(members);
-            setOwnerID(owner);
-      
-            // Fetch usernames from Firestore
-            const usernames: { [key: string]: string } = {};
+    
+            const familyData = foundFamily.data() as {
+              members: string[];
+              owner_id: string;
+              shared_lists?: string[];
+              shared_pantries?: string[];
+            };
+            if (!active) return;
+    
+            setFamilyMembers(familyData.members);
+            setOwnerID(familyData.owner_id);
+            setFamilyDocId(foundFamily.id);
+            setSharedListIds(familyData.shared_lists || []);
+    
+            //fetch each member’s display name
+            const usernames: Record<string, string> = {};
             await Promise.all(
-              members.map(async (uid) => {
-                const userSnap = await getDoc(doc(db, 'users', uid));
-                usernames[uid] = userSnap.exists() ? userSnap.data().username : 'Unknown';
+              familyData.members.map(async (uid) => {
+                const snap = await getDoc(doc(db, 'users', uid));
+                if (!snap.exists()) {
+                  usernames[uid] = 'Unknown';
+                } else {
+                  const d = snap.data();
+                  usernames[uid] = (d.name as string) || (d.username as string) || 'Unknown';
+                }
               })
             );
-      
-            setUsernamesMap(usernames);
+            if (active) setUsernamesMap(usernames);
           } catch (error) {
             console.error('Error fetching family data:', error);
           }
         };
     
         fetchFamilyData();
-      }, [])
+      }, [auth.currentUser?.uid, familyDocId]) 
     );
+
+    // Create-List function
+    const handleCreateSharedList = async () => {
+      if (!ownerID || !familyDocId) return alert ("Can't create a shared list until a family owner is known.!");
+
+      const name = newSharedListName.trim();
+      if (!name) {
+        alert("Please enter a list name");
+        return;
+      }
+    
+      try {
+        //Load Account recored by owner_id
+        const account = await getAccountByOwnerID(ownerID);
+
+        // create the list under that account
+        const created = await createGroceryList(account.id, name);
+    
+        // mark it as a family/shared list
+        await updateGroceryListIsFamily(created.id, true);
+        await updateGroceryListIsShared(created.id, true);
+
+        // 5) push it into your family.shared_lists array
+        const familyRef = doc(db, 'family', familyDocId)
+        await updateDoc(familyRef, { shared_lists: arrayUnion(created.id) })
+    
+        // add to local UI
+        setSharedLists(prev => [
+          ...prev,
+          {
+            ...created,
+            account_id: account.id,
+            grocery_list_items: [],
+            isFamily: true,
+            isShared: true,
+            isComplete: false,
+          },
+        ]);
+    
+        setNewSharedListName('');
+        setAddSharedModalVisible(false);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to create shared list');
+      }
+    };
+
+    // Get *all* shared lists globally then filter to those owned by your family
+    useFocusEffect(
+      useCallback(() => {
+        if (sharedListIds.length === 0) {
+          setSharedLists([]);
+          return;
+        }
+        // fetch each list by ID
+        Promise.all(sharedListIds.map(id => fetchGroceryListByID(id)))
+          .then(results => {
+            setSharedLists(results.filter((l): l is GroceryList => l !== null));
+          })
+          .catch(console.error);
+      }, [sharedListIds])
+    );
+
+
+    
+    const [selectedNewOwner, setSelectedNewOwner] = useState('');
+    const [showTransferOptions, setShowTransferOptions] = useState(false);
+
+    // open shared list modal
+    const openSharedList = (list: GroceryList) => {
+      router.push({
+        pathname: '/ListUI',
+        params: { id: list.id },
+      });
+    };
+
+
+     // 5) Add‐item UI in grocery list
+    const [newItemName, setNewItemName]         = useState('');  
 
     // **Disconnect from family */
     const handleDisconnect = async () => {
@@ -161,9 +256,42 @@ export default function FamilyManagementScreen() {
       }
     };
 
+    //**Change List Name */
+    const handleRenameSharedList = async (idx: number) => {
+      const trimmed = editingName.trim();
+      if (!trimmed) {
+        setEditingIndex(null);
+        return;
+      }
+      try {
+        // call your service
+        const updated = await updateGroceryListName(sharedLists[idx].id, trimmed);
+        // update local sharedLists array
+        setSharedLists(prev => {
+          const copy = [...prev];
+          copy[idx] = {
+            ...copy[idx],
+            grocerylist_name: updated.grocerylist_name
+          };
+          return copy;
+        });
+      } catch (err) {
+        console.error('Failed to rename shared list', err);
+        alert('Could not rename list');
+      } finally {
+        setEditingIndex(null);
+        setEditingName('');
+      }
+    };
+
+
+
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView 
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Header Section */}
       <Text style={styles.header}>Family Management</Text>
       <Text style={styles.greeting}>Hello, {usernamesMap[currentUser?.uid || ''] || 'User'}!</Text>
@@ -178,7 +306,7 @@ export default function FamilyManagementScreen() {
             <Text style={styles.label}>Shared Pantries:</Text>
             <Text style={styles.detail}>{kitchenItems.length}</Text>
             <Text style={styles.label}>Shared Lists:</Text>
-            <Text style={styles.detail}>{groceryLists.length}</Text>
+            <Text style={styles.detail}>{sharedLists.length}</Text>
           </View>
           <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
             <Text style={styles.buttonText}>DISCONNECT</Text>
@@ -262,71 +390,147 @@ export default function FamilyManagementScreen() {
           </TouchableOpacity>
         </View>
 
+      
+
         {/* Modal for Adding Item */}
-      <Modal visible={isModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Add New Kitchen Item</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter item name"
-              value={newItemName}
-              onChangeText={setNewItemName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter item count"
-              keyboardType="numeric"
-              value={newItemCount}
-              onChangeText={setNewItemCount}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.addButton} onPress={addKitchenItem}>
-                <Text style={styles.buttonText}>Add</Text>
-              </TouchableOpacity>
+        <Modal visible={isModalVisible} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Add New Kitchen Item</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter item name"
+                value={newItemName}
+                onChangeText={setNewItemName}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter item count"
+                keyboardType="numeric"
+                value={newItemCount}
+                onChangeText={setNewItemCount}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#FF5252' }]} onPress={() => setModalVisible(false)}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#2196F3' }]} onPress={addKitchenItem}>
+                  <Text style={styles.buttonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
         {/* Grocery List Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Grocery Lists</Text>
-          <View style={styles.groceryList}>
-            {groceryLists.map((list, index) => (
-              <View key={index} style={styles.groceryItem}>
-                <Text style={styles.groceryText}>{list}</Text>
-                <TouchableOpacity>
-                  <Feather name="edit" size={20} color="black" />
-                </TouchableOpacity>
-              </View>
-            ))}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Shared Grocery Lists</Text>
+            <TouchableOpacity
+              disabled={!ownerID}
+              style={[
+                styles.addButtonIcon,
+                !ownerID && { opacity: 0.5 }
+              ]}
+              onPress={() => setAddSharedModalVisible(true)}
+            >
+              <AntDesign name="pluscircleo" size={24} color="#4CAF50" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.addButtonIcon} onPress={() => setGroceryModalVisible(true)}>
-            <AntDesign name="pluscircleo" size={24} color="black" />
-          </TouchableOpacity>
+
+          {sharedLists.length > 0 ? (
+            <View style={styles.groceryList}>
+              {sharedLists.map((list, idx) => (
+                <View key={list.id} style={styles.groceryItem}>
+
+                  {/* Name or inline edit input */}
+                  {editingIndex === idx ? (
+                    <TextInput
+                      style={[styles.groceryText, styles.editInput]}
+                      value={editingName}
+                      onChangeText={setEditingName}
+                      onSubmitEditing={() => handleRenameSharedList(idx)}
+                      autoFocus
+                    />
+                  ) : (
+                    <TouchableOpacity onPress={() => openSharedList(list)}>
+                      <Text style={styles.groceryText}>
+                        {list.grocerylist_name}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Action buttons aligned right */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' }}>
+                    {/* Complete icon */}
+                    <View style={{ marginLeft: 'auto', padding: 4 }}>
+                      {list.isComplete
+                        ? <AntDesign name="checkcircle"   size={20} color="#4CAF50" />
+                        : <AntDesign name="checkcircleo"  size={20} color="#ccc" />}
+                    </View>
+
+                    {/* if not editing, show pencil */}
+                    {editingIndex !== idx ? (
+                      <TouchableOpacity
+                        style={{ marginLeft: 12, padding: 4 }}
+                        onPress={() => {
+                          setEditingIndex(idx);
+                          setEditingName(list.grocerylist_name);
+                        }}
+                      >
+                        <AntDesign name="edit" size={20} color="black" />
+                      </TouchableOpacity>
+                    ) : (
+                      /* if editing, show check to confirm rename */
+                      <TouchableOpacity
+                        style={{ marginLeft: 12, padding: 4 }}
+                        onPress={() => handleRenameSharedList(idx)}
+                      >
+                        <AntDesign name="check" size={20} color="#4CAE4F" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ fontStyle: 'italic', marginTop: 10 }}>
+              No shared lists yet.
+            </Text>
+          )}
         </View>
 
-        <Modal visible={isGroceryModalVisible} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <Text style={styles.modalTitle}>Add New Grocery List</Text>
-                        <TextInput style={styles.input} placeholder="Enter list name" value={newGroceryName} onChangeText={setNewGroceryName} />
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity style={styles.cancelButton} onPress={() => setGroceryModalVisible(false)}>
-                                <Text style={styles.buttonText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.addButton} onPress={addGroceryList}>
-                                <Text style={styles.buttonText}>Add</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
+        <Modal 
+          visible={isAddSharedModalVisible}
+          transparent animationType="slide"
+          onRequestClose={() => setAddSharedModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>New Shared List</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter list name"
+                value={newSharedListName}
+                onChangeText={setNewSharedListName}
+                autoFocus
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#FF5252' }]} onPress={() => setAddSharedModalVisible(false)}>
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#2196F3' }]} onPress={handleCreateSharedList}>
+                  <Text style={styles.buttonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
-      </View>
+        {/* List‑detail modal */}
+        
+        </View>
+
+        
     </ScrollView>
   );
 }
@@ -425,6 +629,7 @@ const styles = StyleSheet.create({
   addButtonIcon: {
     fontWeight: 'bold',
     margin: 10,
+    alignItems: 'center',
   },
   kitchenGrid: {
     flexDirection: 'row',
@@ -446,7 +651,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
-    width: '80%',
+    width: 500,
     padding: 20,
     backgroundColor: 'white',
     borderRadius: 10,
@@ -458,13 +663,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   input: {
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    marginBottom: 20,
     width: '100%',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    marginBottom: 10,
-    textAlign: 'center',
+    paddingVertical: 8,
   },
   modalButtons: {
     flexDirection: 'row',
@@ -472,22 +675,13 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 10,
   },
-  cancelButton: {
-    backgroundColor: '#FF6666',
-    padding: 10,
-    borderRadius: 10,
-    flex: 1,
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
     alignItems: 'center',
-    marginRight: 5,
-  },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    padding: 10,
-    borderRadius: 10,
-    flex: 1,
-    alignItems: 'center',
-    marginLeft: 5,
-  },
+    marginHorizontal: 5,
+},
   groceryList: {
     width: '90%',
     backgroundColor: 'white',
@@ -508,7 +702,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginVertical: 5,
   },
+  editInput: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderColor: '#4CAE4F',
+    marginRight: 8,
+    paddingVertical: 2,
+  },
   groceryText: {
+    flex: 1,
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
@@ -538,5 +740,67 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
+  itemsContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  itemRowFull: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+    width: '100%',
+  },
+  itemImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 5,
+    marginRight: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  itemText: {
+    fontSize: 16,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemDetailsRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  quantityInput: {
+    width: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    marginRight: 8,
+    textAlign: 'center',
+    height: 32,
+  },
+  measureInput: {
+    width: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    height: 32,
+  },
+  closeButton: {
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 5,
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
+  },
+
 });
 
