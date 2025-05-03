@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -48,86 +48,83 @@ const formatDate = (isoString: string) => {
  allows filtering, sorting, and list creation
  */
 const ButtonListScreen = () => {
-  const [completeLists, setcompleteLists] = useState<GroceryList[]>([]);
+  const { user } = useAuth();
+  const { colors } = useTheme();
+
+  const [completeLists, setCompleteLists] = useState<GroceryList[]>([]);
   const [incompleteLists, setIncompleteLists] = useState<GroceryList[]>([]);
   const [customItems, setCustomItems] = useState<any[]>([]);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
-  const [searchQuery, setSearchQuery] = useState(''); // User input for filtering lists
-  const { user } = useAuth();
-  const { colors } = useTheme();
+  const [sortCriteria, setSortCriteria] = useState('alphabetical');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  /**
-   fetches the user's grocery lists from Firestore
-   lists are categorized into complete and incomplete
-   */
+  // fetch just custom items
+  const fetchCustomItems = useCallback(async () => {
+    if (!user) return;
+    try {
+      const account = await getAccountByOwnerID(user.uid);
+      const items = await getCustomItemsFromAccount(account.id);
+      setCustomItems(items);
+      console.log('Custom Items refreshed:', items);
+    } catch (err) {
+      console.error('Error fetching custom items:', err);
+    }
+  }, [user]);
+
+  // fetch both grocery‑lists and custom items
   const fetchLists = async () => {
     setLoading(true);
-    try {
-      // Get the currently logged-in user
-      if (!user) {
-        alert('User is not logged in');
-        setLoading(false);
-        return;
-      }
-      const account = await getAccountByOwnerID(user?.uid);
-
-      const customItemsResult = await getCustomItemsFromAccount(account.id);
-      setCustomItems(customItemsResult);
-      console.log("Custom Items fetched:", customItemsResult);
-
-      const complete = [];
-      const incomplete = [];
-      const groceryLists = await fetchAllGroceryLists(account.id);
-
-      for (const list of groceryLists) {
-        console.log(list);
-        const currList = {
-          id: list.id,
-          account_id: list.account_id,
-          createdAt: list.createdAt,
-          last_opened: list.last_opened,
-          grocerylist_name: list.grocerylist_name,
-          description: list.description,
-          grocery_list_items: list.grocery_list_items,
-          isFamily: list.isFamily,
-          isShared: list.isShared,
-          isComplete: list.isComplete,
-        };
-
-        if (currList.isComplete) {
-          complete.push(currList); 
-        } else {
-          incomplete.push(currList);
-        }
-      }
-
-      setcompleteLists(complete);
-      setIncompleteLists(incomplete);
-
-    } catch (error) {
-      console.error('Error fetching grocery lists: ', error);
+    if (!user) {
+      alert('User is not logged in');
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    try {
+      const account = await getAccountByOwnerID(user.uid);
+
+      // still populate both in one go
+      await fetchCustomItems();
+
+      const allLists = await fetchAllGroceryLists(account.id);
+      const complete: GroceryList[] = [];
+      const incomplete: GroceryList[] = [];
+
+      allLists.forEach((l: GroceryList) => {
+        if (l.isComplete) complete.push(l);
+        else incomplete.push(l);
+      });
+
+      setCompleteLists(complete);
+      setIncompleteLists(incomplete);
+    } catch (err) {
+      console.error('Error fetching grocery lists:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  /**
-   fetch lists on component mount and screen size change.
-   */
+  // on component mount: fetch everything + watch for screen‑size changes
   useEffect(() => {
-    
     fetchLists();
-    const subscription = Dimensions.addEventListener('change', () => {
+
+    const dimsSub = Dimensions.addEventListener('change', () => {
       setScreenWidth(Dimensions.get('window').width);
     });
 
-    // Listen for screen dimension changes
     return () => {
-      subscription.remove();
+      dimsSub.remove();
     };
-  }, []);
+  }, [fetchCustomItems]);
+
+  // also refresh custom items whenever this screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchCustomItems();
+    }, [fetchCustomItems])
+  );
 
   // Determine if the screen width is considered small
   const isSmallScreen = screenWidth < 800;

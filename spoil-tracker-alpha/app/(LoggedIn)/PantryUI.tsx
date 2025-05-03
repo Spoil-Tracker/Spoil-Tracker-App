@@ -9,132 +9,202 @@ import {
   Image,
   TextInput,
   ScrollView,
+  Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { AntDesign } from '@expo/vector-icons'; // For the plus and minus icons
-import { Dimensions } from 'react-native';
-import { useLocalSearchParams, useGlobalSearchParams, Link } from 'expo-router';
-import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'expo-router';
-import { db } from '../../services/firebaseConfig'; // Import your existing Firebase setup
-import { useTheme } from 'react-native-paper'; // Import useTheme for dark mode, contributed by Kevin
-import FoodDropdownComponent from '@/components/Food/FoodDropdown';
+import { AntDesign } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuth } from '@/services/authContext';
+import { getAccountByOwnerID } from '@/components/Account/AccountService';
+import { useTheme } from 'react-native-paper';
+import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  getFoodConcreteItems,
+  createFoodConcrete,
+  updateQuantity,
+  updatePantryDescription,
+  deleteFoodConcrete,
+  getPantryById,
+} from '@/components/Pantry/PantryService';
+import { FoodConcrete } from '@/src/entities/FoodConcrete';
+import PantryDropdownComponent from '@/components/Pantry/PantryDropdownComponent';
+import { getAllFoodGlobal } from '@/components/Food/FoodGlobalService';
+import ProductPage from '@/components/Food/FoodUI';
 
-type ListItem = {
-  id: string;
-  title: string;
-  description: string;
-  quantity: number;
-  expirationDate: string;
-  imageUrl: string;
-};
-
-const Pantry = () => {
-  const [lists, setLists] = useState([]);
-  const [scaleAnim] = useState(new Animated.Value(1));
-  const [isModalVisible, setIsModalVisible] = useState(false); // State for modal visibility
-  const [isTransferModalVisible, setIsTransferModalVisible] = useState(false); // State for transfer modal visibility
-  const [selectedItemId, setSelectedItemId] = useState(''); // State for selected item ID
-  const [selectedHeaderId, setSelectedHeaderId] = useState(''); // State for selected destination list
-  const [listToDelete, setListToDelete] = useState(null); // State for the list to be deleted
-  const [alertVisible, setAlertVisible] = useState(false); // State to control alert visibility
-  const [alertMessage, setAlertMessage] = useState(''); // State to hold the alert message
+const PantryScreen = () => {
+  const { colors } = useTheme();
   const router = useRouter();
-  const [inputText, setInputText] = useState(''); // State to store the input text by Kevin
-  const { colors } = useTheme(); // dark mode by Kevin
+  const { pantryId } = useLocalSearchParams();
+  const { user } = useAuth(); // Get the authenticated user
+  const [accountId, setAccountId] = useState<string | null>(null);
 
-  const [dropdownVisible, setDropdownVisible] = useState(false); // Dropdown visibility state, used in the add item modal UI
-  const dropdownHeight = useRef(new Animated.Value(0)).current; // Dropdown animation height, used in the add item modal UI
-  const [customName, setCustomName] = useState(''); // Custom item name, used in the add item modal UI for when a user wants to add a custom item
-  const [customDescription, setCustomDescription] = useState(''); // Custom item description, used in the add item modal UI for when a user wants to add a custom item
-  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]); // Filtered items state, hook used whenever the Sort By button is used or user searches through text input
+  const [items, setItems] = useState<FoodConcrete[]>([]);
+  const [filteredItems, setFilteredItems] = useState<FoodConcrete[]>([]);
+  const [pantryName, setPantryName] = useState('');
+  const [pantryDescription, setPantryDescription] = useState('');
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [customName, setCustomName] = useState('');
+  const [quantityType, setQuantityType] = useState('');
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [currentItem, setCurrentItem] = useState<FoodConcrete | null>(null);
+  const [itemQuantity, setItemQuantity] = useState('1');
+  const [loading, setLoading] = useState(true);
+  const [manualDateInput, setManualDateInput] = useState('');
+  const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const [sortOption, setSortOption] = useState<'name' | 'expiration'>('name');
+  const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+  const [productModalVisible, setProductModalVisible] = useState(false);
 
-  const [items, setItems] = useState<ListItem[]>([]);
-  const [pantryTitle, setPantryTitle] = useState('');
+  const [selectedPantryFood, setSelectedPantryFood] =
+    useState<FoodConcrete | null>(null);
+  const [pantryModalVisible, setPantryModalVisible] = useState(false);
 
-  const local = useLocalSearchParams();
-  const docRef = doc(db, 'pantries_t', local.id as string);
+  const [foodDataMap, setFoodDataMap] = useState<{
+    [id: string]: { label: string; image_url: string };
+  }>({});
 
+  const foodDataLoaded = Object.keys(foodDataMap).length > 0;
+
+  const [selectedFood, setSelectedFood] = useState<{
+    label: string;
+    value: string;
+  } | null>(null);
+
+  const openProductModal = (foodGlobalId: string) => {
+    setSelectedFoodId(foodGlobalId);
+    setProductModalVisible(true);
+  };
+
+  const closeProductModal = () => {
+    setSelectedFoodId(null);
+    setProductModalVisible(false);
+  };
+
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // fetch account ID when user is available
   useEffect(() => {
-    fetchPantryData();
-  }, []);
-
-  const handleHeaderSave = async (headerText: string, listId: string) => {
-    try {
-      const snapshot = await getDoc(docRef);
-
-      if (snapshot.exists()) {
-        const sections = snapshot.data()?.sections || {};
-
-        if (sections[listId]) {
-          sections[listId].name = headerText; // Update only the name field
-
-          await updateDoc(docRef, { sections });
-
-          setAlertMessage(`List header updated to '${headerText}'`);
-          setAlertVisible(true);
-
-          setTimeout(() => {
-            setAlertVisible(false);
-          }, 3000);
-
-          // Force a refresh of data locally to sync UI
-          fetchPantryData();
+    const fetchAccountId = async () => {
+      if (user) {
+        try {
+          const account = await getAccountByOwnerID(user.uid);
+          setAccountId(account.id);
+        } catch (error) {
+          console.error('Error fetching account:', error);
         }
-      } else {
-        console.error('Snapshot does not exist!');
       }
-    } catch (error) {
-      console.error('Error saving header name:', error);
+    };
+
+    fetchAccountId();
+  }, [user]);
+
+  // Fetch pantry data and FoodGlobal data
+  useEffect(() => {
+    const fetchEverything = async () => {
+      if (!user) return;
+
+      setLoading(true);
+
+      try {
+        // 1. Get account
+        const account = await getAccountByOwnerID(user.uid);
+        setAccountId(account.id);
+
+        // 2. Get pantry
+        const pantryData = await getPantryById(pantryId as string);
+
+        if (pantryData.account_id !== account.id) {
+          throw new Error('You do not have access to this pantry');
+        }
+
+        setPantryName(pantryData.pantry_name);
+        setPantryDescription(pantryData.description);
+
+        // 3. Get pantry food items
+        const foodItems = await getFoodConcreteItems(pantryId as string);
+        setItems(foodItems);
+        setFilteredItems(foodItems);
+
+        // 4. 🛑 Get FoodGlobal items
+        const allFoodGlobal = await getAllFoodGlobal();
+        const dataMap: {
+          [id: string]: {
+            label: string;
+            image_url: string;
+            description?: string;
+            macronutrients?: any;
+            micronutrients?: any;
+          };
+        } = {};
+
+        allFoodGlobal.forEach((food) => {
+          dataMap[food.id] = {
+            label: food.food_name,
+            image_url: food.food_picture_url || 'https://placehold.co/100x100',
+            description: food.description,
+            macronutrients: food.macronutrients,
+            micronutrients: food.micronutrients,
+          };
+        });
+
+        setFoodDataMap(dataMap);
+      } catch (error) {
+        console.error('Error loading pantry or food:', error);
+        Alert.alert('Error', error.message || 'Failed to load pantry');
+        router.back();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEverything();
+  }, [pantryId, user]);
+
+  const handleManualDateInput = (text: string) => {
+    let formattedText = text.replace(/\D/g, '');
+
+    if (formattedText.length > 2) {
+      formattedText = `${formattedText.slice(0, 2)}/${formattedText.slice(2)}`;
+    }
+    if (formattedText.length > 5) {
+      formattedText = `${formattedText.slice(0, 5)}/${formattedText.slice(
+        5,
+        9
+      )}`;
+    }
+
+    setManualDateInput(formattedText);
+    if (formattedText.length === 10) {
+      const [month, day, year] = formattedText.split('/').map(Number);
+      const date = new Date(year, month - 1, day);
+      if (!isNaN(date.getTime())) {
+        setExpirationDate(date);
+      }
     }
   };
 
-  const fetchPantryData = async () => {
-    try {
-      const snapshot = await getDoc(docRef);
-
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-
-        if (data?.sections) {
-          const fetchedLists = Object.keys(data.sections).map((key) => ({
-            id: key,
-            header: data.sections[key]?.name || 'Untitled List',
-            isEditable: true,
-          }));
-
-          const sortedLists = fetchedLists.sort((a, b) =>
-            a.header === 'Unordered' ? -1 : b.header === 'Unordered' ? 1 : 0
-          );
-
-          setLists(fetchedLists);
-
-          // Extract items from Firestore sections
-          const extractedItems: ListItem[] = Object.keys(data.sections).flatMap(
-            (key) =>
-              data.sections[key]?.items?.map((item) => ({
-                id: item.id,
-                title: item.title,
-                description: item.description,
-                quantity: item.quantity,
-                expirationDate: item.expirationDate,
-                imageUrl: 'https://www.placekittens.com/100/100',
-                sectionId: key,
-              })) || []
-          );
-
-          setItems(extractedItems);
-          setPantryTitle(data.name || 'Untitled Pantry');
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching pantry data:', error);
+  const sortItems = (items: FoodConcrete[]) => {
+    const sorted = [...items];
+    switch (sortOption) {
+      case 'name':
+        return sorted.sort((a, b) =>
+          a.food_abstract_id.localeCompare(b.food_abstract_id)
+        );
+      case 'expiration':
+        return sorted.sort(
+          (a, b) =>
+            new Date(a.expiration_date).getTime() -
+            new Date(b.expiration_date).getTime()
+        );
+      default:
+        return sorted;
     }
   };
 
-  const onFABPress = async () => {
+  const onFABPress = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
         toValue: 1.2,
@@ -147,890 +217,724 @@ const Pantry = () => {
         useNativeDriver: true,
       }),
     ]).start();
-
-    if (lists.length === 0) {
-      console.warn('No available lists to add the item to.');
-      return;
-    }
-
-    // Generate a random item
-    const randomItem: ListItem = {
-      id: uuidv4(),
-      title: `Random Item ${Math.floor(Math.random() * 100)}`,
-      description: 'Auto-generated random description',
-      quantity: Math.floor(Math.random() * 10) + 1,
-      expirationDate: new Date(
-        Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      imageUrl: 'https://www.placekittens.com/100/100',
-    };
-
-    // Select a random list
-    const randomList = lists[Math.floor(Math.random() * lists.length)];
-
-    try {
-      // Update Firestore with the new item
-      const snapshot = await getDoc(docRef);
-
-      if (snapshot.exists()) {
-        const sections = snapshot.data()?.sections || {};
-        const targetListItems = sections[randomList.id]?.items || [];
-
-        const updatedSections = {
-          ...sections,
-          [randomList.id]: {
-            ...sections[randomList.id],
-            items: [...targetListItems, randomItem],
-          },
-        };
-
-        await updateDoc(docRef, { sections: updatedSections });
-
-        // Update the local state to show the change
-        setItems((prevItems) => [
-          ...prevItems,
-          { ...randomItem, sectionId: randomList.id },
-        ]);
-
-        setAlertMessage(`Added item to ${randomList.header}`);
-        setAlertVisible(true);
-
-        setTimeout(() => {
-          setAlertVisible(false);
-        }, 3000);
-      } else {
-        console.error('No such document in Firestore!');
-      }
-    } catch (error) {
-      console.error('Error adding random item:', error);
-    }
-  };
-
-  // Function to add a new horizontal list
-  const addNewList = async () => {
-    const newListName = `List ${lists.length + 1}`;
-    const newListId = uuidv4(); // Generate a unique ID for the new list
-
-    try {
-      const snapshot = await getDoc(docRef);
-
-      if (snapshot.exists()) {
-        const currentSections = snapshot.data()?.sections || {};
-
-        // Add a new list only if it's dynamically created, not overwriting unordered
-        const updatedSections = {
-          ...currentSections,
-          [newListId]: { name: newListName, items: [] },
-        };
-
-        await updateDoc(docRef, { sections: updatedSections });
-
-        const newList = {
-          id: newListId,
-          header: newListName,
-          isEditable: true,
-        };
-        setLists((prevLists) => [...prevLists, newList]);
-
-        setAlertMessage(`Successfully added ${newListName}`);
-        setAlertVisible(true);
-
-        setTimeout(() => {
-          setAlertVisible(false);
-        }, 3000);
-      } else {
-        console.error('No such document in Firestore!');
-      }
-    } catch (error) {
-      console.error('Error adding new list:', error);
-    }
-  };
-
-  // Function to sort items by expiration date
-  const sortItemsByExpiration = (items) => {
-    return items.sort(
-      (a, b) =>
-        new Date(a.expirationDate).getTime() -
-        new Date(b.expirationDate).getTime()
-    );
-  };
-
-  // Show modal to confirm deletion
-  const confirmDeleteList = (listId) => {
-    setListToDelete(listId); // Set the list to be deleted
-    setIsModalVisible(true); // Show the modal
-  };
-
-  // Remove the list
-  const removeList = async () => {
-    try {
-      const listToDeleteSnapshot = await getDoc(docRef);
-      if (!listToDeleteSnapshot.exists()) {
-        console.error('Firestore document does not exist!');
-        return;
-      }
-
-      const sections = listToDeleteSnapshot.data()?.sections || {};
-      const listToDeleteItems = sections[listToDelete]?.items || [];
-
-      // Ensure Unordered exists
-      if (!sections['unordered']) {
-        sections['unordered'] = { name: 'Unordered', items: [] };
-      }
-
-      const updatedUnorderedItems = [
-        ...(sections['unordered'].items || []),
-        ...listToDeleteItems,
-      ];
-
-      delete sections[listToDelete];
-
-      await updateDoc(docRef, {
-        sections: {
-          ...sections,
-          unordered: { ...sections['unordered'], items: updatedUnorderedItems },
-        },
-      });
-
-      // Trigger a re-fetch of data
-      fetchPantryData();
-
-      setAlertMessage(`List deleted and moved items to 'Unordered'`);
-      setAlertVisible(true);
-
-      setTimeout(() => {
-        setAlertVisible(false);
-      }, 3000);
-
-      setIsModalVisible(false);
-    } catch (error) {
-      console.error('Error during list deletion:', error);
-    }
-  };
-
-  // Close the modal without deleting
-  const cancelDelete = () => {
-    setIsModalVisible(false); // Just close the modal
-  };
-
-  const openTransferModal = () => {
-    setIsTransferModalVisible(true);
-  };
-
-  // Close transfer modal
-  const closeTransferModal = () => {
-    setIsTransferModalVisible(false);
-    setSelectedItemId('');
-    setSelectedHeaderId('');
-  };
-
-  const handleTransferItem = async () => {
-    if (!selectedItemId || !selectedHeaderId) {
-      alert('Please select both an item and a destination list.');
-      return;
-    }
-
-    try {
-      const itemToMove = items.find((item) => item.id === selectedItemId);
-      if (!itemToMove) {
-        alert('Item not found!');
-        return;
-      }
-
-      const snapshot = await getDoc(docRef);
-      if (!snapshot.exists()) {
-        alert('No such document exists!');
-        return;
-      }
-
-      const sections = snapshot.data()?.sections || {};
-      const sourceListItems = sections[itemToMove.sectionId]?.items || [];
-      const destinationListItems = sections[selectedHeaderId]?.items || [];
-
-      // Remove the item from the source list
-      const updatedSourceItems = sourceListItems.filter(
-        (item) => item.id !== itemToMove.id
-      );
-
-      // Update the destination list with the moved item
-      const updatedDestinationItems = [
-        ...destinationListItems,
-        { ...itemToMove, sectionId: selectedHeaderId },
-      ];
-
-      const updatedSections = {
-        ...sections,
-        [itemToMove.sectionId]: {
-          ...sections[itemToMove.sectionId],
-          items: updatedSourceItems,
-        },
-        [selectedHeaderId]: {
-          ...sections[selectedHeaderId],
-          items: updatedDestinationItems,
-        },
-      };
-
-      await updateDoc(docRef, { sections: updatedSections });
-
-      // Update the local state
-      setItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === selectedItemId
-            ? { ...item, sectionId: selectedHeaderId }
-            : item
-        )
-      );
-
-      alert('Item transferred successfully!');
-      closeTransferModal();
-    } catch (error) {
-      console.error('Error transferring item:', error);
-      alert('Failed to transfer item');
-    }
-  };
-
-  // Group items by headerId dynamically
-  const getItemsByHeader = (listId) => {
-    return items.filter((item) => item.sectionId === listId);
-  };
-
-  // Render each horizontal list with an editable header
-  const renderList = (list) => {
-    const listItems = sortItemsByExpiration(
-      items.filter((item) => item.sectionId === list.id)
-    );
-
-    const onDescriptionChange = async (text: string) => {
-      setPantryDescription(text);
-      try {
-        await updateDoc(docRef, {
-          description: text,
-        });
-        console.log('Description updated in Firestore');
-      } catch (error) {
-        console.error('Error updating description:', error);
-      }
-    };
-
-    return (
-      <View style={styles.listContainer} key={list.id}>
-        {/* Conditional rendering based on the list's header name */}
-        {list.header === 'Unordered' ? (
-          <Text style={styles.listHeaderStatic}>{list.header}</Text>
-        ) : (
-          <TextInput
-            style={styles.listHeader}
-            value={list.header}
-            onChangeText={(text) => {
-              const updatedLists = lists.map((l) =>
-                l.id === list.id ? { ...l, header: text } : l
-              );
-              setLists(updatedLists);
-            }}
-            onBlur={() => handleHeaderSave(list.header, list.id)} // Ensure this runs only after user finishes editing
-            editable={list.isEditable}
-          />
-        )}
-
-        {/* Remove button */}
-        {list.isEditable && list.header !== 'Unordered' && (
-          <Pressable
-            style={styles.removeListButton}
-            onPress={() => confirmDeleteList(list.id)}
-          >
-            <Text style={styles.removeListButtonText}>−</Text>
-          </Pressable>
-        )}
-
-        <ScrollView horizontal contentContainerStyle={styles.horizontalScroll}>
-          {listItems.length > 0 ? (
-            listItems.map((item) => (
-              <View key={item.id} style={styles.unit}>
-                {item.imageUrl ? (
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={styles.unitImage}
-                  />
-                ) : (
-                  <View style={styles.unitImageFallback}>
-                    <Text>No Image</Text>
-                  </View>
-                )}
-                <View style={styles.textContainer}>
-                  <Text style={styles.unitTitle}>{item.title}</Text>
-                  <Text style={styles.unitDescription}>{item.description}</Text>
-                  <Text style={styles.expirationText}>
-                    EXP:{' '}
-                    {new Date(item.expirationDate).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.noItemsText}>No items available</Text>
-          )}
-        </ScrollView>
-      </View>
-    );
-  };
-
-  const closeModal = () => {
-    setIsModalVisible(false); // Close modal
-  };
-
-  const toggleDropdown = () => {
-    setDropdownVisible(!dropdownVisible);
-    Animated.timing(dropdownHeight, {
-      toValue: dropdownVisible ? 0 : 150, // Increased height for content and delete button
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    setIsAddModalVisible(true);
   };
 
   const addCustomItem = async () => {
-    if (!customName || !customDescription) {
-      return; // Exit the function early if any field is empty
-    }
-    const newItem = addCustomItem();
     try {
-      // Fetch current document
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const currentItems = snapshot.data()?.items || []; // Get the current items or initialize if undefined
-        const updatedItems = [...currentItems, newItem]; // Add the new random item
-
-        // Update Firestore
-        await updateDoc(docRef, {
-          items: updatedItems,
-        });
-
-        // Update local state to reflect the new addition
-        setItems(updatedItems);
-        setFilteredItems(updatedItems);
-        alert(`Added random item: ${newItem.title}`);
-      } else {
-        console.log('No such document!');
-        alert('Failed to load document');
+      if (!selectedFood) throw new Error('Please select a food item');
+      if (!manualDateInput || manualDateInput.length < 10) {
+        throw new Error('Please enter a complete date in MM/DD/YYYY format');
       }
-    } catch (error) {
-      console.error('Error adding random item to Firestore:', error);
-      alert('Error adding random item');
+      const quantity = parseInt(itemQuantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        throw new Error('Quantity must be a positive number');
+      }
+
+      // Save selectedFood early before you reset it!
+      const foodLabel = selectedFood.label;
+
+      // Format the date properly
+      const [month, day, year] = manualDateInput.split('/').map(Number);
+      const expDate = new Date(year, month - 1, day);
+      if (isNaN(expDate.getTime())) {
+        throw new Error('Invalid date');
+      }
+      const formattedDate = expDate.toISOString().split('T')[0];
+
+      // Call create mutation
+      await createFoodConcrete(
+        pantryId as string,
+        selectedFood.value, // food_global_id
+        formattedDate, // expiration_date
+        quantity, // quantity
+        quantityType.trim().charAt(0).toUpperCase() +
+          quantityType.trim().slice(1).toLowerCase() || 'Unit' // quantity_type
+      );
+
+      // Reset form safely AFTER
+      setSelectedFood(null);
+      setManualDateInput('');
+      setItemQuantity('1');
+      setQuantityType('');
+      setIsAddModalVisible(false);
+
+      // Refresh items
+      const updatedItems = await getFoodConcreteItems(pantryId as string);
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
+
+      // Show success
+      setAlertMessage(`Added "${foodLabel}" successfully!`);
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+    } catch (error: any) {
+      console.error('Error adding item:', error);
+      Alert.alert('Error', error.message || 'An error occurred');
     }
   };
 
-  return (
-    // allows for dark mode, contributed by Kevin
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.mainContent}>
-          {/* Left Column - Adjusted for Flex */}
-          <View style={styles.fixedLeftColumn}>
-            {/* allows for dark mode contributed by Kevin */}
-            <Text style={[styles.textBoxTitle, { color: colors.text }]}>
-              Grocery List Example
-            </Text>
+  const updateItem = async () => {
+    if (!currentItem) return;
 
-            <Pressable style={styles.addListButton} onPress={addNewList}>
-              <Text style={styles.addListButtonText}>Add New List</Text>
-            </Pressable>
+    try {
+      await updateQuantity(
+        currentItem.id,
+        currentItem.quantity,
+        currentItem.quantity_type
+      );
+
+      // Refresh the list
+      const updatedItems = await getFoodConcreteItems(pantryId as string);
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
+
+      setAlertMessage(`Updated "${currentItem.food_abstract_id}"`);
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+
+      setIsAddModalVisible(false);
+      setCurrentItem(null);
+    } catch (error) {
+      console.error('Error updating item:', error);
+      alert('Error updating item');
+    }
+  };
+
+  // deletes an item in the pantry
+  const deleteItem = async (itemId: string) => {
+    if (!accountId) return;
+
+    try {
+      await deleteFoodConcrete(itemId);
+
+      // Verify the item was deleted
+      const updatedItems = await getFoodConcreteItems(pantryId as string);
+      if (updatedItems.some((item) => item.id === itemId)) {
+        throw new Error('Failed to delete item');
+      }
+
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
+      setAlertMessage('Item deleted successfully');
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      setAlertMessage(error.message || 'Failed to delete item');
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+    }
+  };
+
+  // updates the description to the pantry based on what the user writes
+  const handleUpdatePantryDescription = async (text: string) => {
+    try {
+      // Update UI state immediately
+      setPantryDescription(text);
+
+      // Make the API call
+      if (accountId) {
+        await updatePantryDescription(pantryId as string, text);
+      }
+    } catch (error) {
+      console.error('Error updating description:', error);
+
+      // Revert UI state if API call fails
+      const pantry = await getPantryById(pantryId as string);
+      setPantryDescription(pantry.description);
+      Alert.alert('Error', 'Failed to update description');
+    }
+  };
+
+  const markAsUsed = async (itemId: string) => {
+    const item = items.find((i) => i.id === itemId);
+    if (!item) {
+      console.error('Item not found');
+      return;
+    }
+
+    const newQuantity = item.quantity - 1;
+
+    if (newQuantity <= 0) {
+      await deleteItem(itemId);
+      return;
+    }
+
+    try {
+      await updateQuantity(
+        item.id,
+        parseFloat(newQuantity.toString()),
+        item.quantity_type
+      );
+
+      // update local list:
+      const updatedItems = items.map((i) =>
+        i.id === item.id ? { ...i, quantity: newQuantity } : i
+      );
+
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
+
+      setAlertMessage('Quantity decreased by 1');
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      Alert.alert('Error', 'Failed to update quantity');
+    }
+  };
+
+  // renders all items in the pantry
+  const renderItem = ({ item }: { item: FoodConcrete }) => {
+    const foodData = foodDataMap[item.food_abstract_id];
+    const foodName = foodData?.label || item.food_abstract_id;
+    const foodImageUrl = foodData?.image_url || 'https://placehold.co/100x100';
+    return (
+      <Pressable
+        onPress={() => {
+          openProductModal(item.food_abstract_id);
+        }}
+      >
+        <View style={[styles.itemCard, { backgroundColor: colors.surface }]}>
+          <Image source={{ uri: foodImageUrl }} style={styles.itemImage} />
+
+          <View style={styles.itemDetails}>
+            <Text style={[styles.itemName, { color: colors.onSurface }]}>
+              {foodName}
+            </Text>
+            <Text style={{ color: colors.onSurface }}>
+              Qty: {item.quantity} {item.quantity_type}
+            </Text>
+            <Text style={{ color: colors.onSurface }}>
+              Exp: {new Date(item.expiration_date).toLocaleDateString()}
+            </Text>
+          </View>
+
+          <View style={styles.itemActions}>
             <Pressable
-              style={styles.addListButton}
-              onPress={() => router.back()}
+              onPress={() => markAsUsed(item.id)}
+              style={({ pressed }) => [pressed && styles.buttonPressed]}
             >
-              <Text style={styles.addListButtonText}>Back</Text>
+              <AntDesign name="check" size={24} color="green" />
             </Pressable>
-            {/* Left Column - Text Box */}
 
-            {/* allows for dark mode contributed by Kevin */}
-            <Text style={[styles.label, { color: colors.text }]}>
-              Enter Text:
-            </Text>
-            {/* allows a description box, contributed by Kevin */}
-            <TextInput
-              style={styles.largeTextInput}
-              placeholder="Pantry Description..."
-              value={inputText}
-              onChangeText={(text) => setInputText(text)} // Update state on input change
-              multiline={true} // Allow multiple lines of input
-            />
-          </View>
-
-          {/* Right Column - Lists */}
-          <View style={styles.rightColumn}>
-            {lists.map((list) => renderList(list))}
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* Transfer Button */}
-      <Pressable style={styles.transferButton} onPress={openTransferModal}>
-        <Text style={styles.transferButtonText}>Transfer Item</Text>
-      </Pressable>
-
-      <Modal
-        visible={isTransferModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeTransferModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Transfer Item</Text>
-
-            {/* Dropdown for selecting an item */}
-            <Picker
-              selectedValue={selectedItemId}
-              onValueChange={(itemValue) => setSelectedItemId(itemValue)}
-            >
-              <Picker.Item label="Select Item" value="" />
-              {items.map((item) => (
-                <Picker.Item key={item.id} label={item.title} value={item.id} />
-              ))}
-            </Picker>
-
-            {/* Dropdown for selecting a destination list */}
-            <Picker
-              selectedValue={selectedHeaderId}
-              onValueChange={(itemValue) => setSelectedHeaderId(itemValue)}
-            >
-              <Picker.Item label="Select List" value="" />
-              {lists
-                .filter((list) => list.header !== 'Unordered') // Exclude Unordered
-                .map((list) => (
-                  <Picker.Item
-                    key={list.id}
-                    label={list.header}
-                    value={list.id}
-                  />
-                ))}
-            </Picker>
-
-            <View style={styles.modalButtons}>
-              <Pressable
-                onPress={closeTransferModal}
-                style={styles.modalButton}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleTransferItem}
-                style={styles.modalButton}
-              >
-                <Text style={styles.modalButtonText}>Transfer</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal for delete confirmation */}
-      <Modal
-        visible={isModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={cancelDelete}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>
-              Are you sure you want to delete this list?
-            </Text>
-            <View style={styles.modalButtons}>
-              <Pressable onPress={cancelDelete} style={styles.modalButton}>
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </Pressable>
-              <Pressable onPress={removeList} style={styles.modalButton}>
-                <Text style={styles.modalButtonText}>Delete</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Alert Banner */}
-      {alertVisible && (
-        <View style={styles.alertBanner}>
-          <Text style={styles.alertText}>{alertMessage}</Text>
-        </View>
-      )}
-      <Animated.View
-        style={[styles.floatingButton, { transform: [{ scale: scaleAnim }] }]}
-      >
-        <Pressable onPress={onFABPress}>
-          <AntDesign name="plus" size={24} color="white" />
-        </Pressable>
-      </Animated.View>
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={isModalVisible}
-        onRequestClose={closeModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Item</Text>
-            <FoodDropdownComponent />
             <Pressable
-              style={styles.modalButton}
+              onPress={() => deleteItem(item.id)}
+              style={({ pressed }) => [pressed && styles.buttonPressed]}
+            >
+              <AntDesign name="close" size={24} color="red" />
+            </Pressable>
+
+            <Pressable
               onPress={() => {
-                // Add item to the list
-                addRandomItem();
-                closeModal();
+                setCurrentItem(item);
+                setIsAddModalVisible(true);
               }}
+            >
+              <Feather name="edit" size={20} color={colors.onSurface} />
+            </Pressable>
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  // displays everything
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
+        <View style={styles.mainContent}>
+          {/* Left Column - Pantry Info */}
+          <View style={styles.leftColumn}>
+            <View style={[styles.pantryHeader, {}]}>
+              <MaterialCommunityIcons name="fridge" size={80} />
+              <View>
+                <Text style={[styles.pantryName, { color: 'black' }]}>
+                  {pantryName}
+                </Text>
+                <Text style={{ color: 'black', fontSize: 15 }}>
+                  Total Pantry Items: {items.length}
+                </Text>
+              </View>
+            </View>
+
+            {/* Sorting Options */}
+            <View style={styles.sortContainer}>
+              <Text style={[styles.sortLabel, { color: colors.onSurface }]}>
+                Sort by:
+              </Text>
+              <View style={styles.sortButtons}>
+                <Pressable
+                  onPress={() => setSortOption('name')}
+                  style={[
+                    styles.sortButton,
+                    sortOption === 'name' && styles.activeSortButton,
+                  ]}
+                >
+                  <Text style={styles.sortButtonText}>Name</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setSortOption('expiration')}
+                  style={[
+                    styles.sortButton,
+                    sortOption === 'expiration' && styles.activeSortButton,
+                  ]}
+                >
+                  <Text style={styles.sortButtonText}>Expiry</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <Pressable
+              style={[
+                styles.actionButton,
+                { backgroundColor: '#3182f1', borderColor: '#1052ad' },
+              ]}
+              onPress={() => setIsAddModalVisible(true)}
             >
               <Text style={styles.buttonText}>Add Item</Text>
             </Pressable>
-            <View
-              style={{
-                borderBottomColor: 'white',
-                borderBottomWidth: StyleSheet.hairlineWidth,
-                alignSelf: 'stretch',
-                marginBottom: 10,
-              }}
-            />
-            <Pressable onPress={toggleDropdown} style={styles.sortByButton}>
-              <Text style={styles.buttonText}>Add Custom Item</Text>
-            </Pressable>
-            {/* Animated dropdown */}
-            <Animated.View
-              style={[styles.dropdown, { height: dropdownHeight }]}
-            >
-              {/* Conditionally hide the content based on dropdown visibility */}
-              <View>
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter name"
-                  value={customName}
-                  onChangeText={setCustomName} // setName should be defined with useState
-                />
-                <TextInput
-                  style={styles.customInputField}
-                  placeholder="Enter description"
-                  value={customDescription}
-                  onChangeText={setCustomDescription} // setDescription should be defined with useState
-                />
-                <Pressable onPress={addCustomItem} style={styles.sortByButton}>
-                  <Text style={styles.buttonText}>Submit</Text>
-                </Pressable>
-              </View>
-            </Animated.View>
 
-            <Pressable style={styles.modalButton} onPress={closeModal}>
-              <Text style={styles.buttonText}>Close</Text>
+            <Pressable
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor: '#f13168',
+                  borderColor: '#a60835',
+                },
+              ]}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.buttonText}>Back</Text>
             </Pressable>
+
+            <TextInput
+              style={[
+                styles.descriptionInput,
+                {
+                  backgroundColor: 'white',
+                  color: 'black',
+                  borderColor: 'black',
+                },
+              ]}
+              placeholder="Pantry Description..."
+              value={pantryDescription}
+              onChangeText={handleUpdatePantryDescription}
+              multiline
+            />
+          </View>
+
+          {/* Right Column - Items List */}
+          <View style={[styles.rightColumn, { flex: 1 }]}>
+            {filteredItems.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={{ color: colors.onSurface }}>No items found</Text>
+              </View>
+            ) : (
+              <ScrollView contentContainerStyle={styles.itemsGridContainer}>
+                {sortItems(filteredItems).map((item) => (
+                  <View key={item.id} style={styles.itemContainer}>
+                    {renderItem({ item, drag: () => {} })}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+
+        {/* Add/Edit Item Modal */}
+        <Modal
+          visible={isAddModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setIsAddModalVisible(false);
+            setCurrentItem(null);
+            setSelectedFood(null);
+          }}
+        >
+          <View
+            style={[
+              styles.modalOverlay,
+              { backgroundColor: 'rgba(0,0,0,0.5)' },
+            ]}
+          >
+            <View
+              style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.onSurface }]}>
+                Add New Item
+              </Text>
+
+              {/* 1. Food Dropdown */}
+              <PantryDropdownComponent
+                accountId={accountId}
+                onValueChange={(item) => {
+                  if (currentItem) {
+                    setCurrentItem({
+                      ...currentItem,
+                      food_abstract_id: item.value,
+                    });
+                  } else {
+                    setSelectedFood(item);
+                  }
+                }}
+                setDropdownOptions={setFoodDataMap} // <-- you add this prop
+                currentValue={currentItem?.food_abstract_id}
+              />
+
+              {/* 2. Quantity */}
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.onSurface,
+                  },
+                ]}
+                placeholder="Quantity (e.g., 1, 2, 5)"
+                placeholderTextColor={colors.onSurface}
+                value={itemQuantity}
+                onChangeText={setItemQuantity}
+                keyboardType="numeric"
+              />
+
+              {/* 3. Expiration Date */}
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.onSurface,
+                  },
+                ]}
+                placeholder="Expiration Date (MM/DD/YYYY)"
+                placeholderTextColor={colors.onSurface}
+                value={manualDateInput}
+                onChangeText={handleManualDateInput}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+
+              {/* 4. Quantity Type */}
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.onSurface,
+                  },
+                ]}
+                placeholder="Quantity Type (e.g., unit, bottle)"
+                placeholderTextColor={colors.onSurface}
+                value={quantityType}
+                onChangeText={setQuantityType}
+              />
+
+              {/* Buttons */}
+              <View style={styles.modalButtons}>
+                <Pressable
+                  style={[
+                    styles.modalButton,
+                    { backgroundColor: colors.error },
+                  ]}
+                  onPress={() => {
+                    setIsAddModalVisible(false);
+                    setCurrentItem(null);
+                  }}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.modalButton,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={addCustomItem} // Your new clean version
+                >
+                  <Text style={styles.buttonText}>Add</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Alert Banner */}
+        {alertVisible && (
+          <View
+            style={[styles.alertBanner, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.alertText}>{alertMessage}</Text>
+          </View>
+        )}
+
+        {/* ——— Product Details Modal ——— */}
+        <Modal
+          visible={productModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closeProductModal}
+        >
+          <View
+            style={[
+              styles.modalOverlay,
+              { width: '150%', alignSelf: 'center' },
+            ]}
+          >
+            <View
+              style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            >
+              <Pressable
+                onPress={closeProductModal}
+                style={{ alignSelf: 'flex-end', padding: 8 }}
+              >
+                <Text style={{ fontSize: 24, color: colors.onSurface }}>✕</Text>
+              </Pressable>
+              {selectedFoodId && accountId && (
+                <ProductPage foodId={selectedFoodId} accountId={accountId} />
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Floating Action Button */}
+        <Animated.View
+          style={[
+            styles.floatingButton,
+            {
+              backgroundColor: colors.primary,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <Pressable onPress={onFABPress}>
+            <AntDesign name="plus" size={24} color="white" />
+          </Pressable>
+        </Animated.View>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 };
 
+// style sheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    fontFamily: 'inter-bold',
   },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 10,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mainContent: {
+    flex: 1,
     flexDirection: 'row',
-    width: '100%',
-    paddingTop: 10,
   },
-  fixedLeftColumn: {
+  leftColumn: {
     flex: 1,
     padding: 10,
-    maxWidth: 250,
+    maxWidth: 300,
     justifyContent: 'flex-start',
   },
   rightColumn: {
-    flex: 3,
-    marginTop: 10,
+    flex: 1,
+    padding: 5,
+    maxWidth: '100%',
   },
-  dropdown: {
-    overflow: 'hidden',
-    marginTop: 5,
+  pantryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 10,
+    backgroundColor: '#FFF1DB',
+    borderColor: '#954535',
+    borderWidth: 2,
     borderRadius: 8,
-    paddingHorizontal: 10,
+  },
+  pantryName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  actionButton: {
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 10,
+    alignItems: 'center',
+    borderWidth: 2,
   },
   buttonText: {
     color: 'white',
     fontWeight: 'bold',
-    textAlign: 'center',
   },
-  listContainer: {
-    marginBottom: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  listHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#4CAE4F',
-    color: '#fff',
-    borderRadius: 6,
-  },
-  removeListButton: {
-    backgroundColor: '#d32f2f',
-    width: 25,
-    height: 25,
-    borderRadius: 12.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  removeListButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  horizontalScroll: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-  },
-  unit: {
-    width: 120,
-    marginRight: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  unitImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 6,
-  },
-  unitImageFallback: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 6,
+  descriptionInput: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    marginTop: 10,
   },
-  textContainer: {
-    marginTop: 8,
+  itemCard: {
+    borderRadius: 10,
+    padding: 10,
+    marginVertical: 5,
+    marginHorizontal: 5,
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
+    height: '100%',
   },
-  unitTitle: {
-    fontSize: 14,
+  dragHandle: {
+    paddingRight: 10,
+  },
+  dragLine: {
+    width: 20,
+    height: 2,
+    marginVertical: 2,
+  },
+  itemImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+  itemDetails: {
+    flex: 1,
+  },
+  buttonPressed: {
+    opacity: 0.6,
+    transform: [{ scale: 0.95 }],
+  },
+  itemName: {
     fontWeight: 'bold',
   },
-  unitDescription: {
-    fontSize: 12,
-    color: '#555',
-    textAlign: 'center',
+  itemActions: {
+    flexDirection: 'row',
+    gap: 15,
   },
-  expirationText: {
-    fontSize: 12,
-    color: '#ff5722',
-    fontWeight: 'bold',
-    marginTop: 6,
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#2196F3',
+  emptyState: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 6,
-  },
-  addListButton: {
-    backgroundColor: '#4CAE4F',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  addListButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
   },
   modalContent: {
-    backgroundColor: 'white',
+    width: '25%',
     padding: 15,
-    borderRadius: 8,
-    width: 250,
-    alignItems: 'center',
+    borderRadius: 10,
   },
-  modalText: {
-    fontSize: 16,
-    marginBottom: 15,
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
     textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
+    minWidth: 100,
+  },
+  datePicker: {
+    marginBottom: 20,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    justifyContent: 'space-between',
   },
   modalButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    marginHorizontal: 8,
-  },
-  sortByButton: {
-    backgroundColor: '#1e81b0',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    padding: 10,
+    borderRadius: 5,
+    width: '45%',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10, // Add space between buttons
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  noItemsText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 15,
-  },
-  textBoxTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
-    textAlign: 'left',
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: '#2196F3',
   },
   alertBanner: {
     position: 'absolute',
-    top: 0,
+    bottom: 70,
     left: 0,
     right: 0,
-    backgroundColor: '#4caf50',
-    paddingVertical: 10,
-    justifyContent: 'center',
+    padding: 10,
     alignItems: 'center',
-    zIndex: 1000,
   },
   alertText: {
     color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
-  transferButton: {
+  floatingButton: {
     position: 'absolute',
-    bottom: 20, // Positioning it at the bottom
-    left: 20, // Center it horizontally
-    backgroundColor: '#4CAE4F',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 30,
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+  },
+  sortContainer: {
+    width: '100%',
+    marginBottom: 10,
+    paddingHorizontal: 5,
+  },
+  sortLabel: {
+    fontSize: 14,
+    marginBottom: 5,
+    fontWeight: 'bold',
+  },
+  sortButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sortButton: {
+    flex: 1,
+    padding: 8,
+    marginHorizontal: 2,
+    borderRadius: 5,
+    backgroundColor: '#e0e0e0',
+    alignItems: 'center',
+  },
+  activeSortButton: {
+    backgroundColor: '#3182f1',
+  },
+  sortButtonText: {
+    color: '#333',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  activeSortButtonText: {
+    color: 'white',
+  },
+  itemsGridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    padding: 8,
+  },
+  itemContainer: {
+    width: '32%', // three items per row with some spacing
+    minWidth: 310, // Minimum width before wrapping
+    margin: 4,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 6,
-  },
-
-  transferButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-    textAlign: 'center',
-  },
-
-  listHeaderStatic: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: '#347736',
-    color: '#fff',
-    borderRadius: 6,
-  },
-  textBox: {
-    backgroundColor: '#c4c4c4',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  textBoxTitle2: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  textBoxContent: {
-    fontSize: 14,
-    color: '#555',
-  },
-  largeTextInput: {
-    height: 240,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingLeft: 10,
-    paddingTop: 10,
-    textAlignVertical: 'top',
-    backgroundColor: 'white',
-  },
-  customInputField: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    marginBottom: 3,
-    marginTop: 3,
-    paddingLeft: 8,
-    borderRadius: 4,
+    shadowRadius: 3,
+    elevation: 2,
   },
 });
 
-export default Pantry;
+export default PantryScreen;

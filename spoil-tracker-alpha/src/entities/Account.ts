@@ -516,6 +516,17 @@ export class AccountResolver {
         return matchingCustomItems;
     }
 
+    @Query(() => Account, { nullable: true })
+    async getAccountById(
+        @Arg("account_id") account_id: string
+    ): Promise<Account | null> {
+        const doc = await db.collection(COLLECTIONS.ACCOUNT)
+                            .doc(account_id)
+                            .get();
+        if (!doc.exists) return null;
+        return doc.data() as Account;
+    }
+
     
 
     //async changeAccountName

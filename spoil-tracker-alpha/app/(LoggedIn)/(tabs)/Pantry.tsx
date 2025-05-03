@@ -3,128 +3,233 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   SafeAreaView,
   Dimensions,
   ScrollView,
   Pressable,
-  Modal,
+  ActivityIndicator,
   TextInput,
+  Modal,
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '../../../services/firebaseConfig'; // Import your existing Firebase setup
-import { useFocusEffect } from '@react-navigation/native';
-import { Link } from 'expo-router';
-import { v4 as uuidv4 } from 'uuid';
+import ListSection from '../../../components/Pantry/PListSection';
+import { useAuth } from '@/services/authContext';
+import { Dropdown } from 'react-native-element-dropdown';
 import { useTheme } from 'react-native-paper'; // allows for dark mode contributed by Kevin
+import { sortLists, filterLists } from '../../../src/utils/pantryUtils';
+import {
+  getAllPantriesforAccount,
+  createPantry,
+} from '@/components/Pantry/PantryService';
+import {
+  getAccountByOwnerID,
+  getCustomItemsFromAccount,
+} from '@/components/Account/AccountService';
+
+// Sorting options for lists
+const SORT_OPTIONS = [
+  { label: 'Alphabetical', value: 'alphabetical' },
+  { label: 'Recently Viewed', value: 'recent' }, // New option by Kevin
+];
 
 const ButtonListScreen = () => {
-  const [pantries, setPantries] = useState<string[]>([]);
+  const [pantries, setPantries] = useState<any[]>([]);
   const [screenWidth, setScreenWidth] = useState(
     Dimensions.get('window').width
   );
   const [modalVisible, setModalVisible] = useState(false);
-  const [newPantryName, setnewPantryName] = useState('');
-  const { colors } = useTheme(); // allows for dark mode contributed by Kevin
+  const [newPantryName, setNewPantryName] = useState('');
+  const [searchQuery, setSearchQuery] = useState(''); // User input for filtering lists
+  const [sortCriteria, setSortCriteria] = useState('alphabetical'); // Current sort selection
+  const { colors } = useTheme();
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(Boolean); // fixed loading by Kevin
+  const { user } = useAuth();
 
-  // Fetch lists from Firestore
-  const fetchPantries = async () => {
+  // Fetch pantries
+  const fetchPantryList = async () => {
+    setLoading(true);
     try {
-      const querySnapshot = await getDocs(collection(db, 'pantries_t'));
-      const pant: any[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data && data.name) {
-          pant.push({ id: doc.id, name: String(data.name) });
-        }
-      });
-      setPantries(pant);
+      if (!user?.uid) {
+        console.warn('No user signed in');
+        return;
+      }
+
+      const account = await getAccountByOwnerID(user.uid);
+      if (!account) {
+        throw new Error('Account not found');
+      }
+
+      const pantryData = await getAllPantriesforAccount(account.id);
+      setPantries(pantryData);
     } catch (error) {
-      console.error('Error fetching grocery lists: ', error);
-    }
-  };
-
-  const createNewPantry = async () => {
-    if (!newPantryName.trim()) {
-      alert('Please enter a valid list name');
-      return;
-    }
-
-    try {
-      const newListId = uuidv4();
-      const newListRef = await addDoc(collection(db, 'pantries_t'), {
-        name: newPantryName,
-        user_id: 0,
-        created: new Date().toISOString(),
-        description: 'Edit the pantry description!',
-        item_amount: 0,
-        sections: { unordered: { name: 'Unordered', items: [] } },
-      });
-
-      console.log('New pantry created with ID: ', newListRef.id);
-
-      setModalVisible(false);
-      setnewPantryName('');
-      fetchPantries();
-    } catch (error) {
-      console.error('Error creating new list: ', error);
+      console.error('Error fetching pantries:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPantries(); // Fetch data on mount
+    const fetchData = async () => {
+      if (!user?.uid) return;
 
-    const onChange = () => {
-      setScreenWidth(Dimensions.get('window').width);
+      try {
+        setLoading(true);
+
+        // 1. Get account data
+        const account = await getAccountByOwnerID(user.uid);
+        if (!account) {
+          throw new Error('Account not found');
+        }
+
+        // 2. Get pantries for this account
+        const pantryData = await getAllPantriesforAccount(account.id);
+
+        // 3. Update state
+        setPantries(pantryData || []);
+        setUsername(account.account_name || '');
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    Dimensions.addEventListener('change', onChange);
+    fetchData();
+  }, [user?.uid]); // Only run when user UID changes
 
-    return () => {};
+  useEffect(() => {
+    fetchPantryList();
+    const subscription = Dimensions.addEventListener('change', () => {
+      setScreenWidth(Dimensions.get('window').width);
+    });
+    return () => subscription.remove();
   }, []);
+
+  // Handle creating a new pantry
+  const handleCreateNewPantry = async () => {
+    try {
+      if (!user?.uid) {
+        alert('No authenticated user found');
+        return;
+      }
+
+      // 1. Get the account first
+      const account = await getAccountByOwnerID(user.uid);
+      if (!account?.id) {
+        throw new Error('Account not found');
+      }
+
+      // 2. Create the pantry using the account ID
+      await createPantry(account.id, newPantryName);
+
+      // 3. Update UI
+      setModalVisible(false);
+      setNewPantryName('');
+      await fetchPantryList();
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error creating pantry:', error.message);
+      } else {
+        console.error('Unknown error creating pantry:', error);
+      }
+    }
+  };
+
+  const sortedPantry = sortLists(
+    filterLists(pantries, searchQuery),
+    sortCriteria
+  );
 
   const isSmallScreen = screenWidth < 800;
 
-  useFocusEffect(() => {
-    fetchPantries();
-  });
-
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]} // allows for dark mode contributed by Kevin
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View
-        style={[
-          styles.rowContainer,
-          isSmallScreen ? styles.columnLayout : styles.rowLayout,
-        ]}
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        style={styles.scrollView}
       >
-        <View style={styles.listSection}>
-          <Text style={styles.sectionTitle}>Pantries</Text>
-          <ScrollView style={styles.scrollView}>
-            {pantries.map((pantry) => (
-              <Link
-                key={pantry.id}
-                href={`../PantryUI?id=${pantry.id}`}
-                style={styles.button}
-              >
-                <Text style={styles.buttonText}>{String(pantry.name)}</Text>
-              </Link>
-            ))}
-          </ScrollView>
+        <Text style={[styles.title, { color: '#4CAE4F', fontSize: 40 }]}>
+          {username ? username : 'Loading...'}'s Pantries
+        </Text>
+
+        {/* Dropdown for sorting */}
+        <View style={styles.sortContainer}>
+          <Text style={[styles.sortText, { color: colors.onSurface }]}>
+            Sort By:
+          </Text>
+          <Dropdown
+            style={styles.dropdown}
+            data={SORT_OPTIONS}
+            labelField="label"
+            valueField="value"
+            value={sortCriteria}
+            maxHeight={300}
+            onChange={(item) => setSortCriteria(item.value)}
+          />
         </View>
-      </View>
 
-      <View style={styles.floatingButton}>
-        <Pressable onPress={() => setModalVisible(true)}>
-          <AntDesign name="plus" size={24} color="white" />
-        </Pressable>
-      </View>
+        {/* Search Bar */}
+        <TextInput
+          style={styles.searchBar}
+          placeholder="Search pantries..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
 
-      {/* Modal for new list name */}
+        {loading ? (
+          <ActivityIndicator
+            size="large"
+            color="#2196F3"
+            style={{ marginTop: 20 }}
+          />
+        ) : (
+          <View
+            style={[
+              styles.contentContainer,
+              isSmallScreen ? styles.columnLayout : styles.rowLayout,
+            ]}
+          >
+            <ListSection
+              title="Personal Pantries"
+              lists={sortedPantry.map((pantry) => ({
+                id: pantry.id,
+                name: pantry.pantry_name, // Changed from 'title' to 'name'
+                description: pantry.description,
+                completed: false, // Add default value
+                created: new Date().toISOString(), // Add default value
+              }))}
+              fetchLists={fetchPantryList}
+            />
+            {/* New Section for Shared Pantries */}
+            <ListSection
+              title="Shared Pantries"
+              lists={sortedPantry.map((pantry) => ({
+                id: pantry.id,
+                name: pantry.pantry_name, // Changed from 'title' to 'name'
+                description: pantry.description,
+                completed: false, // Add default value
+                created: new Date().toISOString(), // Add default value
+              }))}
+              fetchLists={fetchPantryList}
+            />
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Floating Button to Open Modal */}
+      <Pressable
+        onPress={() => setModalVisible(true)}
+        style={styles.floatingButton}
+      >
+        <AntDesign name="plus" size={28} color="white" />
+      </Pressable>
+
+      {/* Create Pantry Modal */}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
@@ -134,14 +239,14 @@ const ButtonListScreen = () => {
             <Text style={styles.modalTitle}>Enter New Pantry Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter list name"
+              placeholder="Enter pantry name"
               value={newPantryName}
-              onChangeText={setnewPantryName}
+              onChangeText={setNewPantryName}
             />
             <View style={styles.modalButtons}>
               <Pressable
                 style={[styles.modalButton, { backgroundColor: '#2196F3' }]}
-                onPress={createNewPantry}
+                onPress={handleCreateNewPantry}
               >
                 <Text style={styles.modalButtonText}>Create</Text>
               </Pressable>
@@ -149,7 +254,7 @@ const ButtonListScreen = () => {
                 style={[styles.modalButton, { backgroundColor: '#FF5252' }]}
                 onPress={() => {
                   setModalVisible(false);
-                  setnewPantryName('');
+                  setNewPantryName('');
                 }}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
@@ -172,13 +277,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF9F2',
     paddingTop: 20,
   },
-  rowContainer: {
+  sortContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    width: '100%',
-    maxWidth: 800,
-    paddingHorizontal: 20,
+    marginVertical: 10,
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  sortText: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  scrollViewContent: {
+    flexGrow: 1, // Ensures the content stretches to take full space
+    alignItems: 'center', // Centers content horizontally
+    paddingHorizontal: 10,
+  },
+  searchBar: {
+    minWidth: 300,
+    width: '35%',
+    height: 40,
+    backgroundColor: '#fff',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingLeft: 10,
+    marginTop: 10, // Space between the sort dropdown and the search bar
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 25,
+    fontFamily: 'inter-bold',
+    color: '#2196F3',
+    marginBottom: 10,
   },
   columnLayout: {
     flexDirection: 'column',
@@ -186,26 +318,6 @@ const styles = StyleSheet.create({
   },
   rowLayout: {
     justifyContent: 'space-between',
-  },
-  listSection: {
-    width: 350,
-    margin: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-    height: 250,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#4CAE4F',
-    marginBottom: 10,
-    fontFamily: 'inter-bold', // Using Inter font
   },
   scrollView: {
     flex: 1,
@@ -221,8 +333,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#347736',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 5,
   },
@@ -242,6 +354,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
+  },
+  dropdown: {
+    backgroundColor: 'white',
+    height: 50,
+    borderColor: 'gray',
+    borderWidth: 0.5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
   },
   modalContainer: {
     flex: 1,

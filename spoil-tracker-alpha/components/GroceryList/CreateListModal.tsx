@@ -21,14 +21,16 @@ type CreateListModalProps = {
  * Modal component for creating a new grocery list.
  * Allows users to enter a list name and save it to Firestore.
  */
-const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps) => {
+const CreateListModal = ({
+  visible,
+  onClose,
+  fetchLists,
+}: CreateListModalProps) => {
   const [newListName, setNewListName] = useState('');
   const { user } = useAuth();
   const id = user?.uid;
 
-  if (id) {
-    console.log("[in List Modal] User UID:", id);
-  } else {
+  if (!id) {
     console.log("No user is logged in.");
     return;
   }
@@ -47,7 +49,12 @@ const CreateListModal = ({ visible, onClose, fetchLists }: CreateListModalProps)
   }
 
   return (
-    <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Enter New List Name</Text>
