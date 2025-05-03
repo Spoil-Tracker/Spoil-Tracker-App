@@ -18,7 +18,8 @@ import {
   updateGroceryListDescription,
   updateGroceryListItemIsBought,
   updateGroceryListIsShared,
-  convertToPantry
+  convertToPantry,
+  fetchGroceryListPricing
 } from '@/components/GroceryList/GroceryListService';
 import { exportGroceryListToCSV,exportGroceryListToCSVWeb, exportGroceryListToPDF, exportGroceryListToPDFWeb } from '@/components/ExportService';
 import ProductPage from '@/components/Food/FoodUI';
@@ -625,7 +626,7 @@ const GroceryList = () => {
     setLoadingValue(true);
     try {
       // Call the new pricingAnalysis method
-      const pricingResult = await openAIClient.pricingAnalysis(prompt);
+      const pricingResult = await fetchGroceryListPricing(groceryListId);
       setGroceryListValue(pricingResult);
     } catch (error) {
       console.error('Error calculating grocery list value:', error);

@@ -33,6 +33,12 @@ const GET_ALL_GROCERY_LISTS = gql`
   }
 `;
 
+const PRICING_ANALYSIS = gql`
+  query PricingAnalysis($grocerylist_id: String!) {
+    pricingAnalysis(grocerylist_id: $grocerylist_id)
+  }
+`;
+
 /**
  * GraphQL query to retrieve a single grocery list by its ID.
  */
@@ -711,6 +717,35 @@ try {
     return result.data!.convertToPantry;
 } catch (error) {
     console.error('Error converting grocery list to pantry:', error);
+    throw error;
+}
+}
+
+/**
+ * Fetches an estimated cost summary for a grocery list,
+ * returning a string like:
+ *   Walmart: $20.34
+ *   Target: $22.18
+ *   Albertsons: $21.50
+ *   Vons: $23.05
+ *
+ * @param grocerylist_id - the ID of the grocery list
+ * @returns the plaintext pricing analysis
+ */
+export async function fetchGroceryListPricing(
+    grocerylist_id: string
+): Promise<string> {
+try {
+    const result = await client.query<{
+    pricingAnalysis: string;
+    }>({
+    query: PRICING_ANALYSIS,
+    variables: { grocerylist_id },
+    fetchPolicy: 'network-only',
+    });
+    return result.data.pricingAnalysis;
+} catch (error) {
+    console.error('Error fetching pricing analysis:', error);
     throw error;
 }
 }
