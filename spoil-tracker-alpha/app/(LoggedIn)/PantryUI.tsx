@@ -11,102 +11,199 @@ import {
   ScrollView,
   Alert,
   Modal,
-  FlatList,
-  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
-import { AntDesign } from '@expo/vector-icons'; // For the plus and minus icons
-import { useLocalSearchParams } from 'expo-router';
-import { getDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'expo-router';
-import { db } from '../../services/firebaseConfig'; // imports firebase database
-import { useTheme } from 'react-native-paper'; // Import useTheme for dark mode, contributed by Kevin
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Feather } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { AntDesign } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuth } from '@/services/authContext';
+import { getAccountByOwnerID } from '@/components/Account/AccountService';
+import { useTheme } from 'react-native-paper';
+import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  getFoodConcreteItems,
+  createFoodConcrete,
+  updateQuantity,
+  updatePantryDescription,
+  deleteFoodConcrete,
+  getPantryById,
+} from '@/components/Pantry/PantryService';
+import { FoodConcrete } from '@/src/entities/FoodConcrete';
+import PantryDropdownComponent from '@/components/Pantry/PantryDropdownComponent';
+import { getAllFoodGlobal } from '@/components/Food/FoodGlobalService';
+import ProductPage from '@/components/Food/FoodUI';
 
-type ListItem = {
-  id: string;
-  title: string;
-  description: string;
-  quantity: number;
-  expirationDate: string;
-  imageUrl: string;
-};
-
-// Displays pantry, sorting options, add item, pantry items
 const PantryScreen = () => {
   const { colors } = useTheme();
   const router = useRouter();
   const { pantryId } = useLocalSearchParams();
-  const [lists, setLists] = useState<any[]>([]);
-  const [items, setItems] = useState<ListItem[]>([]);
-  const [filteredItems, setFilteredItems] = useState<ListItem[]>([]);
+  const { user } = useAuth(); // Get the authenticated user
+  const [accountId, setAccountId] = useState<string | null>(null);
+
+  const [items, setItems] = useState<FoodConcrete[]>([]);
+  const [filteredItems, setFilteredItems] = useState<FoodConcrete[]>([]);
   const [pantryName, setPantryName] = useState('');
   const [pantryDescription, setPantryDescription] = useState('');
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [customName, setCustomName] = useState('');
-  const [customDescription, setCustomDescription] = useState('');
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [quantityType, setQuantityType] = useState('');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-  const [currentItem, setCurrentItem] = useState<ListItem | null>(null);
+  const [currentItem, setCurrentItem] = useState<FoodConcrete | null>(null);
   const [itemQuantity, setItemQuantity] = useState('1');
-  const [sortOption, setSortOption] = useState<'name' | 'expiration'>('name');
-
+  const [loading, setLoading] = useState(true);
   const [manualDateInput, setManualDateInput] = useState('');
   const [expirationDate, setExpirationDate] = useState<Date | null>(null);
+  const [sortOption, setSortOption] = useState<'name' | 'expiration'>('name');
+  const [selectedFoodId, setSelectedFoodId] = useState<string | null>(null);
+  const [productModalVisible, setProductModalVisible] = useState(false);
+
+  const [selectedPantryFood, setSelectedPantryFood] =
+    useState<FoodConcrete | null>(null);
+  const [pantryModalVisible, setPantryModalVisible] = useState(false);
+
+  const [foodDataMap, setFoodDataMap] = useState<{
+    [id: string]: { label: string; image_url: string };
+  }>({});
+
+  const foodDataLoaded = Object.keys(foodDataMap).length > 0;
+
+  const [selectedFood, setSelectedFood] = useState<{
+    label: string;
+    value: string;
+  } | null>(null);
+
+  const openProductModal = (foodGlobalId: string) => {
+    setSelectedFoodId(foodGlobalId);
+    setProductModalVisible(true);
+  };
+
+  const closeProductModal = () => {
+    setSelectedFoodId(null);
+    setProductModalVisible(false);
+  };
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const dropdownHeight = useRef(new Animated.Value(0)).current;
-  const local = useLocalSearchParams(); // Retrieve parameters from route, for docRef local.id below
 
-  const docRef = doc(db, 'pantry', local.id as string); // Reference to Firestore document in the grocery_list collection, uses the id fed by the previous list main menu
+  // fetch account ID when user is available
+  useEffect(() => {
+    const fetchAccountId = async () => {
+      if (user) {
+        try {
+          const account = await getAccountByOwnerID(user.uid);
+          setAccountId(account.id);
+        } catch (error) {
+          console.error('Error fetching account:', error);
+        }
+      }
+    };
 
-  // allows for user to add manual expiration date input
+    fetchAccountId();
+  }, [user]);
+
+  // Fetch pantry data and FoodGlobal data
+  useEffect(() => {
+    const fetchEverything = async () => {
+      if (!user) return;
+
+      setLoading(true);
+
+      try {
+        // 1. Get account
+        const account = await getAccountByOwnerID(user.uid);
+        setAccountId(account.id);
+
+        // 2. Get pantry
+        const pantryData = await getPantryById(pantryId as string);
+
+        if (pantryData.account_id !== account.id) {
+          throw new Error('You do not have access to this pantry');
+        }
+
+        setPantryName(pantryData.pantry_name);
+        setPantryDescription(pantryData.description);
+
+        // 3. Get pantry food items
+        const foodItems = await getFoodConcreteItems(pantryId as string);
+        setItems(foodItems);
+        setFilteredItems(foodItems);
+
+        // 4. 🛑 Get FoodGlobal items
+        const allFoodGlobal = await getAllFoodGlobal();
+        const dataMap: {
+          [id: string]: {
+            label: string;
+            image_url: string;
+            description?: string;
+            macronutrients?: any;
+            micronutrients?: any;
+          };
+        } = {};
+
+        allFoodGlobal.forEach((food) => {
+          dataMap[food.id] = {
+            label: food.food_name,
+            image_url: food.food_picture_url || 'https://placehold.co/100x100',
+            description: food.description,
+            macronutrients: food.macronutrients,
+            micronutrients: food.micronutrients,
+          };
+        });
+
+        setFoodDataMap(dataMap);
+      } catch (error) {
+        console.error('Error loading pantry or food:', error);
+        Alert.alert('Error', error.message || 'Failed to load pantry');
+        router.back();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEverything();
+  }, [pantryId, user]);
+
   const handleManualDateInput = (text: string) => {
-    setManualDateInput(text);
+    let formattedText = text.replace(/\D/g, '');
 
-    // auto-format as user types (MM/DD/YYYY)
-    if (text.length === 2 || text.length === 5) {
-      setManualDateInput(text + '/');
+    if (formattedText.length > 2) {
+      formattedText = `${formattedText.slice(0, 2)}/${formattedText.slice(2)}`;
+    }
+    if (formattedText.length > 5) {
+      formattedText = `${formattedText.slice(0, 5)}/${formattedText.slice(
+        5,
+        9
+      )}`;
     }
 
-    // Parse date when complete
-    if (text.length === 10) {
-      const parts = text.split('/');
-      const month = parseInt(parts[0]) - 1;
-      const day = parseInt(parts[1]);
-      const year = parseInt(parts[2]);
-
-      if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
-        const newDate = new Date(year, month, day);
-        if (!isNaN(newDate.getTime())) {
-          setExpirationDate(newDate);
-        }
+    setManualDateInput(formattedText);
+    if (formattedText.length === 10) {
+      const [month, day, year] = formattedText.split('/').map(Number);
+      const date = new Date(year, month - 1, day);
+      if (!isNaN(date.getTime())) {
+        setExpirationDate(date);
       }
     }
   };
 
-  // Allows for sorting items based on name or date
-  const sortItems = (items: ListItem[]) => {
+  const sortItems = (items: FoodConcrete[]) => {
     const sorted = [...items];
     switch (sortOption) {
       case 'name':
-        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+        return sorted.sort((a, b) =>
+          a.food_abstract_id.localeCompare(b.food_abstract_id)
+        );
       case 'expiration':
         return sorted.sort(
           (a, b) =>
-            new Date(a.expirationDate).getTime() -
-            new Date(b.expirationDate).getTime()
+            new Date(a.expiration_date).getTime() -
+            new Date(b.expiration_date).getTime()
         );
       default:
         return sorted;
     }
   };
 
-  // Animation for FAB
   const onFABPress = () => {
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -123,337 +220,233 @@ const PantryScreen = () => {
     setIsAddModalVisible(true);
   };
 
-  // fetches pantry data
-  useEffect(() => {
-    const fetchPantry = async () => {
-      if (!docRef) return;
-      try {
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setPantryName(data?.name || 'Unnamed Pantry');
-          setPantryDescription(data.description || '');
-          setLists(data.sections || []);
-
-          // Flatten all items from sections
-          const allItems = Object.values(data?.sections || {})
-            .flatMap((section: any) => section?.items || [])
-            .filter(Boolean);
-
-          setItems(allItems);
-          setFilteredItems(allItems);
-        }
-      } catch (error) {
-        console.error('Error fetching pantry:', error);
-      }
-    };
-
-    fetchPantry();
-  }, [pantryId]);
-
-  // ability to update pantry description
-  const updatePantryDescription = async (text: string) => {
-    setPantryDescription(text);
-    try {
-      await updateDoc(docRef, { description: text });
-      console.log('Description updated successfully');
-    } catch (error) {
-      console.error('Error updating description:', error);
-      // Optional: Revert UI if update fails
-      const docSnap = await getDoc(docRef);
-      setPantryDescription(docSnap.data()?.description || '');
-    }
-  };
-
-  // add in a custom item
   const addCustomItem = async () => {
-    if (!customName) {
-      alert('Please enter an item name');
-      return;
-    }
-
-    if (!expirationDate) {
-      alert('Please enter an expiration date');
-      return;
-    }
-
-    const newItem: ListItem = {
-      id: uuidv4(),
-      title: customName,
-      description: customDescription,
-      quantity: parseInt(itemQuantity) || 1,
-      expirationDate: expirationDate.toISOString(),
-      imageUrl: '',
-    };
-
     try {
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const sections = snapshot.data()?.sections || {};
-        const firstListId = Object.keys(sections)[0];
-
-        if (firstListId) {
-          const updatedSections = {
-            ...sections,
-            [firstListId]: {
-              ...sections[firstListId],
-              items: [...(sections[firstListId]?.items || []), newItem],
-            },
-          };
-
-          await updateDoc(docRef, { sections: updatedSections });
-          setItems((prev) => [...prev, newItem]);
-          setFilteredItems((prev) => [...prev, newItem]);
-
-          setAlertMessage(`Added "${newItem.title}"`);
-          setAlertVisible(true);
-          setTimeout(() => setAlertVisible(false), 3000);
-
-          setCustomName('');
-          setCustomDescription('');
-          setItemQuantity(''); // optional: clear quantity
-          setExpirationDate(null); // clear after use
-          setIsDropdownVisible(false);
-          setIsAddModalVisible(false); // close modal
-        }
+      if (!selectedFood) throw new Error('Please select a food item');
+      if (!manualDateInput || manualDateInput.length < 10) {
+        throw new Error('Please enter a complete date in MM/DD/YYYY format');
       }
-    } catch (error) {
-      console.error('Error adding custom item:', error);
-      alert('Error adding item');
+      const quantity = parseInt(itemQuantity);
+      if (isNaN(quantity) || quantity <= 0) {
+        throw new Error('Quantity must be a positive number');
+      }
+
+      // Save selectedFood early before you reset it!
+      const foodLabel = selectedFood.label;
+
+      // Format the date properly
+      const [month, day, year] = manualDateInput.split('/').map(Number);
+      const expDate = new Date(year, month - 1, day);
+      if (isNaN(expDate.getTime())) {
+        throw new Error('Invalid date');
+      }
+      const formattedDate = expDate.toISOString().split('T')[0];
+
+      // Call create mutation
+      await createFoodConcrete(
+        pantryId as string,
+        selectedFood.value, // food_global_id
+        formattedDate, // expiration_date
+        quantity, // quantity
+        quantityType.trim().charAt(0).toUpperCase() +
+          quantityType.trim().slice(1).toLowerCase() || 'Unit' // quantity_type
+      );
+
+      // Reset form safely AFTER
+      setSelectedFood(null);
+      setManualDateInput('');
+      setItemQuantity('1');
+      setQuantityType('');
+      setIsAddModalVisible(false);
+
+      // Refresh items
+      const updatedItems = await getFoodConcreteItems(pantryId as string);
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
+
+      // Show success
+      setAlertMessage(`Added "${foodLabel}" successfully!`);
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+    } catch (error: any) {
+      console.error('Error adding item:', error);
+      Alert.alert('Error', error.message || 'An error occurred');
     }
   };
 
-  // updates the currently selected item in the pantry
   const updateItem = async () => {
-    if (!currentItem?.expirationDate) {
-      Alert.alert('Error', 'Please select or enter a valid expiration date');
-      return;
-    }
-
     if (!currentItem) return;
 
-    console.log('Updating item:', currentItem);
-
     try {
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const sections = snapshot.data()?.sections || {};
+      await updateQuantity(
+        currentItem.id,
+        currentItem.quantity,
+        currentItem.quantity_type
+      );
 
-        for (const sectionId in sections) {
-          const section = sections[sectionId];
-          const updatedItems = section.items?.map((item: any) =>
-            item.id === currentItem.id ? currentItem : item
-          );
-          sections[sectionId].items = updatedItems;
-        }
+      // Refresh the list
+      const updatedItems = await getFoodConcreteItems(pantryId as string);
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
 
-        await updateDoc(docRef, { sections });
+      setAlertMessage(`Updated "${currentItem.food_abstract_id}"`);
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
 
-        // Update local state
-        const updatedItems = items.map((item) =>
-          item.id === currentItem.id ? currentItem : item
-        );
-        setItems(updatedItems);
-        setFilteredItems(updatedItems);
-
-        setAlertMessage(`Updated "${currentItem.title}"`);
-        setAlertVisible(true);
-        setTimeout(() => setAlertVisible(false), 3000);
-
-        setIsAddModalVisible(false);
-        setCurrentItem(null);
-      }
+      setIsAddModalVisible(false);
+      setCurrentItem(null);
     } catch (error) {
       console.error('Error updating item:', error);
       alert('Error updating item');
     }
   };
 
-  // marks item as used, reducing the quantity by one
-  const markAsUsed = async (itemId: string) => {
-    try {
-      // updates quantity immediately
-      const updatedItems = items.map((item) => {
-        if (item.id === itemId) {
-          const newQuantity = Math.max(item.quantity - 1, 0); // prevent negatives
-          return {
-            ...item,
-            quantity: newQuantity,
-            lastUsed: new Date().toISOString(),
-          };
-        }
-        return item;
-      });
-
-      setItems(updatedItems);
-      setFilteredItems(updatedItems);
-
-      // updates Firestore
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const sections = snapshot.data()?.sections || {};
-
-        const updatedSections = Object.keys(sections).reduce((acc, listId) => {
-          acc[listId] = {
-            ...sections[listId],
-            items: sections[listId].items.map((i: ListItem) => {
-              if (i.id === itemId) {
-                const newQuantity = Math.max(i.quantity - 1, 0);
-                return {
-                  ...i,
-                  quantity: newQuantity,
-                  lastUsed: new Date().toISOString(),
-                };
-              }
-              return i;
-            }),
-          };
-          return acc;
-        }, {} as any);
-
-        await updateDoc(docRef, { sections: updatedSections });
-      }
-
-      setAlertMessage('Quantity decreased by 1');
-      setAlertVisible(true);
-      setTimeout(() => setAlertVisible(false), 2000);
-
-      // auto-deletes if quantity reaches 0
-      const updatedItem = updatedItems.find((item) => item.id === itemId);
-      if (updatedItem?.quantity === 0) {
-        setTimeout(() => deleteItem(itemId), 1000);
-      }
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      // Revert UI if Firestore update fails
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const allItems = Object.values(snapshot.data()?.sections || {}).flatMap(
-          (section) => section.items || []
-        );
-        setItems(allItems);
-        setFilteredItems(allItems);
-      }
-    }
-  };
-
+  // deletes an item in the pantry
   const deleteItem = async (itemId: string) => {
+    if (!accountId) return;
+
     try {
-      // removes item immediately
-      const updatedItems = items.filter((item) => item.id !== itemId);
-      setItems(updatedItems);
-      setFilteredItems(updatedItems);
+      await deleteFoodConcrete(itemId);
 
-      // updates Firestore
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const sections = snapshot.data()?.sections || {};
-
-        // Create updated sections without the item
-        const updatedSections = Object.keys(sections).reduce((acc, listId) => {
-          acc[listId] = {
-            ...sections[listId],
-            items: sections[listId].items.filter(
-              (i: ListItem) => i.id !== itemId
-            ),
-          };
-          return acc;
-        }, {} as any);
-
-        await updateDoc(docRef, { sections: updatedSections });
+      // Verify the item was deleted
+      const updatedItems = await getFoodConcreteItems(pantryId as string);
+      if (updatedItems.some((item) => item.id === itemId)) {
+        throw new Error('Failed to delete item');
       }
 
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
       setAlertMessage('Item deleted successfully');
       setAlertVisible(true);
       setTimeout(() => setAlertVisible(false), 2000);
     } catch (error) {
       console.error('Error deleting item:', error);
-      // Revert UI if Firestore update fails
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        const allItems = Object.values(snapshot.data()?.sections || {}).flatMap(
-          (section) => section.items || []
-        );
-        setItems(allItems);
-        setFilteredItems(allItems);
-      }
-      setAlertMessage('Failed to delete item');
+      setAlertMessage(error.message || 'Failed to delete item');
       setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
     }
   };
 
-  // renders the items on screen
-  const renderItem = ({ item, drag }: { item: ListItem; drag: any }) => (
-    <View
-      style={[
-        styles.itemCard,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.onSurface,
-          borderWidth: 1,
-          height: '100%',
-        },
-      ]}
-    >
+  // updates the description to the pantry based on what the user writes
+  const handleUpdatePantryDescription = async (text: string) => {
+    try {
+      // Update UI state immediately
+      setPantryDescription(text);
+
+      // Make the API call
+      if (accountId) {
+        await updatePantryDescription(pantryId as string, text);
+      }
+    } catch (error) {
+      console.error('Error updating description:', error);
+
+      // Revert UI state if API call fails
+      const pantry = await getPantryById(pantryId as string);
+      setPantryDescription(pantry.description);
+      Alert.alert('Error', 'Failed to update description');
+    }
+  };
+
+  const markAsUsed = async (itemId: string) => {
+    const item = items.find((i) => i.id === itemId);
+    if (!item) {
+      console.error('Item not found');
+      return;
+    }
+
+    const newQuantity = item.quantity - 1;
+
+    if (newQuantity <= 0) {
+      await deleteItem(itemId);
+      return;
+    }
+
+    try {
+      await updateQuantity(
+        item.id,
+        parseFloat(newQuantity.toString()),
+        item.quantity_type
+      );
+
+      // update local list:
+      const updatedItems = items.map((i) =>
+        i.id === item.id ? { ...i, quantity: newQuantity } : i
+      );
+
+      setItems(updatedItems);
+      setFilteredItems(updatedItems);
+
+      setAlertMessage('Quantity decreased by 1');
+      setAlertVisible(true);
+      setTimeout(() => setAlertVisible(false), 2000);
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      Alert.alert('Error', 'Failed to update quantity');
+    }
+  };
+
+  // renders all items in the pantry
+  const renderItem = ({ item }: { item: FoodConcrete }) => {
+    const foodData = foodDataMap[item.food_abstract_id];
+    const foodName = foodData?.label || item.food_abstract_id;
+    const foodImageUrl = foodData?.image_url || 'https://placehold.co/100x100';
+    return (
       <Pressable
-        onLongPress={drag}
-        delayLongPress={200}
-        style={styles.dragHandle}
+        onPress={() => {
+          openProductModal(item.food_abstract_id);
+        }}
       >
-        <View
-          style={[styles.dragLine, { backgroundColor: colors.onSurface }]}
-        />
-        <View
-          style={[styles.dragLine, { backgroundColor: colors.onSurface }]}
-        />
-        <View
-          style={[styles.dragLine, { backgroundColor: colors.onSurface }]}
-        />
+        <View style={[styles.itemCard, { backgroundColor: colors.surface }]}>
+          <Image source={{ uri: foodImageUrl }} style={styles.itemImage} />
+
+          <View style={styles.itemDetails}>
+            <Text style={[styles.itemName, { color: colors.onSurface }]}>
+              {foodName}
+            </Text>
+            <Text style={{ color: colors.onSurface }}>
+              Qty: {item.quantity} {item.quantity_type}
+            </Text>
+            <Text style={{ color: colors.onSurface }}>
+              Exp: {new Date(item.expiration_date).toLocaleDateString()}
+            </Text>
+          </View>
+
+          <View style={styles.itemActions}>
+            <Pressable
+              onPress={() => markAsUsed(item.id)}
+              style={({ pressed }) => [pressed && styles.buttonPressed]}
+            >
+              <AntDesign name="check" size={24} color="green" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => deleteItem(item.id)}
+              style={({ pressed }) => [pressed && styles.buttonPressed]}
+            >
+              <AntDesign name="close" size={24} color="red" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                setCurrentItem(item);
+                setIsAddModalVisible(true);
+              }}
+            >
+              <Feather name="edit" size={20} color={colors.onSurface} />
+            </Pressable>
+          </View>
+        </View>
       </Pressable>
+    );
+  };
 
-      <Image
-        source={{ uri: item.imageUrl || 'https://www.placecats.com/100/100' }}
-        style={styles.itemImage}
-      />
-
-      <View style={styles.itemDetails}>
-        <Text style={[styles.itemName, { color: colors.onSurface }]}>
-          {item.title}
-        </Text>
-        <Text style={{ color: colors.onSurface }}>Qty: {item.quantity}</Text>
-        <Text style={{ color: colors.onSurface }}>
-          Exp: {new Date(item.expirationDate).toLocaleDateString()}
-        </Text>
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
-
-      <View style={styles.itemActions}>
-        {/* Checkmark Button */}
-        <Pressable
-          onPress={() => markAsUsed(item.id)}
-          style={({ pressed }) => [pressed && styles.buttonPressed]}
-        >
-          <AntDesign name="check" size={24} color="green" />
-        </Pressable>
-
-        {/* Delete Button */}
-        <Pressable
-          onPress={() => deleteItem(item.id)}
-          style={({ pressed }) => [pressed && styles.buttonPressed]}
-          hitSlop={10} // Makes touch area larger
-        >
-          <AntDesign name="close" size={24} color="red" />
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            setCurrentItem(item);
-            setIsAddModalVisible(true);
-          }}
-        >
-          <Feather name="edit" size={20} color={colors.onSurface} />
-        </Pressable>
-      </View>
-    </View>
-  );
+    );
+  }
 
   // displays everything
   return (
@@ -537,7 +530,7 @@ const PantryScreen = () => {
               ]}
               placeholder="Pantry Description..."
               value={pantryDescription}
-              onChangeText={updatePantryDescription}
+              onChangeText={handleUpdatePantryDescription}
               multiline
             />
           </View>
@@ -568,6 +561,7 @@ const PantryScreen = () => {
           onRequestClose={() => {
             setIsAddModalVisible(false);
             setCurrentItem(null);
+            setSelectedFood(null);
           }}
         >
           <View
@@ -580,122 +574,76 @@ const PantryScreen = () => {
               style={[styles.modalContent, { backgroundColor: colors.surface }]}
             >
               <Text style={[styles.modalTitle, { color: colors.onSurface }]}>
-                {currentItem ? 'Edit Item' : 'Add New Item'}
+                Add New Item
               </Text>
 
-              <TextInput
-                style={[
-                  styles.modalInput,
-                  {
-                    backgroundColor: colors.background,
-                    color: colors.onSurface,
-                    borderColor: colors.onSurface,
-                  },
-                ]}
-                placeholder="Item name"
-                placeholderTextColor={colors.onSurface}
-                value={currentItem ? currentItem.title : customName}
-                onChangeText={
-                  currentItem
-                    ? (text) => setCurrentItem({ ...currentItem, title: text })
-                    : setCustomName
-                }
+              {/* 1. Food Dropdown */}
+              <PantryDropdownComponent
+                accountId={accountId}
+                onValueChange={(item) => {
+                  if (currentItem) {
+                    setCurrentItem({
+                      ...currentItem,
+                      food_abstract_id: item.value,
+                    });
+                  } else {
+                    setSelectedFood(item);
+                  }
+                }}
+                setDropdownOptions={setFoodDataMap} // <-- you add this prop
+                currentValue={currentItem?.food_abstract_id}
               />
 
+              {/* 2. Quantity */}
               <TextInput
                 style={[
                   styles.modalInput,
                   {
                     backgroundColor: colors.background,
                     color: colors.onSurface,
-                    borderColor: colors.onSurface,
                   },
                 ]}
-                placeholder="Description"
+                placeholder="Quantity (e.g., 1, 2, 5)"
                 placeholderTextColor={colors.onSurface}
-                value={
-                  currentItem ? currentItem.description : customDescription
-                }
-                onChangeText={
-                  currentItem
-                    ? (text) =>
-                        setCurrentItem({ ...currentItem, description: text })
-                    : setCustomDescription
-                }
-                multiline
-              />
-
-              <TextInput
-                style={[
-                  styles.modalInput,
-                  {
-                    backgroundColor: colors.background,
-                    color: colors.onSurface,
-                    borderColor: colors.onSurface,
-                  },
-                ]}
-                placeholder="Quantity"
-                placeholderTextColor={colors.onSurface}
-                value={
-                  currentItem ? currentItem.quantity.toString() : itemQuantity
-                }
-                onChangeText={
-                  currentItem
-                    ? (text) =>
-                        setCurrentItem({
-                          ...currentItem,
-                          quantity: parseInt(text) || 1,
-                        })
-                    : setItemQuantity
-                }
+                value={itemQuantity}
+                onChangeText={setItemQuantity}
                 keyboardType="numeric"
               />
 
-              <Text style={{ color: colors.onSurface, marginBottom: 4 }}>
-                Expiration Date:
-              </Text>
+              {/* 3. Expiration Date */}
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.onSurface,
+                  },
+                ]}
+                placeholder="Expiration Date (MM/DD/YYYY)"
+                placeholderTextColor={colors.onSurface}
+                value={manualDateInput}
+                onChangeText={handleManualDateInput}
+                keyboardType="numeric"
+                maxLength={10}
+              />
 
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  marginBottom: 15,
-                }}
-              >
-                <DateTimePicker
-                  value={expirationDate || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event, date) => {
-                    if (date) {
-                      setExpirationDate(date);
-                      setManualDateInput('');
-                    }
-                  }}
-                  style={{ flex: 1 }}
-                />
+              {/* 4. Quantity Type */}
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.onSurface,
+                  },
+                ]}
+                placeholder="Quantity Type (e.g., unit, bottle)"
+                placeholderTextColor={colors.onSurface}
+                value={quantityType}
+                onChangeText={setQuantityType}
+              />
 
-                <TextInput
-                  style={[
-                    styles.modalInput,
-                    {
-                      flex: 1,
-                      backgroundColor: colors.background,
-                      color: colors.onSurface,
-                      borderColor: colors.onSurface,
-                    },
-                  ]}
-                  placeholder="MM/DD/YYYY"
-                  placeholderTextColor={colors.onSurface}
-                  value={manualDateInput}
-                  onChangeText={handleManualDateInput}
-                  keyboardType="numeric"
-                  maxLength={10}
-                />
-              </View>
-
+              {/* Buttons */}
               <View style={styles.modalButtons}>
-                {/* Cancel Button */}
                 <Pressable
                   style={[
                     styles.modalButton,
@@ -714,11 +662,9 @@ const PantryScreen = () => {
                     styles.modalButton,
                     { backgroundColor: colors.primary },
                   ]}
-                  onPress={currentItem ? updateItem : addCustomItem}
+                  onPress={addCustomItem} // Your new clean version
                 >
-                  <Text style={styles.buttonText}>
-                    {currentItem ? 'Update' : 'Add'}
-                  </Text>
+                  <Text style={styles.buttonText}>Add</Text>
                 </Pressable>
               </View>
             </View>
@@ -733,6 +679,35 @@ const PantryScreen = () => {
             <Text style={styles.alertText}>{alertMessage}</Text>
           </View>
         )}
+
+        {/* ——— Product Details Modal ——— */}
+        <Modal
+          visible={productModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closeProductModal}
+        >
+          <View
+            style={[
+              styles.modalOverlay,
+              { width: '150%', alignSelf: 'center' },
+            ]}
+          >
+            <View
+              style={[styles.modalContent, { backgroundColor: colors.surface }]}
+            >
+              <Pressable
+                onPress={closeProductModal}
+                style={{ alignSelf: 'flex-end', padding: 8 }}
+              >
+                <Text style={{ fontSize: 24, color: colors.onSurface }}>✕</Text>
+              </Pressable>
+              {selectedFoodId && accountId && (
+                <ProductPage foodId={selectedFoodId} accountId={accountId} />
+              )}
+            </View>
+          </View>
+        </Modal>
 
         {/* Floating Action Button */}
         <Animated.View
@@ -757,6 +732,11 @@ const PantryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mainContent: {
     flex: 1,

@@ -12,20 +12,19 @@ import {
   Modal,
 } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import ListSection from '../../../components/PListSection';
-import CreateListModal from '../../../components/CreateListModal';
-import { db, auth } from '../../../services/firebaseConfig';
-import { Timestamp } from 'firebase/firestore';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import ListSection from '../../../components/Pantry/PListSection';
+import { useAuth } from '@/services/authContext';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useTheme } from 'react-native-paper'; // allows for dark mode contributed by Kevin
+import { sortLists, filterLists } from '../../../src/utils/pantryUtils';
 import {
-  fetchPantries,
-  createNewPantry,
-  sortLists,
-  filterLists,
-} from '../../../src/utils/pantryUtils';
+  getAllPantriesforAccount,
+  createPantry,
+} from '@/components/Pantry/PantryService';
+import {
+  getAccountByOwnerID,
+  getCustomItemsFromAccount,
+} from '@/components/Account/AccountService';
 
 // Sorting options for lists
 const SORT_OPTIONS = [
@@ -45,42 +44,59 @@ const ButtonListScreen = () => {
   const { colors } = useTheme();
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(Boolean); // fixed loading by Kevin
+  const { user } = useAuth();
 
   // Fetch pantries
   const fetchPantryList = async () => {
     setLoading(true);
     try {
-      const data = await fetchPantries();
-      setPantries(data);
+      if (!user?.uid) {
+        console.warn('No user signed in');
+        return;
+      }
+
+      const account = await getAccountByOwnerID(user.uid);
+      if (!account) {
+        throw new Error('Account not found');
+      }
+
+      const pantryData = await getAllPantriesforAccount(account.id);
+      setPantries(pantryData);
     } catch (error) {
-      console.error('Error fetching pantries: ', error);
+      console.error('Error fetching pantries:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userDocRef);
+    const fetchData = async () => {
+      if (!user?.uid) return;
 
-          if (userSnap.exists()) {
-            setUsername(userSnap.data().username);
-          } else {
-            console.warn('User document does not exist.');
-          }
-        } catch (error) {
-          console.error('Error fetching username:', error);
+      try {
+        setLoading(true);
+
+        // 1. Get account data
+        const account = await getAccountByOwnerID(user.uid);
+        if (!account) {
+          throw new Error('Account not found');
         }
-      } else {
-        setUsername('');
-      }
-    });
 
-    return () => unsubscribe(); // Cleanup listener on unmount
-  }, []);
+        // 2. Get pantries for this account
+        const pantryData = await getAllPantriesforAccount(account.id);
+
+        // 3. Update state
+        setPantries(pantryData || []);
+        setUsername(account.account_name || '');
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?.uid]); // Only run when user UID changes
 
   useEffect(() => {
     fetchPantryList();
@@ -93,12 +109,30 @@ const ButtonListScreen = () => {
   // Handle creating a new pantry
   const handleCreateNewPantry = async () => {
     try {
-      await createNewPantry(newPantryName);
+      if (!user?.uid) {
+        alert('No authenticated user found');
+        return;
+      }
+
+      // 1. Get the account first
+      const account = await getAccountByOwnerID(user.uid);
+      if (!account?.id) {
+        throw new Error('Account not found');
+      }
+
+      // 2. Create the pantry using the account ID
+      await createPantry(account.id, newPantryName);
+
+      // 3. Update UI
       setModalVisible(false);
       setNewPantryName('');
       await fetchPantryList();
     } catch (error) {
-      alert('Error creating pantry: ' + error);
+      if (error instanceof Error) {
+        console.error('Error creating pantry:', error.message);
+      } else {
+        console.error('Unknown error creating pantry:', error);
+      }
     }
   };
 
@@ -117,7 +151,7 @@ const ButtonListScreen = () => {
         contentContainerStyle={styles.scrollViewContent}
         style={styles.scrollView}
       >
-        <Text style={[styles.title, { color: colors.onSurface }]}>
+        <Text style={[styles.title, { color: '#4CAE4F', fontSize: 40 }]}>
           {username ? username : 'Loading...'}'s Pantries
         </Text>
 
@@ -160,13 +194,25 @@ const ButtonListScreen = () => {
           >
             <ListSection
               title="Personal Pantries"
-              lists={sortedPantry}
+              lists={sortedPantry.map((pantry) => ({
+                id: pantry.id,
+                name: pantry.pantry_name, // Changed from 'title' to 'name'
+                description: pantry.description,
+                completed: false, // Add default value
+                created: new Date().toISOString(), // Add default value
+              }))}
               fetchLists={fetchPantryList}
             />
             {/* New Section for Shared Pantries */}
             <ListSection
               title="Shared Pantries"
-              lists={sortedPantry}
+              lists={sortedPantry.map((pantry) => ({
+                id: pantry.id,
+                name: pantry.pantry_name, // Changed from 'title' to 'name'
+                description: pantry.description,
+                completed: false, // Add default value
+                created: new Date().toISOString(), // Add default value
+              }))}
               fetchLists={fetchPantryList}
             />
           </View>
