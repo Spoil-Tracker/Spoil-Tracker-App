@@ -30,9 +30,7 @@ const CreateListModal = ({
   const { user } = useAuth();
   const id = user?.uid;
 
-  if (id) {
-    console.log("[in List Modal] User UID:", id);
-  } else {
+  if (!id) {
     console.log("No user is logged in.");
     return;
   }

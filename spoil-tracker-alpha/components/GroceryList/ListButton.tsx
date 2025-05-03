@@ -278,7 +278,10 @@ const styles = StyleSheet.create({
   },
   viewButton: {
     flex: 1,
-    width: 110,
+    width: 125,
+    alignItems: 'center',
+    alignContent: 'center',
+    justifyContent: 'center',
     marginBottom: 5,
   },
   dropdownContent: {
@@ -294,6 +297,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column', 
     alignItems: 'flex-start', 
     marginRight: 10, 
+    minWidth: 1
   },
   dropdown: {
     overflow: 'hidden',
@@ -361,7 +365,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#D9534F',
-    width: 110,
+    width: 125,
     marginBottom: 5,
   },
   deleteButtonModal: {

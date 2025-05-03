@@ -48,7 +48,7 @@ const ViewGroceryList: React.FC<ViewGroceryListProps> = ({ groceryList }) => {
     <View style={styles.itemContainer}>
       {item.imageUrl ? (
         <Image 
-          source={{ uri: item.imageUrl }} 
+          source={item.imageUrl ? { uri: item.imageUrl } : undefined} 
           style={styles.itemImage} 
           resizeMode="contain"
         />
@@ -71,20 +71,21 @@ const ViewGroceryList: React.FC<ViewGroceryListProps> = ({ groceryList }) => {
     year: 'numeric'
   });
 
+  
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, width: width - 10 }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background, width: width - 10} ]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>{groceryList.grocerylist_name}</Text>
-        <Text style={styles.subTitle}>Created: {formattedDate}</Text>
-        {groceryList.description ? (
-          <Text style={styles.description}>{groceryList.description}</Text>
-        ) : null}
         {groceryList.snapshotAt && (
-          <Text style={styles.snapshotText}>
+          <Text style={styles.subTitle}>
             Posted: {new Date(groceryList.snapshotAt).toLocaleString()}
           </Text>
         )}
-        <Text style={styles.sectionHeader}>Items</Text>
+        {groceryList.description ? (
+          <Text style={styles.description}>{groceryList.description}</Text>
+        ) : null}
+
       </ScrollView>
       <FlatList
           style={{borderRadius: 10}}
@@ -102,12 +103,14 @@ const ViewGroceryList: React.FC<ViewGroceryListProps> = ({ groceryList }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 5, // or as needed
     borderRadius: 10,
-    maxWidth: 1000
+    maxWidth: 1000,
   },
   scrollContent: {
     padding: 20,
     alignItems: 'center',
+    flexGrow: 1,
   },
   title: {
     fontSize: 32,

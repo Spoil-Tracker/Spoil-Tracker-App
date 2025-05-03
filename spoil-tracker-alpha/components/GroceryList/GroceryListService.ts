@@ -254,6 +254,18 @@ const SEARCH_GROCERY_LISTS = gql`
   }
 `;
 
+const CONVERT_TO_PANTRY = gql`
+  mutation ConvertToPantry(
+    $grocerylist_id: String!
+    $pantry_id: String!
+  ) {
+    convertToPantry(
+      grocerylist_id: $grocerylist_id
+      pantry_id: $pantry_id
+    )
+  }
+`;
+
 
 /**
  * Represents a Grocery List.
@@ -675,3 +687,30 @@ export async function searchGroceryLists(account_id: string, query: string): Pro
     }
   }
 // Export additional functions for updating, deleting, etc., in a similar fashion.
+
+/**
+ * Converts all completed items in a grocery list into concrete pantry items,
+ * then removes them from the list.
+ *
+ * @param grocerylist_id – the ID of the grocery list to convert from
+ * @param pantry_id – the ID of the pantry to add items into
+ * @returns true if the operation succeeded
+ * @throws Error if the mutation fails
+ */
+export async function convertToPantry(
+    grocerylist_id: string,
+    pantry_id: string
+): Promise<boolean> {
+try {
+    const result = await client.mutate<{
+    convertToPantry: boolean;
+    }>({
+    mutation: CONVERT_TO_PANTRY,
+    variables: { grocerylist_id, pantry_id },
+    });
+    return result.data!.convertToPantry;
+} catch (error) {
+    console.error('Error converting grocery list to pantry:', error);
+    throw error;
+}
+}
