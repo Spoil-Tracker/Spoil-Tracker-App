@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client';
-import client from '@/src/ApolloClient';
+import client from '@/ApolloClient';
 
 const GET_ALL_PANTRIES_FOR_ACCOUNT = gql`
   query GetAllPantriesForAccount($account_id: String!) {
