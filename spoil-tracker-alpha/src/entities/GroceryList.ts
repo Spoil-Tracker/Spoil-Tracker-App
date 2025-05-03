@@ -621,10 +621,6 @@ export class GroceryListResolver {
             );
         }
         
-        // Remove the completed items from the grocery list after conversion
-        const remainingItems = groceryList.grocery_list_items.filter(item => !item.isBought);
-        await listRef.update({ grocery_list_items: remainingItems });
-        
         return true;
     }
 
