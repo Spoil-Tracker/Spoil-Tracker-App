@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client';
-import client from '@/src/ApolloClient';
+import client from '@/ApolloClient';
 
 /**
  * This file contains service layer functions that allow the client to interact

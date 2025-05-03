@@ -1,5 +1,5 @@
 import { gql } from '@apollo/client';
-import client from '@/src/ApolloClient';
+import client from '@/ApolloClient';
 
 /**
  * GraphQL query to fetch the entire community feed.
