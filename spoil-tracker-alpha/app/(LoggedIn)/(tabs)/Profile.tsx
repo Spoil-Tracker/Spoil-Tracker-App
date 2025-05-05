@@ -17,10 +17,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { db, auth } from '../../../services/firebaseConfig';
 import { deleteUser } from 'firebase/auth';
-import { arrayUnion, doc, getDoc, updateDoc, setDoc, deleteDoc, addDoc, getDocs, collection, onSnapshot } from 'firebase/firestore';
+import { arrayUnion, doc, getDoc, updateDoc, setDoc, deleteDoc, addDoc, getDocs, collection, onSnapshot} from 'firebase/firestore';
 import { useAuth } from '../../../services/authContext';
 import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
 import { createKitchenInvite } from '../../../services/inviteService';
+import { AntDesign, FontAwesome } from '@expo/vector-icons';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // Global variables for any function that requires to call an icon
 const userIcon = require('../../../assets/images/icon.png');
@@ -60,6 +63,25 @@ export default function HomeScreen() {
   // Reward notification state.
   const [rewardAvailable, setRewardAvailable] = useState(false);
   const [unclaimedRewards, setUnclaimedRewards] = useState(0);
+  const [lastClaimDate, setLastClaimDate] = useState<Date | null>(null);
+  const [rewardLevel, setRewardLevel] = useState(1);
+
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [defaultDate, setDefaultDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const changeDay = (days: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
+
+  const formatDate = (date: Date | null) => {
+    const today = new Date();
+    return date && date.toDateString() === today.toDateString()
+      ? 'Today'
+      : date?.toLocaleDateString();
+  };
 
   useEffect(() => {
     const loadProfileIcon = async () => {
@@ -103,15 +125,21 @@ export default function HomeScreen() {
         if (rewardDoc.exists()) {
           const data = rewardDoc.data();
           // If user has not claimed reward, then it will be available.
-          setRewardAvailable(!data.weeklyRewardClaimed);
           setUnclaimedRewards(data.unclaimedRewards || 0);
           setRewardProgress(data.rewardProgress || 0);
+          setRewardLevel(data.rewardLevel || 1);
+          if (data.rewardCollectedAt?.toDate) {
+            setLastClaimDate(data.rewardCollectedAt.toDate());
+          } else {
+            setLastClaimDate(null);
+          }
         } else {
           // Initialize reward data: reward available and no unclaimed rewards.
-          await setDoc(rewardDocRef, {weeklyRewardClaimed: false, unclaimedRewards: 0, rewardProgress: 0});
-          setRewardAvailable(true);
+          await setDoc(rewardDocRef, {weeklyRewardClaimed: false, unclaimedRewards: 0, rewardProgress: 0, rewardLevel: 1});
+          setLastClaimDate(null);
           setUnclaimedRewards(0);
           setRewardProgress(0);
+          setRewardLevel(1);
         }
       } catch (error) {
         console.error('Error fetching reward data:', error);
@@ -120,17 +148,33 @@ export default function HomeScreen() {
     fetchRewardData();
   }, [userID]);
 
+  useEffect(() => {
+    if (!lastClaimDate) {
+      setRewardAvailable(true);
+      return;
+    }
+    const diffDays = (defaultDate.getTime() - lastClaimDate.getTime()) / (1000 * 60 * 60 * 24);
+    setRewardAvailable(diffDays >= 7);
+  }, [defaultDate, lastClaimDate]);
+
   // Handle the weekly reward notification.
   const handleClaimReward = async () => {
     if (!userID) return;
     const rewardDocRef = doc(db, 'user_rewards', userID);
     try {
       // Mark reward as claimed.
-      const newProgress = Math.min(rewardProgress + 1, 4);
-      await setDoc(rewardDocRef, {weeklyRewardClaimed: true, unclaimedRewards: 0, rewardProgress: newProgress, rewardCollectedAt: new Date(),}, {merge: true});
-      setRewardAvailable(false);
+      let newProgress = rewardProgress + 1;
+      let newLevel = rewardLevel;
+      if (newProgress > 4) newProgress = 1;
+      if (rewardProgress + 1 > 4) newLevel += 1;
+      await setDoc(rewardDocRef,
+        {weeklyRewardClaimed: true, unclaimedRewards: 0, rewardProgress: newProgress, rewardLevel: newLevel, rewardCollectedAt: defaultDate,},
+        {merge: true}
+      );
+      setRewardProgress(newProgress);
+      setRewardLevel(newLevel);
       setUnclaimedRewards(0);
-      setRewardProgress(prev => Math.min(prev + 1, 4));
+      setLastClaimDate(defaultDate);
     } catch (error) {
       console.error('Error claiming reward:', error);
     }
@@ -142,7 +186,7 @@ export default function HomeScreen() {
     try {
       // Mark the weekly reward as dismissed and increment unclaimed rewards.
       const newCount = 1;
-      await setDoc(rewardDocRef, {weeklyRewardClaimed: true, unclaimedRewards: newCount});
+      await setDoc(rewardDocRef, {weeklyRewardClaimed: true, unclaimedRewards: newCount}, {merge: true});
       setRewardAvailable(false);
       setUnclaimedRewards(newCount);
     } catch (error) {
@@ -407,6 +451,48 @@ const handleJoinKitchen = async () => {
               <Text style={styles.customButtonText}>Delete Account</Text>
             </TouchableOpacity>
           </View>
+          <View style={styles.group}>
+            <View style={styles.calendarBar}>
+              <TouchableOpacity onPress={() => changeDay(-1)}>
+                <AntDesign name="left" size={24} color={dark ? '#FFF' : '#000'} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.todayContainer}
+                onPress={() => setShowDatePicker(!showDatePicker)}
+              >
+                <FontAwesome name="calendar" size={20} color={dark ? '#FFF' : '#000'} style={styles.calendarIcon} />
+                <Text style={[styles.todayText, {color: dark ? '#FFF' : '#000'}]}>
+                  {formatDate(selectedDate)}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => changeDay(1)}>
+                <AntDesign name="right" size={24} color={dark ? '#FFF' : '#000'} />
+              </TouchableOpacity>
+            </View>
+            {showDatePicker && (
+              <>
+                <DatePicker
+                  selected={selectedDate}
+                  onChange={(date) => {
+                    setShowDatePicker(false);
+                    if (date) setSelectedDate(date);
+                  }}
+                  inline
+                />
+                {selectedDate.toDateString() !== defaultDate.toDateString() && (
+                  <TouchableOpacity
+                    style={styles.customButton}
+                    onPress={() => {
+                      setDefaultDate(selectedDate);
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Text style={styles.customButtonText}>Confirm Date</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
         </View>
 
         <View style={[styles.divider, {height: Math.max(leftColumnHeight, rightColumnHeight)}]} />
@@ -417,7 +503,7 @@ const handleJoinKitchen = async () => {
         >
           <View style={styles.rewardContainer}>
             <Text style={[styles.rewardTitle, { color: dark ? '#FFF' : '#000' }]}>
-              Reward Progress: Level 1
+              Reward Progress: Level {rewardLevel}
             </Text>
             <View style={styles.rewardMeterRow}>
               <Image source={coinIcon} style={styles.coinIcon} />
@@ -693,8 +779,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   divider: {
-    justifyContent: 'center',
-    alignItems: 'center',
     width: 2,
     backgroundColor: '#4CAE4F'
   },
@@ -949,5 +1033,30 @@ const styles = StyleSheet.create({
   rewardBarFilled: {
     backgroundColor: '#4CAE4F',
     borderColor: '#4CAE4F',
-  }
+  },
+
+  calendarBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginVertical: 10,
+    backgroundColor: '#4CAE4F',
+    padding: 10,
+    borderRadius: 8,
+  },
+
+  todayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  calendarIcon: {
+    marginRight: 8,
+  },
+
+  todayText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

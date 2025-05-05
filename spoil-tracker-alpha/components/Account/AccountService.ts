@@ -273,6 +273,14 @@ const REMOVE_LIKED_COMMUNITY_GROCERY_LIST = gql`
     }
 `;
 
+const GET_ACCOUNT_NAME_BY_ID = gql`
+  query GetAccountNameByID($account_id: String!) {
+    getAccountById(account_id: $account_id) {
+      account_name
+    }
+  }
+`;
+
 /**
  * Represents a Grocery List.
  */
@@ -651,3 +659,19 @@ export async function searchCustomItemsFromAccount(account_id: string, query: st
       throw error;
     }
 }
+
+/**
+ * Fetches just the account_name for a given account ID.
+ *
+ * @param account_id - The ID of the account.
+ * @returns Promise<string> resolving to the account_name.
+ * @throws if the query fails.
+ */
+export async function getAccountNameByID(account_id: string): Promise<string> {
+    const { data } = await client.query({
+      query: GET_ACCOUNT_NAME_BY_ID,
+      variables: { account_id },
+      fetchPolicy: 'no-cache',
+    });
+    return data.getAccountById.account_name;
+  }

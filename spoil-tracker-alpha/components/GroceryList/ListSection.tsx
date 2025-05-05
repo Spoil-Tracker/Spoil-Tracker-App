@@ -16,7 +16,9 @@ type ListSectionProps = {
  * Dynamically adjusts dimensions based on screen size.
  */
 const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
-  const [screenHeight, setScreenHeight] = useState(Dimensions.get('window').height); // Get initial screen height
+  const [screenHeight, setScreenHeight] = useState(
+    Dimensions.get('window').height
+  ); // Get initial screen height
   const screenWidth = Dimensions.get('window').width; // Get screen width
 
   // Calculate width dynamically based on the screen size
@@ -52,7 +54,12 @@ const ListSection = ({ title, lists, fetchLists }: ListSectionProps) => {
   };
 
   return (
-    <View style={[styles.listSection, { width: listSectionWidth, height: listSectionHeight }]}>
+    <View
+      style={[
+        styles.listSection,
+        { width: listSectionWidth, height: listSectionHeight },
+      ]}
+    >
       <Text style={styles.sectionTitle}>{title}</Text>
       <ScrollView style={styles.scrollView} showsHorizontalScrollIndicator={false}>
         {lists.map((list) => (
@@ -134,14 +141,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  buttonsContainer: { 
-    flexDirection: 'column', 
-    alignItems: 'flex-start', 
-    marginRight: 10, 
-  }, 
+  buttonsContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginRight: 10,
+  },
   viewButton: {
     flex: 1,
-    width: 110
+    width: 110,
   },
   deleteButton: {
     flex: 1,
@@ -187,14 +194,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  rowContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-start', 
-    justifyContent: 'flex-start', 
-    paddingVertical: 5, 
-  }, 
-  dropdownTextContainer: { 
-    flex: 1, 
-    alignItems: 'flex-start', 
-  }, 
+  rowContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    paddingVertical: 5,
+  },
+  dropdownTextContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
 });

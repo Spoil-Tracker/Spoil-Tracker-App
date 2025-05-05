@@ -10,60 +10,37 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { FoodGlobal } from '@/components/Food/FoodGlobalService'; 
+import { useRouter } from 'expo-router';
+import { FoodGlobal } from '@/components/Food/FoodGlobalService';
 import CustomGroceryItemScreen from './AddCustom';
 import { deleteCustomItem, getAccountByOwnerID } from '@/components/Account/AccountService';
 import { useAuth } from '@/services/authContext';
 
-
-/**
- * Props for the CustomItemsMenu component.
- */
 interface CustomItemsMenuProps {
-  /** Array of custom food items to display. */
   customItems: FoodGlobal[];
-  /** Optional title for the menu. Defaults to "Custom Items". */
   title?: string;
   onItemsChange?: () => void;
 }
 
-const DROPDOWN_EXPANDED_HEIGHT = 200; // Maximum height when expanded
+const DROPDOWN_EXPANDED_HEIGHT = 200;
 
-/**
- * CustomItemsMenu component renders a dropdown menu for custom food items.
- *
- * @param {CustomItemsMenuProps} props - Component props.
- * @returns A React element representing the dropdown menu.
- */
 const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({
   customItems,
-  title = "Custom Items",
+  title = 'Custom Items',
   onItemsChange,
-}: CustomItemsMenuProps) => {
-  // State to track if the dropdown is expanded.
+}) => {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(true);
-  // State to control the visibility of the "Add Item" modal.
   const [modalVisible, setModalVisible] = useState(false);
-  // Animated value to control the dropdown animation (opacity and translation).
   const animation = useRef(new Animated.Value(0)).current;
   const [items, setItems] = useState<FoodGlobal[]>(customItems);
   const { user } = useAuth();
 
-  /**
-   * Toggles the expanded state of the dropdown.
-   */
   const toggleDropdown = () => {
     setExpanded(prev => !prev);
   };
 
-  /**
-   * Effect to animate the dropdown view whenever the expanded state changes.
-   *
-   * When expanded, the animated value transitions to 1 (fully visible and in position),
-   * otherwise it transitions to 0 (hidden and slightly shifted upward).
-   */
   useEffect(() => {
-
     Animated.timing(animation, {
       toValue: expanded ? 1 : 0,
       duration: 300,
@@ -80,29 +57,20 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({
     outputRange: [0, DROPDOWN_EXPANDED_HEIGHT],
   });
 
-  /**
-   * Handles deletion of a custom item.
-   */
   const handleDelete = async (itemId: string) => {
     try {
       if (!user) return;
       const account = await getAccountByOwnerID(user.uid);
       await deleteCustomItem(account.id, itemId);
-      setItems((prev) => prev.filter((item) => item.id !== itemId));
-      Alert.alert("Item Deleted", "The custom item was deleted successfully.");
-      // Notify parent that the items have changed.
+      setItems(prev => prev.filter(item => item.id !== itemId));
+      Alert.alert('Item Deleted', 'The custom item was deleted successfully.');
+      onItemsChange?.();
     } catch (error) {
-      console.error("Error deleting custom item:", error);
-      Alert.alert("Error", "Failed to delete the item.");
+      console.error('Error deleting custom item:', error);
+      Alert.alert('Error', 'Failed to delete the item.');
     }
   };
 
-  /**
-   * Renders each item in the dropdown.
-   *
-   * @param item - A FoodGlobal object representing a food item.
-   * @returns A view representing the food item.
-   */
   const renderItem = ({ item }: { item: FoodGlobal }) => (
     <View style={styles.itemContainer}>
       {item.food_picture_url ? (
@@ -112,7 +80,13 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({
           <Text style={styles.placeholderText}>No Image</Text>
         </View>
       )}
-      <Text style={styles.itemTitle}>{item.food_name}</Text>
+      <Text
+        style={styles.itemTitle}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {item.food_name}
+      </Text>
       <Pressable onPress={() => handleDelete(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </Pressable>
@@ -120,12 +94,12 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({
   );
 
   return (
-    <View style={[styles.container, { width: '100%' }]}>
+    <View style={[styles.container, { width: '100%' }]}>  
       <Pressable onPress={toggleDropdown} style={styles.header}>
         <Text style={styles.headerText}>{title}</Text>
       </Pressable>
 
-      <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>
+      <Animated.View style={[styles.dropdown, { height: dropdownHeight }]}>      
         <FlatList
           data={items}
           renderItem={renderItem}
@@ -136,10 +110,16 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({
         />
       </Animated.View>
 
-      <Pressable onPress={() => setModalVisible(true)} style={styles.addButton}>
-        <Text style={styles.addButtonText}>Add Item</Text>
-      </Pressable>
+      <View style={styles.buttonRow}>
+        <Pressable onPress={() => setModalVisible(true)} style={styles.addButton}>
+          <Text style={styles.addButtonText}>Add New Virtual Item</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('../barcodeScanning')} style={styles.scanButton}>
+          <Text style={styles.scanButtonText}>Scan Real Item</Text>
+        </Pressable>
+      </View>
 
+      {/* Add Item Modal */}
       <Modal
         visible={modalVisible}
         animationType="fade"
@@ -147,12 +127,9 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({
         transparent={true}
       >
         <View style={styles.modalOverlay}>
-          {/* Pass the onItemAdded callback to the add item component */}
           <CustomGroceryItemScreen
             onItemAdded={() => {
-              if (onItemsChange) {
-                onItemsChange();
-              }
+              onItemsChange?.();
               setModalVisible(false);
             }}
           />
@@ -170,9 +147,6 @@ const CustomItemsMenu: React.FC<CustomItemsMenuProps> = ({
 
 export default CustomItemsMenu;
 
-/**
- * Component styles.
- */
 const styles = StyleSheet.create({
   container: {
     marginVertical: 10,
@@ -206,7 +180,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
-    width: 140
+    width: 140,
   },
   itemImage: {
     width: '100%',
@@ -228,7 +202,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontSize: 14,
     textAlign: 'center',
-    fontFamily: 'inter-bold'
+    fontFamily: 'inter-bold',
   },
   deleteButton: {
     marginTop: 5,
@@ -242,15 +216,33 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'inter-bold',
   },
+  buttonRow: {
+    // flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
   addButton: {
     backgroundColor: '#8e44ad',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
-    alignSelf: 'center',
-    marginTop: 10,
+    marginHorizontal: 5,
+    marginVertical: 2
   },
   addButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontFamily: 'inter-bold',
+  },
+  scanButton: {
+    backgroundColor: '#3498db',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    marginVertical: 2
+  },
+  scanButtonText: {
     color: 'white',
     fontSize: 16,
     fontFamily: 'inter-bold',
@@ -270,7 +262,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    alignContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 });

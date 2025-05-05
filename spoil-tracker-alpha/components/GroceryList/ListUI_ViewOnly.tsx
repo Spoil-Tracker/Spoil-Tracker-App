@@ -115,7 +115,7 @@ const ViewGroceryList: React.FC<ViewGroceryListProps> = ({ id }) => {
     <View style={styles.itemContainer}>
       {item.imageUrl ? (
         <Image 
-          source={{ uri: item.imageUrl }} 
+          source={item.imageUrl ? { uri: item.imageUrl } : undefined} 
           style={styles.itemImage} 
           resizeMode="contain"
         />
@@ -165,7 +165,6 @@ const ViewGroceryList: React.FC<ViewGroceryListProps> = ({ id }) => {
         {groceryList.description ? (
           <Text style={styles.description}>{groceryList.description}</Text>
         ) : null}
-        <Text style={styles.sectionHeader}>Items</Text>
       </ScrollView>
       <FlatList
           style={{ borderRadius: 10 }}
@@ -183,12 +182,14 @@ const ViewGroceryList: React.FC<ViewGroceryListProps> = ({ id }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 5, // or as needed
     borderRadius: 10,
-    maxWidth: 1000
+    maxWidth: 1000,
   },
   scrollContent: {
     padding: 20,
     alignItems: 'center',
+    flexGrow: 1,
   },
   title: {
     fontSize: 32,
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f3f3',
     borderRadius: 8,
     width: 150,
-    height: 200, // Increased height to allow room for the image and texts.
+    height: 200,
     marginRight: 10,
     padding: 8,
     justifyContent: 'space-between',
@@ -230,7 +231,7 @@ const styles = StyleSheet.create({
   },
   itemImage: {
     width: '100%',
-    height: 100, // Increased height for the image.
+    height: 100,
     borderRadius: 8,
     marginBottom: 5,
   },

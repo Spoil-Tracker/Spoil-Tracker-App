@@ -1,2 +1,2 @@
 export const key = '';
-export const local_ip = '10.39.7.114'
+export const local_ip = '192.168.1.134'
