@@ -1,55 +1,40 @@
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import { db } from '../../services/firebaseConfig';
-import { getAuth } from 'firebase/auth';
+import {
+  getAllPantriesforAccount,
+  createPantry,
+  type Pantry as GraphQLPantry,
+} from '@/components/Pantry/PantryService';
+import { getAccountByOwnerID } from '@/components/Account/AccountService';
 
 /**
- * Fetches the user's pantries from Firestore.
- * @returns An array of pantry objects with `id`, `name`, and other details.
+ * Fetches the user's pantries using GraphQL
+ * @returns An array of pantry objects with `id`, `name`, and other details
  */
-export const fetchPantries = async (user: unknown) => {
+export const fetchPantries = async (userId: string) => {
   try {
-    const user = getAuth().currentUser;
-
-    if (!user) {
-      console.warn('User is not logged in, skipping fetchPantries.');
-      return []; // Return empty array instead of throwing an error
+    if (!userId) {
+      console.warn('User ID not provided, skipping fetchPantries.');
+      return [];
     }
 
-    // Query to fetch pantries for the current user
-    const pantriesQuery = query(
-      collection(db, 'pantry'),
-      where('user_id', '==', user.uid)
-    );
+    // Get account first
+    const account = await getAccountByOwnerID(userId);
+    if (!account?.id) {
+      throw new Error('Account not found');
+    }
 
-    const querySnapshot = await getDocs(pantriesQuery);
-    const pantries: any[] = [];
+    // Fetch pantries using GraphQL service
+    const pantriesData = await getAllPantriesforAccount(account.id);
 
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data?.name) {
-        const formatDate = (isoString: string) => {
-          const date = new Date(isoString);
-          return date.toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-          });
-        };
-
-        pantries.push({
-          id: doc.id,
-          name: String(data.name),
-          created: data.created ? formatDate(data.created) : 'Unknown Date',
-          description: data.description,
-          item_amount: data.item_amount || 0,
-          sections: data.sections || {
-            unordered: { name: 'Unordered', items: [] },
-          },
-        });
-      }
-    });
-
-    return pantries;
+    // Transform GraphQL response to match your UI expectations
+    return pantriesData.map((pantry: GraphQLPantry) => ({
+      id: pantry.id,
+      name: pantry.pantry_name,
+      description: pantry.description || '',
+      item_amount: pantry.food_concrete_items?.length || 0,
+      sections: {
+        unordered: { name: 'Unordered', items: [] },
+      },
+    }));
   } catch (error) {
     console.error('Error fetching pantries: ', error);
     throw error;
@@ -57,68 +42,81 @@ export const fetchPantries = async (user: unknown) => {
 };
 
 /**
- * Sorts lists based on the selected criteria.
- * @param lists - The list of Pantry lists to be sorted.
- * @param sortCriteria - The sorting criteria (e.g., 'alphabetical').
- * @returns The sorted list.
- */
-export const sortLists = (lists: any[], sortCriteria: string) => {
-  if (sortCriteria === 'alphabetical') {
-    return lists.sort((a, b) => a.name.localeCompare(b.name));
-  }
-  return lists; // Default no sort (add more sorting criteria if needed)
-};
-
-/**
- * Filters lists based on the user's search query.
- * @param lists - The list of pantry lists to filter.
- * @param searchQuery - The search query.
- * @returns The filtered list.
- */
-export const filterLists = (lists: any[], searchQuery: string) => {
-  return lists.filter((list) =>
-    list.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-};
-
-/**
- * Creates a new pantry in Firestore.
- * @param newPantryName - The name of the new pantry.
- * @param userId - The ID of the user creating the pantry (optional).
- * @returns The ID of the newly created pantry.
+ * Creates a new pantry using GraphQL
+ * @param newPantryName - The name of the new pantry
+ * @param userId - The ID of the user creating the pantry
+ * @returns The ID of the newly created pantry
  */
 export const createNewPantry = async (
   newPantryName: string,
-  userId?: string
+  userId: string
 ) => {
   if (!newPantryName.trim()) {
     throw new Error('Please enter a valid pantry name');
   }
 
-  const auth = getAuth();
-  const currentUser = auth.currentUser;
-
-  // Use the provided userId or fall back to the current user's UID
-  const resolvedUserId = userId || currentUser?.uid;
-
-  if (!resolvedUserId) {
+  if (!userId) {
     throw new Error('User ID is required to create a pantry');
   }
 
   try {
-    const newPantryRef = await addDoc(collection(db, 'pantry'), {
-      name: newPantryName,
-      user_id: resolvedUserId,
-      created: new Date().toISOString(),
-      description: 'A newly made pantry!',
-      item_amount: 0,
-      sections: { unordered: { name: 'Unordered', items: [] } },
-    });
+    // Get account first
+    const account = await getAccountByOwnerID(userId);
+    if (!account?.id) {
+      throw new Error('Account not found');
+    }
 
-    console.log('New pantry created with ID: ', newPantryRef.id);
-    return newPantryRef.id;
+    // Create pantry using GraphQL service
+    const newPantry = await createPantry(account.id, newPantryName);
+    return newPantry.id;
   } catch (error) {
     console.error('Error creating new pantry: ', error);
     throw error;
   }
+};
+
+/**
+ * Sorts lists based on the selected criteria
+ * @param lists - The list of Pantry lists to be sorted
+ * @param sortCriteria - The sorting criteria (e.g., 'alphabetical')
+ * @returns The sorted list
+ */
+export const sortLists = (lists: any[], sortCriteria: string) => {
+  if (!lists) return [];
+
+  const sorted = [...lists]; // Create a copy
+
+  if (sortCriteria === 'alphabetical') {
+    return sorted.sort((a, b) => {
+      const nameA = a?.pantry_name?.toLowerCase() || '';
+      const nameB = b?.pantry_name?.toLowerCase() || '';
+      return nameA.localeCompare(nameB);
+    });
+  }
+
+  return sorted;
+};
+
+/**
+ * Filters lists based on the user's search query
+ * @param lists - The list of pantry lists to filter
+ * @param searchQuery - The search query
+ * @returns The filtered list
+ */
+export function filterLists(lists: any, query: any) {
+  if (!query.trim()) return lists; // If query is empty, return all lists
+
+  return lists.filter((list: any) =>
+    list.pantry_name?.toLowerCase().includes(query.toLowerCase())
+  );
+}
+
+// Helper function to format dates
+const formatDate = (isoString: string) => {
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 };

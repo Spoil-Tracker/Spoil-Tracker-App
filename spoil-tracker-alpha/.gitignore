@@ -19,7 +19,6 @@ spoil-tracker-alpha/services/barcodeApiKey.ts
 spoil-tracker-alpha/services/edamamAPI.ts
 spoil-tracker-alpha/services/FDA-api-key.ts
 spoil-tracker-alpha/src/vars.ts
-
 # Native
 *.orig.*
 *.jks
