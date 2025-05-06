@@ -37,7 +37,7 @@ After creating a project in Firebase, [create a web Firebase app and take note o
 
 The **OpenAI API key** is used by the application to use GPT to help determine popular and seasonal foods over time, as well as tabulate price costs within grocery lists. 
 
-Not providing a key for either external API will still let you run the application, however the stated features may not work correctly. 
+Not providing a key for either OpenAI or FDA will still let you run the application, however the stated features may not work correctly. Any keys or credentials related with Firebase are required for proper setup.
 
 ## Application Setup
 Copy and paste the contents of your **Firebase service account key** in ```serviceAccountKey.json``` under the services folder in the app directory.
@@ -48,6 +48,7 @@ Most of the setup is handled through the ```setup.sh``` bash script. In Git Bash
 ```
 **NOTE: The script will refuse to run if NodeJS and NPM are not installed on your device.**
 
+**Note**: measurementID is optional
 
 It will ask for an FDA API key, an OpenAI API key, and valid firebase app credentials (that go along with your service account key). You may skip on providing the first two API keys, however a select few, small features will be unavailable within the application as a result.
 
