@@ -40,7 +40,7 @@ The **OpenAI API key** is used by the application to use GPT to help determine p
 Not providing a key for either OpenAI or FDA will still let you run the application, however the stated features may not work correctly. Any keys or credentials related with Firebase are required for proper setup.
 
 ## Application Setup
-Copy and paste the contents of your **Firebase service account key** in ```serviceAccountKey.json``` under the services folder in the app directory.
+Copy and paste the contents of your **Firebase service account key** in ```serviceAccountKey.json``` under the app directory.
 
 Most of the setup is handled through the ```setup.sh``` bash script. In Git Bash or any other equivalent terminal that can open and use a bash script, open it at the ```spoil-tracker-alpha``` directory and run the script:
 ```
