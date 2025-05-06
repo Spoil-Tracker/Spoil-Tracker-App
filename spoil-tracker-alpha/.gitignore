@@ -14,7 +14,7 @@ web-build/
 expo-env.d.ts
 
 # Environment and config files
-# services/firebaseConfig.ts
+services/firebaseConfig.ts
 spoil-tracker-alpha/services/barcodeApiKey.ts
 spoil-tracker-alpha/services/edamamAPI.ts
 spoil-tracker-alpha/services/FDA-api-key.ts
