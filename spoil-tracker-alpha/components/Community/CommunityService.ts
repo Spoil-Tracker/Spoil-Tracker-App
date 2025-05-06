@@ -232,14 +232,14 @@ const REMOVE_COPIED_GROCERY_LIST = gql`
 `;
 
 const GET_POPULAR_FOODS = gql`
-  query GetPopularFoods {
-    getPopularFoods
+  query GetPopularFoods($apiKey: String!) {
+    getPopularFoods(apiKey: $apiKey)
   }
 `;
 
 const GET_SEASONAL_FOODS = gql`
-  query GetSeasonalFoods {
-    getSeasonalFoods
+  query GetSeasonalFoods($apiKey: String!) {
+    getSeasonalFoods(apiKey: $apiKey)
   }
 `;
 
@@ -445,8 +445,10 @@ export async function removeCopiedGroceryList(grocery_list_id: string) {
  */
 export async function fetchPopularFoods() {
   try {
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_KEY!;
     const result = await client.query({
       query: GET_POPULAR_FOODS,
+      variables: { apiKey },
       fetchPolicy: 'no-cache',
     });
     return result.data.getPopularFoods;
@@ -463,8 +465,10 @@ export async function fetchPopularFoods() {
  */
 export async function fetchSeasonalFoods() {
   try {
+    const apiKey = process.env.EXPO_PUBLIC_OPENAI_KEY!;
     const result = await client.query({
       query: GET_SEASONAL_FOODS,
+      variables: { apiKey },
       fetchPolicy: 'no-cache',
     });
     return result.data.getSeasonalFoods;

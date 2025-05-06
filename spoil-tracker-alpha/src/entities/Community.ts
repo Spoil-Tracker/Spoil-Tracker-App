@@ -3,7 +3,6 @@ import { db } from "../firestore";
 import { COLLECTIONS } from "./CollectionNames";
 import { GroceryList } from "./GroceryList";
 import { GraphQLISODateTime } from "type-graphql";
-import { key } from "../vars";
 import { FoodGlobal } from "./FoodGlobal";
 
 // ---------------------------
@@ -432,7 +431,7 @@ export class CommunityResolver {
   /**
    * Helper to fetch popular food IDs using OpenAI's API logic.
    */
-  private async fetchPopularItemIds(): Promise<string[]> {
+  private async fetchPopularItemIds(apiKey: string): Promise<string[]> { 
     try {
       const foodSnapshot = await db.collection(COLLECTIONS.FOOD_GLOBAL).get();
       const items = foodSnapshot.docs.map(doc => doc.data() as FoodGlobal);
@@ -459,7 +458,7 @@ Please identify and return only the IDs of the items that are currently trending
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
       });
@@ -486,7 +485,7 @@ Please identify and return only the IDs of the items that are currently trending
   /**
    * Helper to fetch seasonal produce IDs using OpenAI's API logic.
    */
-  private async fetchSeasonalProduceIds(): Promise<string[]> {
+  private async fetchSeasonalProduceIds(apiKey: string): Promise<string[]> {
     try {
       const foodSnapshot = await db.collection(COLLECTIONS.FOOD_GLOBAL).get();
       const items = foodSnapshot.docs.map(doc => doc.data() as FoodGlobal);
@@ -514,7 +513,7 @@ Please identify and return only the IDs of the produce (fruits and vegetables) i
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
       });
@@ -541,13 +540,13 @@ Please identify and return only the IDs of the produce (fruits and vegetables) i
   /**
    * Refreshes the popular_foods and seasonal_foods if the last update was over a week ago.
    */
-  private async refreshFoodFieldsIfStale(communityData: Community): Promise<Community> {
+  private async refreshFoodFieldsIfStale(communityData: Community, apiKey: string): Promise<Community> {
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     const now = new Date();
     if (!communityData.updated || now.getTime() - communityData.updated.getTime() >= ONE_WEEK_MS) {
       const [newPopularFoods, newSeasonalFoods] = await Promise.all([
-        this.fetchPopularItemIds(),
-        this.fetchSeasonalProduceIds()
+        this.fetchPopularItemIds(apiKey),
+        this.fetchSeasonalProduceIds(apiKey)
       ]);
       communityData.popular_foods = newPopularFoods;
       communityData.seasonal_foods = newSeasonalFoods;
@@ -568,9 +567,11 @@ Please identify and return only the IDs of the produce (fruits and vegetables) i
    * If the "updated" timestamp is at least 1 week old, refreshes both popular_foods and seasonal_foods.
    */
   @Query(() => [String])
-  async getPopularFoods(): Promise<string[]> {
+  async getPopularFoods( 
+    @Arg("apiKey") apiKey: string
+  ): Promise<string[]> {
     let communityData = await this.getCommunityData();
-    communityData = await this.refreshFoodFieldsIfStale(communityData);
+    communityData = await this.refreshFoodFieldsIfStale(communityData, apiKey);
     return communityData.popular_foods;
   }
 
@@ -579,9 +580,11 @@ Please identify and return only the IDs of the produce (fruits and vegetables) i
    * If the "updated" timestamp is at least 1 week old, refreshes both popular_foods and seasonal_foods.
    */
   @Query(() => [String])
-  async getSeasonalFoods(): Promise<string[]> {
+  async getSeasonalFoods(
+    @Arg("apiKey") apiKey: string
+  ): Promise<string[]> {
     let communityData = await this.getCommunityData();
-    communityData = await this.refreshFoodFieldsIfStale(communityData);
+    communityData = await this.refreshFoodFieldsIfStale(communityData, apiKey);
     return communityData.seasonal_foods;
   }
 

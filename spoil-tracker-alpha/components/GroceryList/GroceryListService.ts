@@ -34,8 +34,8 @@ const GET_ALL_GROCERY_LISTS = gql`
 `;
 
 const PRICING_ANALYSIS = gql`
-  query PricingAnalysis($grocerylist_id: String!) {
-    pricingAnalysis(grocerylist_id: $grocerylist_id)
+  query PricingAnalysis($grocerylist_id: String!, $apiKey: String!) {
+    pricingAnalysis(grocerylist_id: $grocerylist_id, apiKey: $apiKey)
   }
 `;
 
@@ -740,7 +740,10 @@ try {
     pricingAnalysis: string;
     }>({
     query: PRICING_ANALYSIS,
-    variables: { grocerylist_id },
+    variables: {    
+        grocerylist_id,
+        apiKey: process.env.EXPO_PUBLIC_OPENAI_KEY!
+     },
     fetchPolicy: 'network-only',
     });
     return result.data.pricingAnalysis;

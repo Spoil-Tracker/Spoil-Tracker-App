@@ -1,7 +1,6 @@
 import fetch from 'node-fetch';
-import { FDA_API_KEY } from './FDA-api-key';
 
-const API_KEY = FDA_API_KEY;
+const API_KEY = process.env.EXPO_PUBLIC_FDA_API_KEY;
 
 async function getNutrition(query: string) {
   const searchUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=1&api_key=${API_KEY}`;
