@@ -1,6 +1,7 @@
 import {Resolver, Query, Mutation, Arg, Field, ObjectType, ID, InputType, Int } from "type-graphql"
 import { COLLECTIONS } from "./CollectionNames"
 import { db } from "../firestore"
+import { Account } from "./Account";
 
 
 /**
@@ -137,68 +138,70 @@ export class FoodLeaderboardResolver {
         @Arg("eaten_change") eaten_change: number,
         @Arg("tossed_change") tossed_change: number
     ): Promise<FoodLeaderboard> {
+        // Validate account exists
+        const accSnap = await db.collection(COLLECTIONS.ACCOUNT)
+        .where("id", "==", account_id)
+        .limit(1)
+        .get();
+        if (accSnap.empty) {
+        throw new Error(`Account with id ${account_id} does not exist.`);
+        }
+        const accountData = accSnap.docs[0].data() as Account;
 
-        //Throw an error if the Account corresponding to account_id does not exist
-        const accountSnapshot = await db.collection(COLLECTIONS.ACCOUNT)
-            .where("id", "==", account_id)
-            .limit(1)
-            .get();
-        if (accountSnapshot.empty) {
-            throw new Error(`Account with id ${account_id} does not exist.`);
+        // Validate food exists globally or as a custom item
+        const fgSnap = await db.collection(COLLECTIONS.FOOD_GLOBAL)
+        .where("id", "==", food_global_id)
+        .limit(1)
+        .get();
+        if (fgSnap.empty) {
+        const customExists = accountData.custom_items?.some(
+            item => item.id === food_global_id
+        );
+        if (!customExists) {
+            throw new Error(
+            `Food item with id ${food_global_id} not found in global or custom items.`
+            );
+        }
         }
 
-        //Throw an error if the FoodGlobal corresponding to food_global_id does not exist
-        const foodGlobalSnapshot = await db.collection(COLLECTIONS.FOOD_GLOBAL)
-            .where("id", "==", food_global_id)
-            .limit(1)
-            .get();
-        if (foodGlobalSnapshot.empty) {
-            throw new Error(`FoodGlobal with id ${food_global_id} does not exist`);
+        // Get or create leaderboard entry
+        let lbId: string;
+        const lbSnap = await db.collection(COLLECTIONS.FOOD_LEADERBOARD)
+        .where("food_global_id", "==", food_global_id)
+        .limit(1)
+        .get();
+        if (lbSnap.empty) {
+        lbId = await this.createFoodLeaderboard(food_global_id);
+        } else {
+        lbId = lbSnap.docs[0].data().id;
+        }
+        const lbRef = db.collection(COLLECTIONS.FOOD_LEADERBOARD).doc(lbId);
+        const lbDoc = (await lbRef.get()).data() as FoodLeaderboard;
+
+        // Update totals
+        lbDoc.total_times_bought += bought_change;
+        lbDoc.total_times_eaten += eaten_change;
+        lbDoc.total_times_tossed += tossed_change;
+
+        // Update per-account records
+        const idx = lbDoc.account_record_items.findIndex(
+        rec => rec.account_id === account_id
+        );
+        if (idx === -1) {
+        lbDoc.account_record_items.push({
+            account_id,
+            times_bought: bought_change,
+            times_eaten: eaten_change,
+            times_tossed: tossed_change
+        });
+        } else {
+        lbDoc.account_record_items[idx].times_bought += bought_change;
+        lbDoc.account_record_items[idx].times_eaten += eaten_change;
+        lbDoc.account_record_items[idx].times_tossed += tossed_change;
         }
 
-        //Create a new FoodLeaderboard if one does not exist
-        var docID = "";
-        const FoodLeaderboardSnapshot = await db.collection(COLLECTIONS.FOOD_LEADERBOARD)
-            .where("food_global_id", "==", food_global_id)
-            .limit(1)
-            .get();
-        if(FoodLeaderboardSnapshot.empty) {
-            docID = await this.createFoodLeaderboard(food_global_id);
-        }
-        else {
-            docID = FoodLeaderboardSnapshot.docs[0].data().id;
-        }
-
-        const FoodLeaderboardDocRef = db.collection(COLLECTIONS.FOOD_LEADERBOARD).doc(docID);
-        const FoodLeaderboardDoc = (await FoodLeaderboardDocRef.get()).data() as FoodLeaderboard;
-
-        //Update all "total_x" values
-        FoodLeaderboardDoc.total_times_bought += bought_change;
-        FoodLeaderboardDoc.total_times_eaten += eaten_change;
-        FoodLeaderboardDoc.total_times_tossed += tossed_change;
-
-        //Update AccountRecords
-        //If an AccountRecord does not exist, create one
-        const indexOfAccount = FoodLeaderboardDoc.account_record_items.findIndex(x => x.account_id === account_id);
-        if(indexOfAccount == -1) {
-            var blankAccountRecord: AccountRecords = {
-                account_id,
-                times_bought: bought_change,
-                times_eaten: eaten_change,
-                times_tossed: tossed_change
-            };
-            FoodLeaderboardDoc.account_record_items.push(blankAccountRecord);
-        }
-        else{
-            FoodLeaderboardDoc.account_record_items[indexOfAccount].times_bought += bought_change;
-            FoodLeaderboardDoc.account_record_items[indexOfAccount].times_eaten += eaten_change;
-            FoodLeaderboardDoc.account_record_items[indexOfAccount].times_tossed += tossed_change;
-        }
-
-        //All edits complete
-        //Update with changes
-        await FoodLeaderboardDocRef.set(FoodLeaderboardDoc);
-        return FoodLeaderboardDoc;
+        await lbRef.set(lbDoc);
+        return lbDoc;
     }
 
     /**

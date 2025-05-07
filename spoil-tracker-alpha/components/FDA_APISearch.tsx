@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
-import { FDA_API_KEY } from '@/services/FDA-api-key';
 
 type Nutrient = {
   nutrientName: string;
@@ -20,7 +19,7 @@ const FdcSearch = () => {
     setError('');
 
     try {
-      const apiKey = FDA_API_KEY;
+      const apiKey = process.env.EXPO_PUBLIC_FDA_API_KEY;
       const response = await fetch(
         `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&pageSize=5&api_key=${apiKey}`
       );
