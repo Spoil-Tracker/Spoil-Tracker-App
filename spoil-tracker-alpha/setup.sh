@@ -69,8 +69,8 @@ prompt_optional() {
 }
 
 # 7) ALWAYS ASK FOR FDA & OPENAI KEYS
-prompt_optional EXPO_PUBLIC_FDA_API_KEY "Enter your FDA API key"
-prompt_optional EXPO_PUBLIC_OPENAI_KEY "Enter your OpenAI API key"
+prompt_optional EXPO_PUBLIC_FDA_API_KEY "Enter your FDA API key (Optional)"
+prompt_optional EXPO_PUBLIC_OPENAI_KEY "Enter your OpenAI API key (Optional)"
 
 # 8) ASK IF THEY WANT THEIR OWN FIREBASE CONFIG
 read -p "Do you want to configure your own Firebase project? [y/N]: " configure_fb
@@ -82,7 +82,7 @@ if [[ "$configure_fb" =~ ^[Yy] ]]; then
     prompt_optional EXPO_PUBLIC_FB_STORAGE_BUCKET   "Firebase Storage Bucket"
     prompt_optional EXPO_PUBLIC_FB_MESSAGING_SENDER "Firebase Messaging Sender ID"
     prompt_optional EXPO_PUBLIC_FB_APP_ID           "Firebase App ID"
-    prompt_optional EXPO_PUBLIC_MEASUREMENT_ID      "Firebase Measurement ID"
+    prompt_optional EXPO_PUBLIC_MEASUREMENT_ID      "Firebase Measurement ID (Optional)"
 
     # Prompt for local IP override
     read -p "Detected local IP is $DETECTED_IP. Press ENTER to use it or type a different one: " LOCAL_IP_INPUT

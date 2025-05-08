@@ -6,6 +6,7 @@ Spoil Tracker is a web and mobile application that helps users keep track of gro
   * [REQUIREMENTS](#requirements)
   * [KEYS](#keys)
   * [APPLICATION SETUP](#application-setup)
+  * [NO FIREBASE?](#no-firebase)
 * [OVERVIEW](#installation)
   * [USAGE](#usage)
   * [MEDIA](#media)
@@ -21,7 +22,7 @@ Most of the installation and setup process is streamlined with Expo. There are a
 
 The repository is set up so that you host your own server for your own application and client. With that said, the following is required in order to successfully compile and run the app:
 1. Verify that you have [NodeJS and NPM installed on your desktop](https://nodejs.org/en/download)
-2. A valid [Firebase project with Firestore Database setup + Service Account Keys.](https://firebase.google.com/)
+2. A valid [Firebase project with Firestore Database setup + Service Account Keys.](https://firebase.google.com/) (OPTIONAL, SEE BELOW IF YOU DO NOT HAVE A FIREBASE PROJECT)
 3. [Food & Drug Administration API Key](https://open.fda.gov/apis/authentication/) (Optional)
 4. [OpenAI API Key](https://platform.openai.com/playground) (Optional)
 
@@ -56,11 +57,16 @@ An .env file will generate with the credentials provide. It will also install th
 
 **Important:** Be wary that in some cases the application and server will still run in the background if the terminal has not been properly suspended.
 
+## No Firebase
+In the setup.sh script, there is an option to not opt to use your own Firebase server to host the backend. If you choose to not use your own server, you will then be connected to a public server to try out the application. If you decide to do this, you do not need to provide credentials for the ```serviceAccountKey.json``` file.
+
+Please note that this is purely for demo purposes and we cannot guarantee the integrity or availability of this demo server.
+
 ***
 
 # Overview
 
-Spoil Tracker is a web application that aims to keep track of how long the user’s groceries in their fridge and pantry will last before expiring. Spoil Tracker aims to answer the curious questions and solve common inconveniences. By being adaptable to the user’s situation and updates on their fridge or pantry, one will never have to fear having to throw away now-spoiled food that could’ve been avoidable.
+Spoil Tracker is a mobile and web application that aims to keep track of how long the user’s groceries in their fridge and pantry will last before expiring. Spoil Tracker aims to answer the curious questions and solve common inconveniences. By being adaptable to the user’s situation and updates on their fridge or pantry, one will never have to fear having to throw away now-spoiled food that could’ve been avoidable.
 
 The project is under alpha testing and is consequently rough around the edges. The application has been tested through MacOS, Windows, and iOS, but we cannot guarantee full compatibility with other operating systems.
 
@@ -77,7 +83,7 @@ The application currently supports the following majors features:
   - Item barcode scanning and uploading
   - Other small misc. features 
 
-While the application can run on mobile, some areas of the applications have not yet been optimized for mobile use. For now, we recommend using the application with a desktop device.
+While the application can run on mobile, **some areas of the applications have not yet been optimized for mobile use.** For now, we recommend using the application with a desktop device.
 
 ## Media
 ![](media/image-1.png)
