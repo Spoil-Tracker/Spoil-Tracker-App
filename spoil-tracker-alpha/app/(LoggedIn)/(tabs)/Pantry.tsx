@@ -203,18 +203,6 @@ const ButtonListScreen = () => {
               }))}
               fetchLists={fetchPantryList}
             />
-            {/* New Section for Shared Pantries */}
-            <ListSection
-              title="Shared Pantries"
-              lists={sortedPantry.map((pantry) => ({
-                id: pantry.id,
-                name: pantry.pantry_name, // Changed from 'title' to 'name'
-                description: pantry.description,
-                completed: false, // Add default value
-                created: new Date().toISOString(), // Add default value
-              }))}
-              fetchLists={fetchPantryList}
-            />
           </View>
         )}
       </ScrollView>

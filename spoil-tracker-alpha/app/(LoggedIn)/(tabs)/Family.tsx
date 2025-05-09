@@ -1,172 +1,239 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import { MaterialIcons, AntDesign, Feather } from '@expo/vector-icons';
-import { doc, getDoc, getDocs, collection, arrayRemove, updateDoc, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  arrayRemove,
+  updateDoc,
+  QueryDocumentSnapshot,
+  DocumentData,
+} from 'firebase/firestore';
+import { onAuthStateChanged, getAuth } from 'firebase/auth'; // gets authentication from firebase
 import { auth, db } from '../../../services/firebaseConfig';
 import { useFocusEffect } from 'expo-router';
+import { useTheme } from 'react-native-paper';
 
 export default function FamilyManagementScreen() {
-    const [kitchenItems, setKitchenItems] = useState([
-        { name: 'Fridge', count: 35 },
-        { name: 'Pantry', count: 15 },
-        { name: 'Freezer', count: 20 },
-        { name: 'Beverage', count: 26 },
+  const [kitchenItems, setKitchenItems] = useState([
+    { name: 'Fridge', count: 35 },
+    { name: 'Pantry', count: 15 },
+    { name: 'Freezer', count: 20 },
+    { name: 'Beverage', count: 26 },
+  ]);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemCount, setNewItemCount] = useState('');
+  const { colors } = useTheme(); // Adds dark mode
+  const [username, setUsername] = useState('');
+
+  const addKitchenItem = () => {
+    if (newItemName.trim() && !isNaN(parseInt(newItemCount, 10))) {
+      setKitchenItems([
+        ...kitchenItems,
+        { name: newItemName, count: parseInt(newItemCount, 10) },
       ]);
-    const [isModalVisible, setModalVisible] = useState(false);
-    const [newItemName, setNewItemName] = useState('');
-    const [newItemCount, setNewItemCount] = useState('');
-    
-    const addKitchenItem = () => {
-        if (newItemName.trim() && !isNaN(parseInt(newItemCount, 10))) {
-          setKitchenItems([...kitchenItems, { name: newItemName, count: parseInt(newItemCount, 10) }]);
-          setNewItemName('');
-          setNewItemCount('');
-          setModalVisible(false);
-        }
-    };
-      
-    const [groceryLists, setGroceryLists] = useState(['Grocery List 1', 'Grocery List 2']);
+      setNewItemName('');
+      setNewItemCount('');
+      setModalVisible(false);
+    }
+  };
 
-    const [familyMembers, setFamilyMembers] = useState<string[]>([]);
-    const [ownerID, setOwnerID] = useState('');
-    const [usernamesMap, setUsernamesMap] = useState<{ [key: string]: string }>({});
+  const [groceryLists, setGroceryLists] = useState([
+    'Grocery List 1',
+    'Grocery List 2',
+  ]);
 
-    const [isGroceryModalVisible, setGroceryModalVisible] = useState(false);
-    const [newGroceryName, setNewGroceryName] = useState('');
+  const [familyMembers, setFamilyMembers] = useState<string[]>([]);
+  const [ownerID, setOwnerID] = useState('');
+  const [usernamesMap, setUsernamesMap] = useState<{ [key: string]: string }>(
+    {}
+  );
 
-    const addGroceryList = () => {
-        if (newGroceryName.trim()) {
-            setGroceryLists([...groceryLists, newGroceryName]);
-            setNewGroceryName('');
-            setGroceryModalVisible(false);
-        }
-    };
+  const [isGroceryModalVisible, setGroceryModalVisible] = useState(false);
+  const [newGroceryName, setNewGroceryName] = useState('');
 
-    const currentUser = auth.currentUser;
-    const [selectedNewOwner, setSelectedNewOwner] = useState('');
-    const [showTransferOptions, setShowTransferOptions] = useState(false); 
-  
-    // **Fetch Family Data */
-    useFocusEffect(
-      useCallback(() => {
-        const fetchFamilyData = async () => {
-          const currentUser = auth.currentUser;
-          if (!currentUser) return;
-      
-          try {
-            // Search for a family doc where this user is a member
-            const familyQuerySnapshot = await getDocs(collection(db, 'family'));
-            let foundFamily: QueryDocumentSnapshot<DocumentData> | undefined = familyQuerySnapshot.docs.find(docSnap => {
-              const data = docSnap.data() as { members: string[]; owner_id: string };
+  const addGroceryList = () => {
+    if (newGroceryName.trim()) {
+      setGroceryLists([...groceryLists, newGroceryName]);
+      setNewGroceryName('');
+      setGroceryModalVisible(false);
+    }
+  };
+
+  const currentUser = auth.currentUser;
+  const [selectedNewOwner, setSelectedNewOwner] = useState('');
+  const [showTransferOptions, setShowTransferOptions] = useState(false);
+
+  // **Fetch Family Data */
+  useFocusEffect(
+    useCallback(() => {
+      const fetchFamilyData = async () => {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        try {
+          // Search for a family doc where this user is a member
+          const familyQuerySnapshot = await getDocs(collection(db, 'family'));
+          let foundFamily: QueryDocumentSnapshot<DocumentData> | undefined =
+            familyQuerySnapshot.docs.find((docSnap) => {
+              const data = docSnap.data() as {
+                members: string[];
+                owner_id: string;
+              };
               return data.members?.includes(currentUser.uid);
             });
-      
-            if (!foundFamily) {
-              console.log('No family document found for current user');
-              return;
-            }
-      
-            const data = foundFamily.data() as { members: string[]; owner_id: string };
-            const members: string[] = data.members;
-            const owner: string = data.owner_id;
-      
-            setFamilyMembers(members);
-            setOwnerID(owner);
-      
-            // Fetch usernames from Firestore
-            const usernames: { [key: string]: string } = {};
-            await Promise.all(
-              members.map(async (uid) => {
-                const userSnap = await getDoc(doc(db, 'users', uid));
-                usernames[uid] = userSnap.exists() ? userSnap.data().username : 'Unknown';
-              })
-            );
-      
-            setUsernamesMap(usernames);
-          } catch (error) {
-            console.error('Error fetching family data:', error);
-          }
-        };
-    
-        fetchFamilyData();
-      }, [])
-    );
 
-    // **Disconnect from family */
-    const handleDisconnect = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
-    
-      try {
-        const familySnapshot = await getDocs(collection(db, 'family'));
-        let targetDoc = null;
-    
-        familySnapshot.forEach(docSnap => {
-          const data = docSnap.data();
-          if (data.members?.includes(currentUser.uid)) {
-            targetDoc = docSnap.ref;
+          if (!foundFamily) {
+            console.log('No family document found for current user');
+            return;
           }
-        });
-    
-        if (!targetDoc) {
-          alert('No family document found.');
-          return;
+
+          const data = foundFamily.data() as {
+            members: string[];
+            owner_id: string;
+          };
+          const members: string[] = data.members;
+          const owner: string = data.owner_id;
+
+          setFamilyMembers(members);
+          setOwnerID(owner);
+
+          // Fetch usernames from Firestore
+          const usernames: { [key: string]: string } = {};
+          await Promise.all(
+            members.map(async (uid) => {
+              const userSnap = await getDoc(doc(db, 'users', uid));
+              usernames[uid] = userSnap.exists()
+                ? userSnap.data().username
+                : 'Unknown';
+            })
+          );
+
+          setUsernamesMap(usernames);
+        } catch (error) {
+          console.error('Error fetching family data:', error);
         }
-    
-        // Remove user from members array
-        await updateDoc(targetDoc, {
-          members: arrayRemove(currentUser.uid),
-        });
-    
-        // Clear state after removal
-        setFamilyMembers([]);
-        setOwnerID('');
-        setUsernamesMap({});
-        
-    
-        alert('You have disconnected from the family.');
-      } catch (error) {
-        console.error('Error disconnecting from family:', error);
-        alert('Failed to disconnect.');
+      };
+
+      fetchFamilyData();
+    }, [])
+  );
+
+  // fetches user's username to display on home
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userDocRef);
+
+          if (userSnap.exists()) {
+            setUsername(userSnap.data().username);
+          } else {
+            console.warn('User document does not exist.');
+          }
+        } catch (error) {
+          console.error('Error fetching username:', error);
+        }
+      } else {
+        setUsername('');
       }
-    };
-    
-    //** Transfer Ownership */
-    const handleTransferOwnership = async () => {
-      if (!selectedNewOwner || selectedNewOwner === ownerID) {
-        alert("Please select a valid member to transfer ownership.");
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, []);
+
+  // **Disconnect from family */
+  const handleDisconnect = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
+    try {
+      const familySnapshot = await getDocs(collection(db, 'family'));
+      let targetDoc = null;
+
+      familySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.members?.includes(currentUser.uid)) {
+          targetDoc = docSnap.ref;
+        }
+      });
+
+      if (!targetDoc) {
+        alert('No family document found.');
         return;
       }
-    
-      try {
-        const familySnapshot = await getDocs(collection(db, 'family'));
-        const foundFamily = familySnapshot.docs.find(docSnap => {
-          const data = docSnap.data() as { members: string[]; owner_id: string };
-          return data.members?.includes(currentUser?.uid || '');
-        });
-    
-        if (!foundFamily) {
-          alert("No family found.");
-          return;
-        }
-    
-        const familyRef = doc(db, 'family', foundFamily.id);
-        await updateDoc(familyRef, { owner_id: selectedNewOwner });
-        setOwnerID(selectedNewOwner);
-        setSelectedNewOwner('');
-        alert("Ownership transferred!");
-      } catch (error) {
-        console.error("Error transferring ownership:", error);
-        alert("Failed to transfer ownership.");
-      }
-    };
 
+      // Remove user from members array
+      await updateDoc(targetDoc, {
+        members: arrayRemove(currentUser.uid),
+      });
+
+      // Clear state after removal
+      setFamilyMembers([]);
+      setOwnerID('');
+      setUsernamesMap({});
+
+      alert('You have disconnected from the family.');
+    } catch (error) {
+      console.error('Error disconnecting from family:', error);
+      alert('Failed to disconnect.');
+    }
+  };
+
+  //** Transfer Ownership */
+  const handleTransferOwnership = async () => {
+    if (!selectedNewOwner || selectedNewOwner === ownerID) {
+      alert('Please select a valid member to transfer ownership.');
+      return;
+    }
+
+    try {
+      const familySnapshot = await getDocs(collection(db, 'family'));
+      const foundFamily = familySnapshot.docs.find((docSnap) => {
+        const data = docSnap.data() as { members: string[]; owner_id: string };
+        return data.members?.includes(currentUser?.uid || '');
+      });
+
+      if (!foundFamily) {
+        alert('No family found.');
+        return;
+      }
+
+      const familyRef = doc(db, 'family', foundFamily.id);
+      await updateDoc(familyRef, { owner_id: selectedNewOwner });
+      setOwnerID(selectedNewOwner);
+      setSelectedNewOwner('');
+      alert('Ownership transferred!');
+    } catch (error) {
+      console.error('Error transferring ownership:', error);
+      alert('Failed to transfer ownership.');
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        { backgroundColor: colors.background },
+      ]}
+    >
       {/* Header Section */}
       <Text style={styles.header}>Family Management</Text>
-      <Text style={styles.greeting}>Hello, {usernamesMap[currentUser?.uid || ''] || 'User'}!</Text>
+      <Text style={[styles.greeting, { color: colors.onSurface }]}>
+        Hello, {username || 'Loading...'}!
+      </Text>
 
       <View style={styles.mainContent}>
         {/* Family Section */}
@@ -180,7 +247,10 @@ export default function FamilyManagementScreen() {
             <Text style={styles.label}>Shared Lists:</Text>
             <Text style={styles.detail}>{groceryLists.length}</Text>
           </View>
-          <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
+          <TouchableOpacity
+            style={styles.disconnectButton}
+            onPress={handleDisconnect}
+          >
             <Text style={styles.buttonText}>DISCONNECT</Text>
           </TouchableOpacity>
           {currentUser?.uid === ownerID && (
@@ -189,19 +259,22 @@ export default function FamilyManagementScreen() {
                 style={styles.transferButton}
                 onPress={() => setShowTransferOptions(!showTransferOptions)}
               >
-                <Text style={styles.transferButtonText}>TRANSFER OWNERSHIP</Text>
+                <Text style={styles.transferButtonText}>
+                  TRANSFER OWNERSHIP
+                </Text>
               </TouchableOpacity>
 
               {showTransferOptions && (
                 <View style={styles.transferList}>
                   {familyMembers
-                    .filter(uid => uid !== ownerID)
-                    .map(uid => (
+                    .filter((uid) => uid !== ownerID)
+                    .map((uid) => (
                       <TouchableOpacity
                         key={uid}
                         style={[
                           styles.transferOption,
-                          selectedNewOwner === uid && styles.selectedTransferOption
+                          selectedNewOwner === uid &&
+                            styles.selectedTransferOption,
                         ]}
                         onPress={() => setSelectedNewOwner(uid)}
                       >
@@ -231,10 +304,11 @@ export default function FamilyManagementScreen() {
                   key={index}
                   style={[
                     styles.memberBox,
-                    uid === ownerID ? styles.headMember : null
+                    uid === ownerID ? styles.headMember : null,
                   ]}
                 >
-                  {usernamesMap[uid] || 'Unknown'} {uid === ownerID ? '[HEAD]' : ''}
+                  {usernamesMap[uid] || 'Unknown'}{' '}
+                  {uid === ownerID ? '[HEAD]' : ''}
                 </Text>
               ))}
             </View>
@@ -243,7 +317,6 @@ export default function FamilyManagementScreen() {
               You are not part of any family yet.
             </Text>
           )}
-
         </View>
 
         {/* Kitchen Section */}
@@ -253,44 +326,55 @@ export default function FamilyManagementScreen() {
             {kitchenItems.map((item, index) => (
               <View key={index} style={styles.kitchenItem}>
                 <MaterialIcons name="kitchen" size={30} />
-                <Text>{item.name} ({item.count})</Text>
+                <Text>
+                  {item.name} ({item.count})
+                </Text>
               </View>
             ))}
           </View>
-          <TouchableOpacity style={styles.addButtonIcon} onPress={() => setModalVisible(true)}>
+          <TouchableOpacity
+            style={styles.addButtonIcon}
+            onPress={() => setModalVisible(true)}
+          >
             <AntDesign name="pluscircleo" size={24} color="black" />
           </TouchableOpacity>
         </View>
 
         {/* Modal for Adding Item */}
-      <Modal visible={isModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Add New Kitchen Item</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter item name"
-              value={newItemName}
-              onChangeText={setNewItemName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter item count"
-              keyboardType="numeric"
-              value={newItemCount}
-              onChangeText={setNewItemCount}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.addButton} onPress={addKitchenItem}>
-                <Text style={styles.buttonText}>Add</Text>
-              </TouchableOpacity>
+        <Modal visible={isModalVisible} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Add New Kitchen Item</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter item name"
+                value={newItemName}
+                onChangeText={setNewItemName}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter item count"
+                keyboardType="numeric"
+                value={newItemCount}
+                onChangeText={setNewItemCount}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={addKitchenItem}
+                >
+                  <Text style={styles.buttonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
         {/* Grocery List Section */}
         <View style={styles.section}>
@@ -305,26 +389,44 @@ export default function FamilyManagementScreen() {
               </View>
             ))}
           </View>
-          <TouchableOpacity style={styles.addButtonIcon} onPress={() => setGroceryModalVisible(true)}>
+          <TouchableOpacity
+            style={styles.addButtonIcon}
+            onPress={() => setGroceryModalVisible(true)}
+          >
             <AntDesign name="pluscircleo" size={24} color="black" />
           </TouchableOpacity>
         </View>
 
-        <Modal visible={isGroceryModalVisible} transparent animationType="slide">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <Text style={styles.modalTitle}>Add New Grocery List</Text>
-                        <TextInput style={styles.input} placeholder="Enter list name" value={newGroceryName} onChangeText={setNewGroceryName} />
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity style={styles.cancelButton} onPress={() => setGroceryModalVisible(false)}>
-                                <Text style={styles.buttonText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.addButton} onPress={addGroceryList}>
-                                <Text style={styles.buttonText}>Add</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
+        <Modal
+          visible={isGroceryModalVisible}
+          transparent
+          animationType="slide"
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Add New Grocery List</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter list name"
+                value={newGroceryName}
+                onChangeText={setNewGroceryName}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setGroceryModalVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={addGroceryList}
+                >
+                  <Text style={styles.buttonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
       </View>
     </ScrollView>
@@ -335,7 +437,6 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     alignItems: 'center',
-    backgroundColor: '#FEF9F2',
     padding: 20,
   },
   header: {
@@ -539,4 +640,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-
