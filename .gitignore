@@ -5,3 +5,4 @@ spoil-tracker-alpha/services/barcodeApiKey.ts
 spoil-tracker-alpha/.env
 spoil-tracker-alpha/src/vars.ts
 spoil-tracker-alpha/services/FDA-api-key.ts
+spoil-tracker-alpha/services/serviceAccountKey.json

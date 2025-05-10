@@ -1,7 +1,7 @@
 // src/services/FoodLeaderboardService.ts
 
 import { gql } from '@apollo/client';
-import client from '@/src/ApolloClient';
+import client from '@/ApolloClient';
 
 /**
  * --- GraphQL Queries & Mutations ---

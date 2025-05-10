@@ -620,10 +620,74 @@ export class GroceryListResolver {
             );
         }
         
-        // Remove the completed items from the grocery list after conversion
-        const remainingItems = groceryList.grocery_list_items.filter(item => !item.isBought);
-        await listRef.update({ grocery_list_items: remainingItems });
-        
         return true;
+    }
+
+    /**
+     * pricingAnalysis
+     *
+     * Uses the OpenAI API to generate a cost summary for the specified grocery list.
+     * The response will include a rough total for each store: Walmart, Target, Albertsons, and Vons.
+     *
+     * @param grocerylist_id - The ID of the grocery list to analyze.
+     * @returns A promise resolving to the pricing summary as a string.
+     */
+    @Query(() => String, { description: "Get estimated grocery costs per store via OpenAI" })
+    async pricingAnalysis(
+        @Arg("grocerylist_id") grocerylist_id: string,
+        @Arg("apiKey") apiKey: string           // ← now passed in
+    ): Promise<string> {
+        if (!apiKey) {
+            throw new Error("API key must be provided");
+        }
+
+        // 1. Load the grocery list
+        const listDoc = await db.collection(COLLECTIONS.GROCERYLIST)
+            .doc(grocerylist_id)
+            .get();
+        if (!listDoc.exists) {
+            throw new Error(`Grocery list with id ${grocerylist_id} not found.`);
+        }
+        const list = listDoc.data() as GroceryList;
+
+        // 2. Build a simple prompt from its items
+        const itemLines = list.grocery_list_items
+            .map(item => `${item.quantity} ${item.measurement} ${item.food_name}`)
+            .join("\n");
+        const userPrompt = `
+Provide a cost summary for the following grocery list. For each of these stores—Walmart, Target, Albertsons, and Vons—give ONLY the total list price in the format:
+Walmart: $XX.XX
+Target: $YY.YY
+Albertsons: $ZZ.ZZ
+Vons: $WW.WW
+
+Grocery List:
+${itemLines}
+`.trim();
+
+        // 3. Call OpenAI’s chat completions endpoint
+        const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    { role: "system", content: "You are a pricing assistant. Respond in the exact format requested." },
+                    { role: "user",   content: userPrompt }
+                ],
+                temperature: 0,
+            }),
+        });
+
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(`OpenAI API error ${resp.status}: ${errText}`);
+        }
+
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.content ?? "No response received.";
     }
 }
