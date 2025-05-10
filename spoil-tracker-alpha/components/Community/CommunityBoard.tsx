@@ -563,21 +563,36 @@ const CommunityBoard: React.FC = () => {
    */
   const handleToggleGroceryLike = useCallback(async (groceryListId: string) => {
     if (!account) return;
+    const hasLiked = account.likedCommunityGroceryLists.includes(groceryListId);
     try {
-      if (account.likedCommunityGroceryLists.includes(groceryListId)) {
+      // 1) Call the API
+      if (hasLiked) {
         await removeLikedCommunityGroceryList(account.id, groceryListId);
         await decrementCopiedGroceryListLikes(groceryListId);
       } else {
         await addLikedCommunityGroceryList(account.id, groceryListId);
         await incrementCopiedGroceryListLikes(groceryListId);
       }
-      // refetch account & data
-      const acc = await getAccountByOwnerID(account.id);
-      setAccount(acc);
-      const data = await getCommunity();
-      setCommunityData(data);
+
+      // 2) Optimistically update local account state
+      setAccount(acc => ({
+        ...acc!,
+        likedCommunityGroceryLists: hasLiked
+          ? acc!.likedCommunityGroceryLists.filter(id => id !== groceryListId)
+          : [...acc!.likedCommunityGroceryLists, groceryListId],
+      }));
+
+      // 3) Optimistically update the grocery list's like count in our feed
+      setCommunityData(cd => ({
+        ...cd!,
+        copiedGroceryLists: cd!.copiedGroceryLists.map(gl =>
+          gl.id === groceryListId
+            ? { ...gl, likes: (gl as any).likes + (hasLiked ? -1 : 1) }
+            : gl
+        ),
+      }));
     } catch (err) {
-      console.error(err);
+      console.error('Error toggling grocery like:', err);
     }
   }, [account]);
 
