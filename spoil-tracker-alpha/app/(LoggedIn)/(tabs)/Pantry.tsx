@@ -197,6 +197,7 @@ const ButtonListScreen = () => {
               lists={sortedPantry.map((pantry) => ({
                 id: pantry.id,
                 name: pantry.pantry_name, // Changed from 'title' to 'name'
+                pantry_name: pantry.pantry_name,
                 description: pantry.description,
                 completed: false, // Add default value
                 created: new Date().toISOString(), // Add default value
@@ -209,6 +210,7 @@ const ButtonListScreen = () => {
               lists={sortedPantry.map((pantry) => ({
                 id: pantry.id,
                 name: pantry.pantry_name, // Changed from 'title' to 'name'
+                pantry_name: pantry.pantry_name,
                 description: pantry.description,
                 completed: false, // Add default value
                 created: new Date().toISOString(), // Add default value

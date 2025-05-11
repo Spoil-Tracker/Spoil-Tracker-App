@@ -1,7 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView, Image } from 'react-native';
-import { MaterialIcons, AntDesign } from '@expo/vector-icons';
-import { doc, getDoc, getDocs, collection, arrayRemove, updateDoc, arrayUnion } from 'firebase/firestore';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { MaterialIcons, AntDesign, Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
+import { doc, addDoc, getDoc, getDocs, deleteDoc, collection, arrayRemove, updateDoc, arrayUnion} from 'firebase/firestore';
 import { auth, db } from '../../../services/firebaseConfig';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
@@ -11,44 +13,152 @@ import {
   fetchGroceryListByID,
   updateGroceryListName,
 } from '@/components/GroceryList/GroceryListService';
-import { getAccountByOwnerID } from '@/components/Account/AccountService'
-import type { GroceryList } from '@/components/GroceryList/GroceryListService';
+import { getAccountByOwnerID, createAccount } from '@/components/Account/AccountService'
+import { GroceryList, deleteGroceryList } from '@/components/GroceryList/GroceryListService';
+import { createKitchenInvite } from '../../../services/inviteService';
 
 export default function FamilyManagementScreen() {
 
+  const { colors, dark } = useTheme(); // allows for dark mode, contributed by Kevin
+
+  // ── Navigation & Auth ───────────────────────────────────────────────────────
   const router = useRouter();
   const currentUser = auth.currentUser;
+  // ── Kitchen Items State & Handlers ─────────────────────────────────────────
   const [kitchenItems, setKitchenItems] = useState([
     { name: 'Fridge', count: 35 },
     { name: 'Pantry', count: 15 },
     { name: 'Freezer', count: 20 },
     { name: 'Beverage', count: 26 },
   ]);
-  const [isModalVisible, setModalVisible] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
   const [newItemCount, setNewItemCount] = useState('');
-  const addKitchenItem = () => {
-    if (newItemName.trim() && !isNaN(parseInt(newItemCount, 10))) {
-      setKitchenItems([...kitchenItems, { name: newItemName, count: parseInt(newItemCount, 10) }]);
-      setNewItemName('');
-      setNewItemCount('');
-      setModalVisible(false);
-    }
-  };
-  const [sharedLists, setSharedLists] = useState<GroceryList[]>([]);
+  const [isModalVisible, setModalVisible] = useState(false); // show add-kitchen modal
+  // ── Shared Grocery Lists State & Handlers ───────────────────────────────────
   const [sharedListIds, setSharedListIds] = useState<string[]>([]);
-  //Add shared list
-  const [isAddSharedModalVisible, setAddSharedModalVisible] = useState(false);
+  const [sharedLists, setSharedLists] = useState<GroceryList[]>([]);
   const [newSharedListName, setNewSharedListName] = useState('');
-  // Editing grocery-list names
+  const [isAddSharedModalVisible, setAddSharedModalVisible] = useState(false);
+  // ── Name Editing State ───────────────────────────────────────────────
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
-  // "Share family" members
+  // ── Family Membership & Ownership ───────────────────────────────────────────
+  const [familyDocId, setFamilyDocId] = useState('');
+  const [familyName, setFamilyName] = useState<string>('');
+  const [isEditingName, setIsEditingName] = useState<boolean>(false);
   const [familyMembers, setFamilyMembers] = useState<string[]>([]);
   const [ownerID, setOwnerID] = useState('');
-  const [familyDocId, setFamilyDocId] = useState<string>('');
-  const [usernamesMap, setUsernamesMap] = useState<{ [key: string]: string }>({});
+  const [usernamesMap, setUsernamesMap] = useState<Record<string, string>>({});
+  // ── Transfer Ownership UI ───────────────────────────────────────────────────
+  const [selectedNewOwner, setSelectedNewOwner] = useState('');
+  const [showTransferOptions, setShowTransferOptions] = useState(false);
+  // ── Family Deletion Confirmation Modal ─────────────────────────────────────
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  //Join Kitchen feature  
+  const [enteredCode, setEnteredCode] = useState('');
+  const [isShareModalVisible, setShareModalVisible] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
 
+  const generateShareLink = async () => {
+      try {
+        const link = await createKitchenInvite(currentUser?.uid || '');
+        setGeneratedLink(link);
+        setShareModalVisible(true);
+      } catch (error) {
+        alert('Failed to generate link');
+      }
+    };
   
+    const copyToClipboard = () => {
+      Clipboard.setStringAsync(generatedLink);
+      alert('Link copied to clipboard!');
+    };
+  
+    const extractInviteCode = (input: string) => {
+      const match = input.trim().match(/([a-zA-Z0-9_-]{10,})$/);
+      return match ? match[1] : null;
+    };
+  
+  const handleJoinKitchen = async () => {
+    const code = extractInviteCode(enteredCode);
+    const currentUser = auth.currentUser;
+    if (!code || !currentUser) {
+      alert('Invalid share code or user');
+      return;
+    }
+  
+    try {
+      const inviteRef = doc(db, 'invites', code);
+      const inviteSnap = await getDoc(inviteRef);
+  
+      if (!inviteSnap.exists()) {
+        alert('Invite code not found or expired');
+        return;
+      }
+  
+      const inviteData = inviteSnap.data();
+      const ownerID = inviteData.owner_id;
+  
+      // Reference to the family doc
+      const familySnapshot = await getDocs(collection(db, 'family'));
+      let foundFamilyDoc = null;
+      let familyID = '';
+  
+      familySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.owner_id === ownerID) {
+          foundFamilyDoc = docSnap;
+          familyID = docSnap.id;
+        }
+      });
+  
+      if (!foundFamilyDoc) {
+        // Create the family document
+        const newFamilyRef = await addDoc(collection(db, 'family'), {
+          owner_id: ownerID,
+          family_name: familyName,
+          members: [ownerID, currentUser.uid],
+          shared_pantries: [],
+          shared_lists: [],
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        // Add user to existing members array
+        await updateDoc(doc(db, 'family', familyID), {
+          members: arrayUnion(currentUser.uid),
+        });
+      }
+  
+      alert('Successfully joined the kitchen!');
+    } catch (err) {
+      console.error('Error joining kitchen:', err);
+      alert('Failed to join the kitchen.');
+    }
+  };
+
+  /** Edit Family Name */
+  const handleSaveFamilyName = async () => {
+    if (!familyDocId) return;
+    try {
+      await updateDoc(doc(db, 'family', familyDocId), {
+        family_name: familyName.trim(),
+      });
+      Alert.alert('Saved', 'Family name updated.');
+    } catch (err) {
+      console.error('Error updating family name', err);
+      Alert.alert('Error', 'Could not update name.');
+    }
+  };
+
+  const addKitchenItem = () => {
+    const count = parseInt(newItemCount, 10);
+    if (!newItemName.trim() || isNaN(count)) return;
+    setKitchenItems([...kitchenItems, { name: newItemName.trim(), count }]);
+    setNewItemName('');
+    setNewItemCount('');
+    setModalVisible(false);
+  };
+
 
     // **Fetch Family Data */
     useFocusEffect(
@@ -63,11 +173,16 @@ export default function FamilyManagementScreen() {
             // 1) find the family doc this user belongs to
             const familyQuerySnapshot = await getDocs(collection(db, 'family'));
             const foundFamily = familyQuerySnapshot.docs.find(docSnap => {
-              const data = docSnap.data() as { members: string[]; owner_id: string };
+              const data = docSnap.data() as {
+                members: string[];
+                owner_id: string;
+                shared_lists?: string[];
+                family_name?: string;
+              };
               return Array.isArray(data.members) && data.members.includes(currentUser.uid);
             });
     
-            if (!foundFamily) {
+            if (!foundFamily || !active) {
               console.log('No family document found for current user');
               return;
             }
@@ -77,18 +192,20 @@ export default function FamilyManagementScreen() {
               owner_id: string;
               shared_lists?: string[];
               shared_pantries?: string[];
+              family_name?: string;
             };
+            
             if (!active) return;
-    
             setFamilyMembers(familyData.members);
             setOwnerID(familyData.owner_id);
             setFamilyDocId(foundFamily.id);
-            setSharedListIds(familyData.shared_lists || []);
+            setSharedListIds(familyData.shared_lists ?? []);
+            setFamilyName(familyData.family_name ?? '');
     
             //fetch each member’s display name
             const usernames: Record<string, string> = {};
             await Promise.all(
-              familyData.members.map(async (uid) => {
+              familyData.members.map(async (uid: string) => {
                 const snap = await getDoc(doc(db, 'users', uid));
                 if (!snap.exists()) {
                   usernames[uid] = 'Unknown';
@@ -105,8 +222,28 @@ export default function FamilyManagementScreen() {
         };
     
         fetchFamilyData();
-      }, [auth.currentUser?.uid, familyDocId]) 
+
+        return () => { active = false; }
+      }, [auth.currentUser?.uid]) 
     );
+
+    async function ensureAccount(ownerID: string) {
+      let acct = null;
+      try {
+        acct = await getAccountByOwnerID(ownerID);
+      } catch  (err) {}
+  
+      if (!acct) {
+        const userSnap = await getDoc(doc(db, 'users', ownerID));
+        const accountName = userSnap.exists()
+          ? (userSnap.data().username as string)
+          : 'Unknown';
+        // create the Account with the real username
+        await createAccount(ownerID, accountName, 'user');
+      }
+  
+      return acct!;
+    }
 
     // Create-List function
     const handleCreateSharedList = async () => {
@@ -120,7 +257,7 @@ export default function FamilyManagementScreen() {
     
       try {
         //Load Account recored by owner_id
-        const account = await getAccountByOwnerID(ownerID);
+        const account = await ensureAccount(ownerID);
 
         // create the list under that account
         const created = await createGroceryList(account.id, name);
@@ -155,37 +292,96 @@ export default function FamilyManagementScreen() {
     };
 
     // Get *all* shared lists globally then filter to those owned by your family
-    useFocusEffect(
-      useCallback(() => {
-        if (sharedListIds.length === 0) {
-          setSharedLists([]);
-          return;
+    useEffect(() => {
+      if (!familyDocId) return;
+      if (sharedListIds.length === 0) {
+        setSharedLists([]);
+        return;
+      }
+  
+      (async () => {
+        try {
+          // 1) fetch all lists by ID
+          const results = await Promise.all(
+            sharedListIds.map(id => fetchGroceryListByID(id))
+          );
+  
+          // 2) split out which came back null
+          const deletedIds = sharedListIds.filter((id, i) => results[i] === null);
+  
+          // 3) if any were deleted server‐side, remove them from your family.shared_lists
+          if (deletedIds.length) {
+            const familyRef = doc(db, 'family', familyDocId);
+            for (const id of deletedIds) {
+              await updateDoc(familyRef, { shared_lists: arrayRemove(id) });
+            }
+            // 4) prune them from your local state
+            setSharedListIds(prev => prev.filter(id => !deletedIds.includes(id)));
+          }
+  
+          // 5) keep only the non‐null lists for your UI
+          setSharedLists(
+            results.filter((l): l is GroceryList => l !== null)
+          );
+        } catch (err) {
+          console.error('Failed to fetch/clean shared lists:', err);
         }
-        // fetch each list by ID
-        Promise.all(sharedListIds.map(id => fetchGroceryListByID(id)))
-          .then(results => {
-            setSharedLists(results.filter((l): l is GroceryList => l !== null));
-          })
-          .catch(console.error);
-      }, [sharedListIds])
-    );
+      })();
+    }, [sharedListIds, familyDocId]);
 
-
-    
-    const [selectedNewOwner, setSelectedNewOwner] = useState('');
-    const [showTransferOptions, setShowTransferOptions] = useState(false);
 
     // open shared list modal
-    const openSharedList = (list: GroceryList) => {
+    const openSharedList = async (list: GroceryList) => {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("You must be logged in to open a list.");
+        return;
+      }
+      const uid = user.uid ;
+      try {
+        await getAccountByOwnerID(uid);
+      } catch {
+        const name = usernamesMap[uid] || 'Unknown';
+        await createAccount(uid, name, 'user');
+      }
       router.push({
         pathname: '/ListUI',
         params: { id: list.id },
       });
     };
 
+    // Delete entire family (owner only)
+    const handleDeleteFamily = async () => {
+      if (!familyDocId) return;
 
-     // 5) Add‐item UI in grocery list
-    const [newItemName, setNewItemName]         = useState('');  
+      // 1) Delete each shared list in Firestore
+      try {
+        await Promise.all(sharedListIds.map(id => deleteGroceryList(id)));
+      } catch (err) {
+        console.error('Error deleting shared grocery lists:', err);
+        alert('Failed to delete some shared lists.');
+        return;
+      }
+
+      // 2) Delete the family document itself
+      try {
+        await deleteDoc(doc(db, 'family', familyDocId));
+      } catch (err) {
+        console.error('Error deleting family document:', err);
+        alert('Failed to delete family.');
+        return;
+      }
+
+      // 3) Clear local state
+      setFamilyMembers([]);
+      setOwnerID('');
+      setFamilyDocId('');
+      setSharedListIds([]);
+      setSharedLists([]);
+
+      alert('Family and all its shared lists have been deleted.');
+    };
+
 
     // **Disconnect from family */
     const handleDisconnect = async () => {
@@ -298,19 +494,81 @@ export default function FamilyManagementScreen() {
 
       <View style={styles.mainContent}>
         {/* Family Section */}
+      {familyMembers.length > 0 ? (  
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Family</Text>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Name</Text>
-            <Text style={styles.detail}>Best Family Ever</Text>
+            {currentUser?.uid === ownerID
+              ? (
+                // -- owner sees editable input + icon
+                <View style={[{flexDirection: 'row'}, {alignItems: 'center'}]}>
+                  {isEditingName
+                    ? (
+                      <TextInput
+                        style={[styles.detail, styles.input]}
+                        value={familyName}
+                        onChangeText={setFamilyName}
+                        autoFocus
+                      />
+                    )
+                    : (
+                      <Text style={styles.detail}>{familyName || '—'}</Text>
+                    )
+                  }
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (isEditingName) {
+                        await handleSaveFamilyName();
+                        setIsEditingName(false);
+                      } else {
+                        setIsEditingName(true);
+                      }
+                    }}
+                    style={styles.iconButton}
+                  >
+                    <Ionicons
+                      name={isEditingName ? 'checkmark-circle' : 'pencil'}
+                      size={20}
+                      color="#4CAF50"
+                      
+                    />
+                  </TouchableOpacity>
+                </View>
+              )
+              : (
+                // -- non-owners just see the name
+                <Text style={styles.detail}>{familyName || '—'}</Text>
+              )
+            }
             <Text style={styles.label}>Shared Pantries:</Text>
             <Text style={styles.detail}>{kitchenItems.length}</Text>
             <Text style={styles.label}>Shared Lists:</Text>
             <Text style={styles.detail}>{sharedLists.length}</Text>
+
           </View>
-          <TouchableOpacity style={styles.disconnectButton} onPress={handleDisconnect}>
-            <Text style={styles.buttonText}>DISCONNECT</Text>
-          </TouchableOpacity>
+
+          {currentUser?.uid === ownerID && (
+              <TouchableOpacity style={styles.button} onPress={handleSaveFamilyName}>
+                <Text style={styles.buttonText}>Save Name</Text>
+              </TouchableOpacity>
+          )}  
+
+          {currentUser?.uid === ownerID ? (
+            <TouchableOpacity
+              style={[styles.disconnectButton, { backgroundColor: 'red' }]}
+              onPress={() => setShowDeleteModal(true)}
+            >
+              <Text style={styles.buttonText}>DELETE FAMILY</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.disconnectButton}
+              onPress={handleDisconnect}
+            >
+              <Text style={styles.buttonText}>DISCONNECT</Text>
+            </TouchableOpacity>
+          )}
           {currentUser?.uid === ownerID && (
             <>
               <TouchableOpacity
@@ -348,6 +606,100 @@ export default function FamilyManagementScreen() {
             </>
           )}
         </View>
+
+      ) : (
+      <View style = {styles.section}>
+        <Text style={styles.sectionTitle}> Join a Kitchen</Text>
+        <Text style={styles.detail}>
+          Share your kitchen with friends and family to manage the kitchen together.
+        </Text>
+        <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#2196F3' }, {marginTop: 10}]} onPress={generateShareLink}>
+          <Text style={styles.buttonText}>Share Kitchen</Text>
+        </TouchableOpacity>
+        <View style={{ marginTop: 20 }}>
+          <Text style={styles.label}>Have a Share Code?</Text>
+          <TextInput
+            placeholder="Enter share code..."
+            value={enteredCode}
+            onChangeText={setEnteredCode}
+            style={[
+              styles.detail, 
+              { borderWidth: 1, borderColor: 'black' }
+            ]}
+          />
+          <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#4CAE4F'}, {marginTop: 10}]} onPress={handleJoinKitchen}>
+            <Text style={styles.transferButtonText}>Join Kitchen</Text>
+          </TouchableOpacity>          
+        </View>  
+      </View>  
+      )}
+<Modal
+            animationType="slide"
+            transparent={true}
+            visible={isShareModalVisible}
+            onRequestClose={() => setShareModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Share Kitchen</Text>
+                <Text style={styles.detail}>
+                  Share this link with your family members.
+                </Text>
+                <TextInput
+                  style={[
+                    styles.linkBox, 
+                    {
+                      color: dark ? '#FFF' : '#000',
+                      backgroundColor: dark ? '#222' : '#f5f5f5',
+                      borderColor: dark ? '#444' : '#ccc',
+                    },
+                  ]}
+                  value={generatedLink}
+                  editable={false}
+                />
+                <TouchableOpacity
+                  style={styles.transferButton}
+                  onPress={copyToClipboard}
+                >
+                  <Text style={styles.transferButtonText}>Copy Link</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.closeButton} onPress={() => setShareModalVisible(false)}>
+                  <Text style={styles.buttonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+
+        {/* Delete-Family Confirmation Modal */}
+      <Modal
+        transparent
+        visible={showDeleteModal}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+              Are you sure you want to delete this family?
+            </Text>
+            <View style={styles.modalButtons}>
+              <Pressable
+                onPress={() => setShowDeleteModal(false)}
+                style={[styles.modalButton, { backgroundColor: '#2196F3' } ]}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleDeleteFamily}
+                style={[styles.modalButton, { backgroundColor: '#FF5252' }]}
+              >
+                <Text style={styles.buttonText}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
         {/* Family Members Section */}
         <View style={styles.section}>
@@ -801,6 +1153,19 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 10,
   },
+  linkBox: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    textAlign: 'center',
+    backgroundColor: '#f5f5f5',
+    marginBottom: 10,
+  },
+  iconButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
 
 });
-
