@@ -43,6 +43,12 @@ const DELETE_PANTRY = gql`
   }
 `;
 
+const SEARCH_PANTRIES = gql`
+  query SearchPantries($account_id: String!, $query: String!) {
+    searchPantries(account_id: $account_id, query: $query)
+  }
+`;
+
 export interface Pantry {
   id: string;
   account_id: string;
@@ -264,6 +270,26 @@ export async function getPantryById(pantry_id: string) {
     return result.data.getPantryById;
   } catch (error) {
     console.error('Error fetching pantry:', error);
+    throw error;
+  }
+}
+
+/**
+ * Returns an array of pantry IDs whose name or description matches the query.
+ */
+export async function searchPantries(
+  account_id: string,
+  query: string
+): Promise<string[]> {
+  try {
+    const result = await client.query<{ searchPantries: string[] }>({
+      query: SEARCH_PANTRIES,
+      variables: { account_id, query },
+      fetchPolicy: 'network-only',
+    });
+    return result.data.searchPantries;
+  } catch (error) {
+    console.error('Error searching pantries:', error);
     throw error;
   }
 }

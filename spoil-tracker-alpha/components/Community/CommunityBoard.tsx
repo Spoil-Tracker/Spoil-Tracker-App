@@ -672,15 +672,7 @@ const CommunityBoard: React.FC = () => {
           );
 
         case "Featured Meal Plans":
-          return (
-            <GroceryItem
-              item={item as GroceryList}
-              account={account}
-              onToggleLike={handleToggleGroceryLike}
-              onDelete={handleDeleteGroceryList}
-              onOpenModal={openGroceryModal}
-            />
-          );
+          return null;
 
         case "Community Posts":
           return (
@@ -894,6 +886,7 @@ const CommunityBoard: React.FC = () => {
               </>
             )}
             {section.title === 'Featured Meal Plans' && (
+              <>
               <View style={styles.searchSortContainer}>
                 <TextInput
                   style={styles.searchInput}
@@ -924,6 +917,24 @@ const CommunityBoard: React.FC = () => {
                   </TouchableOpacity>
                 </View>
               </View>
+              <FlatList<GroceryList>
+                horizontal
+                data={section.data as GroceryList[]}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <GroceryItem
+                    item={item}
+                    account={account}
+                    onToggleLike={handleToggleGroceryLike}
+                    onDelete={handleDeleteGroceryList}
+                    onOpenModal={openGroceryModal}
+                  />
+                )}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalSection}
+              />
+            </>
+              
             )}
           </View>
         )}

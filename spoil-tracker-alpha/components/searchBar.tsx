@@ -35,7 +35,7 @@ import { searchFoodGlobalByFoodName } from './Food/FoodGlobalService';
 import { searchCustomItemsFromAccount } from './Account/AccountService';
 import {
   searchPantries,
-  fetchPantryByID
+  getPantryById
 } from './Pantry/PantryService';
 
 import ProductPage from './Food/FoodUI';
@@ -107,7 +107,7 @@ const SearchSuggestionsComponent: React.FC<Props> = ({ onSelectSuggestion }) => 
       const pantryIds = await searchPantries(accountId, q);
       const pantries = await Promise.all(
         pantryIds.map(async (id: string) => {
-          const p = await fetchPantryByID(id);
+          const p = await getPantryById(id);
           return { id, name: p?.pantry_name ?? 'Unknown' };
         })
       );
