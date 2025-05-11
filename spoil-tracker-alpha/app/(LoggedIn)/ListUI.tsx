@@ -1421,7 +1421,7 @@ const styles = StyleSheet.create({
     borderColor: '#007bff',
   },
   sortByButton: {
-    backgroundColor: '#1e81b0',
+    backgroundColor: 'white',
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,

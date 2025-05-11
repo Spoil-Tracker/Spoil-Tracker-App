@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo ""
 echo "============================================================================================================="
@@ -62,7 +62,8 @@ prompt_optional() {
     local var_name="$1"
     local prompt_text="$2"
     local current_value="${!var_name}"
-    read -p "$prompt_text [${current_value}]: " input
+    # -e: enable Readline; -i: use $current_value as initial text (bash ≥4.0)
+    read -e -i "$current_value" -p "$prompt_text: " input
     if [ -n "$input" ]; then
         eval "$var_name=\"\$input\""
     fi
