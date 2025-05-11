@@ -91,6 +91,7 @@ if [[ "$configure_fb" =~ ^[Yy] ]]; then
 else
     echo "Using default Firebase project settings (no prompts)."
     echo "You will be connected to a public server. Please note that we cannot guarantee the integrity or availability of the server, so do not surrender anything confidential."
+    echo "After the application starts, please wait for a couple minutes for the server to begin / wake up from hibernation."
     FINAL_LOCAL_IP=""   # leave blank so client falls back to Render URL
 fi
 
