@@ -178,6 +178,7 @@ export default function FamilyManagementScreen() {
                 owner_id: string;
                 shared_lists?: string[];
                 family_name?: string;
+                shared_pantries?: string[];
               };
               return Array.isArray(data.members) && data.members.includes(currentUser.uid);
             });
