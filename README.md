@@ -25,6 +25,7 @@ The repository is set up so that you host your own server for your own applicati
 2. A valid [Firebase project with Firestore Database setup + Service Account Keys.](https://firebase.google.com/) (OPTIONAL, SEE BELOW IF YOU DO NOT HAVE A FIREBASE PROJECT)
 3. [Food & Drug Administration API Key](https://open.fda.gov/apis/authentication/) (Optional)
 4. [OpenAI API Key](https://platform.openai.com/playground) (Optional)
+5. Bash Version 4 or greater
 
 ## Keys
 
@@ -50,6 +51,8 @@ Most of the setup is handled through the ```setup.sh``` bash script. In Git Bash
 **NOTE: The script will refuse to run if NodeJS and NPM are not installed on your device.**
 
 **NOTE: Please make sure that the script has appropriate permissions before running.**
+
+**NOTE: If you are having trouble running the script, it is possible that your version of bash is outdated.
 
 It will ask for an FDA API key, an OpenAI API key, and valid firebase app credentials (that go along with your service account key). You may skip on providing the first two API keys, however a select few, small features will be unavailable within the application as a result.
 
