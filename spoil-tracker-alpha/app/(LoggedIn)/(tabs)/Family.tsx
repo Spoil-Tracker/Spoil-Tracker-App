@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { MaterialIcons, AntDesign } from '@expo/vector-icons';
-import { doc, getDoc, getDocs, deleteDoc, collection, arrayRemove, updateDoc, arrayUnion} from 'firebase/firestore';
+import { View, Text, TouchableOpacity, TextInput, Modal, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { MaterialIcons, AntDesign, Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import { useTheme } from 'react-native-paper'; // allows for dark mode, contributed by Kevin
+import { doc, addDoc, getDoc, getDocs, deleteDoc, collection, arrayRemove, updateDoc, arrayUnion} from 'firebase/firestore';
 import { auth, db } from '../../../services/firebaseConfig';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
@@ -13,8 +15,11 @@ import {
 } from '@/components/GroceryList/GroceryListService';
 import { getAccountByOwnerID, createAccount } from '@/components/Account/AccountService'
 import { GroceryList, deleteGroceryList } from '@/components/GroceryList/GroceryListService';
+import { createKitchenInvite } from '../../../services/inviteService';
 
 export default function FamilyManagementScreen() {
+
+  const { colors, dark } = useTheme(); // allows for dark mode, contributed by Kevin
 
   // ── Navigation & Auth ───────────────────────────────────────────────────────
   const router = useRouter();
@@ -39,6 +44,8 @@ export default function FamilyManagementScreen() {
   const [editingName, setEditingName] = useState('');
   // ── Family Membership & Ownership ───────────────────────────────────────────
   const [familyDocId, setFamilyDocId] = useState('');
+  const [familyName, setFamilyName] = useState<string>('');
+  const [isEditingName, setIsEditingName] = useState<boolean>(false);
   const [familyMembers, setFamilyMembers] = useState<string[]>([]);
   const [ownerID, setOwnerID] = useState('');
   const [usernamesMap, setUsernamesMap] = useState<Record<string, string>>({});
@@ -47,6 +54,101 @@ export default function FamilyManagementScreen() {
   const [showTransferOptions, setShowTransferOptions] = useState(false);
   // ── Family Deletion Confirmation Modal ─────────────────────────────────────
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  //Join Kitchen feature  
+  const [enteredCode, setEnteredCode] = useState('');
+  const [isShareModalVisible, setShareModalVisible] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState('');
+
+  const generateShareLink = async () => {
+      try {
+        const link = await createKitchenInvite(currentUser?.uid || '');
+        setGeneratedLink(link);
+        setShareModalVisible(true);
+      } catch (error) {
+        alert('Failed to generate link');
+      }
+    };
+  
+    const copyToClipboard = () => {
+      Clipboard.setStringAsync(generatedLink);
+      alert('Link copied to clipboard!');
+    };
+  
+    const extractInviteCode = (input: string) => {
+      const match = input.trim().match(/([a-zA-Z0-9_-]{10,})$/);
+      return match ? match[1] : null;
+    };
+  
+  const handleJoinKitchen = async () => {
+    const code = extractInviteCode(enteredCode);
+    const currentUser = auth.currentUser;
+    if (!code || !currentUser) {
+      alert('Invalid share code or user');
+      return;
+    }
+  
+    try {
+      const inviteRef = doc(db, 'invites', code);
+      const inviteSnap = await getDoc(inviteRef);
+  
+      if (!inviteSnap.exists()) {
+        alert('Invite code not found or expired');
+        return;
+      }
+  
+      const inviteData = inviteSnap.data();
+      const ownerID = inviteData.owner_id;
+  
+      // Reference to the family doc
+      const familySnapshot = await getDocs(collection(db, 'family'));
+      let foundFamilyDoc = null;
+      let familyID = '';
+  
+      familySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.owner_id === ownerID) {
+          foundFamilyDoc = docSnap;
+          familyID = docSnap.id;
+        }
+      });
+  
+      if (!foundFamilyDoc) {
+        // Create the family document
+        const newFamilyRef = await addDoc(collection(db, 'family'), {
+          owner_id: ownerID,
+          family_name: familyName,
+          members: [ownerID, currentUser.uid],
+          shared_pantries: [],
+          shared_lists: [],
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        // Add user to existing members array
+        await updateDoc(doc(db, 'family', familyID), {
+          members: arrayUnion(currentUser.uid),
+        });
+      }
+  
+      alert('Successfully joined the kitchen!');
+    } catch (err) {
+      console.error('Error joining kitchen:', err);
+      alert('Failed to join the kitchen.');
+    }
+  };
+
+  /** Edit Family Name */
+  const handleSaveFamilyName = async () => {
+    if (!familyDocId) return;
+    try {
+      await updateDoc(doc(db, 'family', familyDocId), {
+        family_name: familyName.trim(),
+      });
+      Alert.alert('Saved', 'Family name updated.');
+    } catch (err) {
+      console.error('Error updating family name', err);
+      Alert.alert('Error', 'Could not update name.');
+    }
+  };
 
   const addKitchenItem = () => {
     const count = parseInt(newItemCount, 10);
@@ -75,6 +177,7 @@ export default function FamilyManagementScreen() {
                 members: string[];
                 owner_id: string;
                 shared_lists?: string[];
+                family_name?: string;
                 shared_pantries?: string[];
               };
               return Array.isArray(data.members) && data.members.includes(currentUser.uid);
@@ -90,6 +193,7 @@ export default function FamilyManagementScreen() {
               owner_id: string;
               shared_lists?: string[];
               shared_pantries?: string[];
+              family_name?: string;
             };
             
             if (!active) return;
@@ -97,7 +201,7 @@ export default function FamilyManagementScreen() {
             setOwnerID(familyData.owner_id);
             setFamilyDocId(foundFamily.id);
             setSharedListIds(familyData.shared_lists ?? []);
-    
+            setFamilyName(familyData.family_name ?? '');
     
             //fetch each member’s display name
             const usernames: Record<string, string> = {};
@@ -391,16 +495,66 @@ export default function FamilyManagementScreen() {
 
       <View style={styles.mainContent}>
         {/* Family Section */}
+      {familyMembers.length > 0 ? (  
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Family</Text>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Name</Text>
-            <Text style={styles.detail}>Best Family Ever</Text>
+            {currentUser?.uid === ownerID
+              ? (
+                // -- owner sees editable input + icon
+                <View style={[{flexDirection: 'row'}, {alignItems: 'center'}]}>
+                  {isEditingName
+                    ? (
+                      <TextInput
+                        style={[styles.detail, styles.input]}
+                        value={familyName}
+                        onChangeText={setFamilyName}
+                        autoFocus
+                      />
+                    )
+                    : (
+                      <Text style={styles.detail}>{familyName || '—'}</Text>
+                    )
+                  }
+                  <TouchableOpacity
+                    onPress={async () => {
+                      if (isEditingName) {
+                        await handleSaveFamilyName();
+                        setIsEditingName(false);
+                      } else {
+                        setIsEditingName(true);
+                      }
+                    }}
+                    style={styles.iconButton}
+                  >
+                    <Ionicons
+                      name={isEditingName ? 'checkmark-circle' : 'pencil'}
+                      size={20}
+                      color="#4CAF50"
+                      
+                    />
+                  </TouchableOpacity>
+                </View>
+              )
+              : (
+                // -- non-owners just see the name
+                <Text style={styles.detail}>{familyName || '—'}</Text>
+              )
+            }
             <Text style={styles.label}>Shared Pantries:</Text>
             <Text style={styles.detail}>{kitchenItems.length}</Text>
             <Text style={styles.label}>Shared Lists:</Text>
             <Text style={styles.detail}>{sharedLists.length}</Text>
+
           </View>
+
+          {currentUser?.uid === ownerID && (
+              <TouchableOpacity style={styles.button} onPress={handleSaveFamilyName}>
+                <Text style={styles.buttonText}>Save Name</Text>
+              </TouchableOpacity>
+          )}  
+
           {currentUser?.uid === ownerID ? (
             <TouchableOpacity
               style={[styles.disconnectButton, { backgroundColor: 'red' }]}
@@ -453,6 +607,70 @@ export default function FamilyManagementScreen() {
             </>
           )}
         </View>
+
+      ) : (
+      <View style = {styles.section}>
+        <Text style={styles.sectionTitle}> Join a Kitchen</Text>
+        <Text style={styles.detail}>
+          Share your kitchen with friends and family to manage the kitchen together.
+        </Text>
+        <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#2196F3' }, {marginTop: 10}]} onPress={generateShareLink}>
+          <Text style={styles.buttonText}>Share Kitchen</Text>
+        </TouchableOpacity>
+        <View style={{ marginTop: 20 }}>
+          <Text style={styles.label}>Have a Share Code?</Text>
+          <TextInput
+            placeholder="Enter share code..."
+            value={enteredCode}
+            onChangeText={setEnteredCode}
+            style={[
+              styles.detail, 
+              { borderWidth: 1, borderColor: 'black' }
+            ]}
+          />
+          <TouchableOpacity style={[styles.modalButton, {backgroundColor: '#4CAE4F'}, {marginTop: 10}]} onPress={handleJoinKitchen}>
+            <Text style={styles.transferButtonText}>Join Kitchen</Text>
+          </TouchableOpacity>          
+        </View>  
+      </View>  
+      )}
+<Modal
+            animationType="slide"
+            transparent={true}
+            visible={isShareModalVisible}
+            onRequestClose={() => setShareModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Share Kitchen</Text>
+                <Text style={styles.detail}>
+                  Share this link with your family members.
+                </Text>
+                <TextInput
+                  style={[
+                    styles.linkBox, 
+                    {
+                      color: dark ? '#FFF' : '#000',
+                      backgroundColor: dark ? '#222' : '#f5f5f5',
+                      borderColor: dark ? '#444' : '#ccc',
+                    },
+                  ]}
+                  value={generatedLink}
+                  editable={false}
+                />
+                <TouchableOpacity
+                  style={styles.transferButton}
+                  onPress={copyToClipboard}
+                >
+                  <Text style={styles.transferButtonText}>Copy Link</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.closeButton} onPress={() => setShareModalVisible(false)}>
+                  <Text style={styles.buttonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
 
         {/* Delete-Family Confirmation Modal */}
       <Modal
@@ -935,6 +1153,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 10,
+  },
+  linkBox: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    textAlign: 'center',
+    backgroundColor: '#f5f5f5',
+    marginBottom: 10,
+  },
+  iconButton: {
+    marginLeft: 8,
+    padding: 4,
   },
 
 });
